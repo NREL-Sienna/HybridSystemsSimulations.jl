@@ -1,3 +1,3 @@
 # Quick Start Guide
 
-SIIP-PACKAGE.jl is structured to enable stuff
+HybridSystemsSimulations.jl is structured to enable stuff

@@ -1,5 +1,4 @@
-module SIIP
--PACKAGE
+module HybridSystemsSimulations
 
 using DocStringExtensions
 

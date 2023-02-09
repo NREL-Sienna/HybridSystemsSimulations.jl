@@ -74,7 +74,14 @@ num_steps = 3
 ##### Run PTDF Bounded Sim ####
 ###############################
 
-sim_ptdf = build_simulation_case(template_uc_ptdf, template_ed_ptdf, sys_rts_da, sys_rts_rt, num_steps, mipgap)
+sim_ptdf = build_simulation_case(
+    template_uc_ptdf,
+    template_ed_ptdf,
+    sys_rts_da,
+    sys_rts_rt,
+    num_steps,
+    mipgap,
+)
 build_out = build!(sim_ptdf; console_level=Logging.Info, serialize=false)
 
 execute_status = execute!(sim_ptdf; enable_progress_bar=true);
@@ -90,8 +97,15 @@ cp_price_ptdf = get_copperplate_prices(results_uc_ptdf)
 #### Run PTDF Unbounded Sim ###
 ###############################
 
-sim_ptdf_unbounded = build_simulation_case(template_uc_unbounded_ptdf, template_ed_unbounded_ptdf, sys_rts_da, sys_rts_rt, num_steps, mipgap)
-build_out = build!(sim_ptdf_unbounded ; console_level=Logging.Info, serialize=false)
+sim_ptdf_unbounded = build_simulation_case(
+    template_uc_unbounded_ptdf,
+    template_ed_unbounded_ptdf,
+    sys_rts_da,
+    sys_rts_rt,
+    num_steps,
+    mipgap,
+)
+build_out = build!(sim_ptdf_unbounded; console_level=Logging.Info, serialize=false)
 
 execute_status = execute!(sim_ptdf_unbounded; enable_progress_bar=true);
 
@@ -104,7 +118,14 @@ cp_price_ptdf_unbounded = get_copperplate_prices(results_uc_ptdf_unbounded)
 #### Run Copperplate Sim ######
 ###############################
 
-sim_copperplate = build_simulation_case(template_uc_copperplate, template_ed_copperplate, sys_rts_da, sys_rts_rt, num_steps, mipgap)
+sim_copperplate = build_simulation_case(
+    template_uc_copperplate,
+    template_ed_copperplate,
+    sys_rts_da,
+    sys_rts_rt,
+    num_steps,
+    mipgap,
+)
 build_out = build!(sim_copperplate; console_level=Logging.Info, serialize=false)
 
 execute_status = execute!(sim_copperplate; enable_progress_bar=true);
@@ -119,7 +140,14 @@ prices_copperplate = get_copperplate_prices(results_uc_copperplate)
 ##### Run DCP Simulation ######
 ###############################
 
-sim_dcp = build_simulation_case(template_uc_dcp, template_ed_dcp, sys_rts_da, sys_rts_rt, num_steps, mipgap)
+sim_dcp = build_simulation_case(
+    template_uc_dcp,
+    template_ed_dcp,
+    sys_rts_da,
+    sys_rts_rt,
+    num_steps,
+    mipgap,
+)
 build_dcp = build!(sim_dcp; console_level=Logging.Info, serialize=false)
 
 execute_status = execute!(sim_dcp; enable_progress_bar=true);
@@ -135,15 +163,27 @@ prices_uc_dcp = get_psi_dcp_lmps(results_uc_dcp)
 ###############################
 
 UC_length = 1.0
-ED_length = 1/12
+ED_length = 1 / 12
 base_power = 100.0
 dcp_multiplier = -1.0 # -1.0 for DCP, 1.0 for PTDF
 bus_name = "Barton"
 
 # Prices being zero are when the Battery is the Marginal Unit. These zero prices go away when the battery is removed from the system.
 # Prices being -15.0 $/MWh are when Renewable is being curtailed
-barton_DA_prices = get_normalized_bus_prices(prices_uc_dcp, bus_name, UC_length, base_power, dcp_multiplier)
-barton_RT_prices = get_normalized_bus_prices(prices_ed_dcp, bus_name, ED_length, base_power, dcp_multiplier)
+barton_DA_prices = get_normalized_bus_prices(
+    prices_uc_dcp,
+    bus_name,
+    UC_length,
+    base_power,
+    dcp_multiplier,
+)
+barton_RT_prices = get_normalized_bus_prices(
+    prices_ed_dcp,
+    bus_name,
+    ED_length,
+    base_power,
+    dcp_multiplier,
+)
 #show(barton_RT_prices, allrows=true)
 
 ###############################

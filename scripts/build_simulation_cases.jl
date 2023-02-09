@@ -1,12 +1,22 @@
 # No emulation
-function build_simulation_case(template_uc, template_ed, sys_da::System, sys_rt::System, num_steps::Int, mipgap::Float64)
+function build_simulation_case(
+    template_uc,
+    template_ed,
+    sys_da::System,
+    sys_rt::System,
+    num_steps::Int,
+    mipgap::Float64,
+)
     models = SimulationModels(
         decision_models=[
             DecisionModel(
                 template_uc,
                 sys_da;
                 name="UC",
-                optimizer=optimizer_with_attributes(Xpress.Optimizer, "MIPRELSTOP" => mipgap),
+                optimizer=optimizer_with_attributes(
+                    Xpress.Optimizer,
+                    "MIPRELSTOP" => mipgap,
+                ),
                 system_to_file=false,
                 initialize_model=true,
                 optimizer_solve_log_print=false,
@@ -31,7 +41,7 @@ function build_simulation_case(template_uc, template_ed, sys_da::System, sys_rt:
             ),
         ],
     )
-    
+
     # Set-up the sequence UC-ED
     sequence = SimulationSequence(
         models=models,
@@ -46,7 +56,7 @@ function build_simulation_case(template_uc, template_ed, sys_da::System, sys_rt:
         ),
         ini_cond_chronology=InterProblemChronology(),
     )
-    
+
     sim = Simulation(
         name="compact_sim",
         steps=num_steps,
@@ -54,7 +64,7 @@ function build_simulation_case(template_uc, template_ed, sys_da::System, sys_rt:
         sequence=sequence,
         initial_time=DateTime("2020-10-01T00:00:00"),
         simulation_folder=mktempdir(cleanup=true),
-    );
+    )
 
     return sim
 end

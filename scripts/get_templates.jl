@@ -54,10 +54,7 @@ function set_dcp_line_unbounded_template!(template_uc)
 end
 
 function set_dcp_line_template!(template_uc)
-    set_device_model!(
-        template_uc,
-        DeviceModel(Line, StaticBranch),
-    )
+    set_device_model!(template_uc, DeviceModel(Line, StaticBranch))
     return
 end
 

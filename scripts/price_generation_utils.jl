@@ -12,7 +12,6 @@ function get_psi_ptdf_lmps(res, ptdf)
     dic_flow = read_realized_duals(res, ["NetworkFlowConstraint__Line"])
     flow_duals = dic_flow["NetworkFlowConstraint__Line"]
 
-
     # Obtain Matrix of LMPs of Line Congestions
     line_names = names(flow_duals)
     popfirst!(line_names)
@@ -51,7 +50,13 @@ function get_copperplate_prices(res)
     return dic_cp["CopperPlateBalanceConstraint__System"]
 end
 
-function get_normalized_bus_dcp_prices(prices_dcp, bus_name::String, time_length::Float64, base_power::Float64, multiplier::Float64)
+function get_normalized_bus_dcp_prices(
+    prices_dcp,
+    bus_name::String,
+    time_length::Float64,
+    base_power::Float64,
+    multiplier::Float64,
+)
     price = prices_dcp[:, bus_name]
     dates = prices_dcp[:, "DateTime"]
     normalized_price = multiplier * price / (base_power * time_length)

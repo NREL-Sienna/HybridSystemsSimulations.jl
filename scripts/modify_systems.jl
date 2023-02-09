@@ -24,7 +24,7 @@ function _build_battery(bus::PSY.Bus, energy_capacity, rating, efficiency)
         efficiency=(in=efficiency, out=1.0),
         reactive_power=0.0,
         reactive_power_limits=nothing,
-        base_power=100.0
+        base_power=100.0,
     )
     return device
 end

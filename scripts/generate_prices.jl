@@ -21,6 +21,7 @@ using JuMP
 using Logging
 using Dates
 using CSV
+using TimeSeries
 
 ###############################
 ######## Load Scripts #########
@@ -29,6 +30,7 @@ include("get_templates.jl")
 include("modify_systems.jl")
 include("price_generation_utils.jl")
 include("build_simulation_cases.jl")
+include("utils.jl")
 
 ###############################
 ######## Load Systems #########
@@ -69,6 +71,7 @@ template_ed_dcp = get_ed_dcp_template()
 
 mipgap = 0.002
 num_steps = 3
+starttime = DateTime("2020-10-01T00:00:00")
 
 ###############################
 ##### Run PTDF Bounded Sim ####
@@ -81,6 +84,7 @@ sim_ptdf = build_simulation_case(
     sys_rts_rt,
     num_steps,
     mipgap,
+    starttime,
 )
 build_out = build!(sim_ptdf; console_level=Logging.Info, serialize=false)
 
@@ -104,6 +108,7 @@ sim_ptdf_unbounded = build_simulation_case(
     sys_rts_rt,
     num_steps,
     mipgap,
+    starttime,
 )
 build_out = build!(sim_ptdf_unbounded; console_level=Logging.Info, serialize=false)
 
@@ -125,6 +130,7 @@ sim_copperplate = build_simulation_case(
     sys_rts_rt,
     num_steps,
     mipgap,
+    starttime,
 )
 build_out = build!(sim_copperplate; console_level=Logging.Info, serialize=false)
 
@@ -147,6 +153,7 @@ sim_dcp = build_simulation_case(
     sys_rts_rt,
     num_steps,
     mipgap,
+    starttime,
 )
 build_dcp = build!(sim_dcp; console_level=Logging.Info, serialize=false)
 
@@ -187,10 +194,38 @@ barton_RT_prices = get_normalized_bus_prices(
 #show(barton_RT_prices, allrows=true)
 
 ###############################
+##### Get Hybrid Sys Data #####
+###############################
+thermal_name = "215_CT_4"
+renewable_name = "215_PV_1"
+battery_name = "215_BATTERY"
+
+r_gen_da = get_component(StaticInjection, sys_rts_da, renewable_name)
+r_gen_rt = get_component(StaticInjection, sys_rts_rt, renewable_name)
+t_gen = get_component(StaticInjection, sys_rts_da, thermal_name)
+b_gen = get_component(StaticInjection, sys_rts_da, battery_name)
+
+# Forecasts
+maxpower_da_df = get_da_max_active_power_series(r_gen_da, starttime, num_steps)
+
+maxpower_rt_df = get_rt_max_active_power_series(r_gen_rt, starttime, num_steps)
+
+# Additional Data
+bat_param_df = get_battery_params(b_gen)
+thermal_param_df = get_thermal_params(t_gen)
+
+###############################
 ####### Export Results ########
 ###############################
 
+# Prices
 CSV.write("scripts/results/barton_DA_prices.csv", barton_DA_prices)
 CSV.write("scripts/results/barton_RT_prices.csv", barton_RT_prices)
 
-# TODO Export Forecast
+# Forecast
+CSV.write("scripts/results/barton_renewable_forecast_DA.csv", maxpower_da_df)
+CSV.write("scripts/results/barton_renewable_forecast_RT.csv", maxpower_rt_df)
+
+# Additional Data
+CSV.write("scripts/results/barton_battery_data.csv", bat_param_df)
+CSV.write("scripts/results/barton_thermal_data.csv", thermal_param_df)

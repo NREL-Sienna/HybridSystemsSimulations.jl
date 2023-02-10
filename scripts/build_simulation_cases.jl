@@ -6,6 +6,7 @@ function build_simulation_case(
     sys_rt::System,
     num_steps::Int,
     mipgap::Float64,
+    start_time,
 )
     models = SimulationModels(
         decision_models=[
@@ -62,7 +63,7 @@ function build_simulation_case(
         steps=num_steps,
         models=models,
         sequence=sequence,
-        initial_time=DateTime("2020-10-01T00:00:00"),
+        initial_time=start_time,
         simulation_folder=mktempdir(cleanup=true),
     )
 

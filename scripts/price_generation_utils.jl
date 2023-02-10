@@ -50,7 +50,7 @@ function get_copperplate_prices(res)
     return dic_cp["CopperPlateBalanceConstraint__System"]
 end
 
-function get_normalized_bus_dcp_prices(
+function get_normalized_bus_prices(
     prices_dcp,
     bus_name::String,
     time_length::Float64,

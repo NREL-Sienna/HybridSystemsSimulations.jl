@@ -1,0 +1,10 @@
+ParamName,Value
+initial_energy,1.0
+SoC_min,0.2
+SoC_max,2.0
+P_ch_min,0.0
+P_ch_max,1.0
+P_ds_min,0.0
+P_ds_max,1.0
+η_in,0.93
+η_out,1.0

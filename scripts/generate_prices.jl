@@ -199,11 +199,14 @@ barton_RT_prices = get_normalized_bus_prices(
 thermal_name = "215_CT_4"
 renewable_name = "215_PV_1"
 battery_name = "215_BATTERY"
+load_name = "Barton"
 
 r_gen_da = get_component(StaticInjection, sys_rts_da, renewable_name)
 r_gen_rt = get_component(StaticInjection, sys_rts_rt, renewable_name)
 t_gen = get_component(StaticInjection, sys_rts_da, thermal_name)
 b_gen = get_component(StaticInjection, sys_rts_da, battery_name)
+load_da = get_component(PowerLoad, sys_rts_da, load_name)
+load_rt = get_component(PowerLoad, sys_rts_rt, load_name)
 
 # Forecasts
 maxpower_da_df = get_da_max_active_power_series(r_gen_da, starttime, num_steps)
@@ -213,6 +216,8 @@ maxpower_rt_df = get_rt_max_active_power_series(r_gen_rt, starttime, num_steps)
 # Additional Data
 bat_param_df = get_battery_params(b_gen)
 thermal_param_df = get_thermal_params(t_gen)
+load_da_df = get_da_max_active_power_series(load_da, starttime, num_steps)
+load_rt_df = get_rt_max_active_power_series(load_rt, starttime, num_steps)
 
 ###############################
 ####### Export Results ########
@@ -226,6 +231,13 @@ CSV.write("scripts/results/barton_RT_prices.csv", barton_RT_prices)
 CSV.write("scripts/results/barton_renewable_forecast_DA.csv", maxpower_da_df)
 CSV.write("scripts/results/barton_renewable_forecast_RT.csv", maxpower_rt_df)
 
+# Load TimeSeries Forecast
+CSV.write("scripts/results/barton_load_forecast_DA.csv", load_da_df)
+CSV.write("scripts/results/barton_load_forecast_RT.csv", load_rt_df)
+
 # Additional Data
 CSV.write("scripts/results/barton_battery_data.csv", bat_param_df)
 CSV.write("scripts/results/barton_thermal_data.csv", thermal_param_df)
+
+three_cost = get_operation_cost(t_gen)
+three_cost

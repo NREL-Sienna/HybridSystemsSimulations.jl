@@ -1,3 +1,5 @@
 ParamName,Value
 P_min,0.22
 P_max,0.55
+C_var,25.919982960000002
+C_fix,646.6079492400002

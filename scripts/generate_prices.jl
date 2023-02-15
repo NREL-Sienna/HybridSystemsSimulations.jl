@@ -39,10 +39,15 @@ include("utils.jl")
 sys_rts_da = build_system(PSITestSystems, "modified_RTS_GMLC_DA_sys")
 sys_rts_rt = build_system(PSITestSystems, "modified_RTS_GMLC_RT_sys")
 
+# There is no Wind + Thermal in a Single Bus.
+# We will try to pick the Wind in 317 bus Chuhsi
+# It does not have thermal and load, so we will pick the adjacent bus 318: Clark
+
 systems = [sys_rts_da, sys_rts_rt]
 for sys in systems
+    bus_to_add = "Chuhsi" # "Barton"
     modify_ren_curtailment_cost!(sys)
-    add_battery_to_bus!(sys, "Barton")
+    add_battery_to_bus!(sys, bus_to_add)
 end
 
 ###############################
@@ -71,7 +76,9 @@ template_ed_dcp = get_ed_dcp_template()
 
 mipgap = 0.002
 num_steps = 3
-starttime = DateTime("2020-10-01T00:00:00")
+starttime = DateTime("2020-10-03T00:00:00")
+
+#=
 
 ###############################
 ##### Run PTDF Bounded Sim ####
@@ -142,6 +149,8 @@ results_uc_copperplate = get_decision_problem_results(results_copperplate, "UC")
 
 prices_copperplate = get_copperplate_prices(results_uc_copperplate)
 
+=#
+
 ###############################
 ##### Run DCP Simulation ######
 ###############################
@@ -173,33 +182,43 @@ UC_length = 1.0
 ED_length = 1 / 12
 base_power = 100.0
 dcp_multiplier = -1.0 # -1.0 for DCP, 1.0 for PTDF
-bus_name = "Barton"
+bus_name = "Chuhsi" #"Barton"
 
 # Prices being zero are when the Battery is the Marginal Unit. These zero prices go away when the battery is removed from the system.
 # Prices being -15.0 $/MWh are when Renewable is being curtailed
-barton_DA_prices = get_normalized_bus_prices(
+DA_prices = get_normalized_bus_prices(
     prices_uc_dcp,
     bus_name,
     UC_length,
     base_power,
     dcp_multiplier,
 )
-barton_RT_prices = get_normalized_bus_prices(
+RT_prices = get_normalized_bus_prices(
     prices_ed_dcp,
     bus_name,
     ED_length,
     base_power,
     dcp_multiplier,
 )
+
+using Plots
+plot(DA_prices[!, bus_name])
 #show(barton_RT_prices, allrows=true)
 
 ###############################
 ##### Get Hybrid Sys Data #####
 ###############################
+#=
 thermal_name = "215_CT_4"
 renewable_name = "215_PV_1"
 battery_name = "215_BATTERY"
 load_name = "Barton"
+=#
+
+thermal_name = "318_CC_1"
+renewable_name = "317_WIND_1"
+battery_name = "317_BATTERY"
+load_name = "Clark"
 
 r_gen_da = get_component(StaticInjection, sys_rts_da, renewable_name)
 r_gen_rt = get_component(StaticInjection, sys_rts_rt, renewable_name)
@@ -224,20 +243,17 @@ load_rt_df = get_rt_max_active_power_series(load_rt, starttime, num_steps)
 ###############################
 
 # Prices
-CSV.write("scripts/results/barton_DA_prices.csv", barton_DA_prices)
-CSV.write("scripts/results/barton_RT_prices.csv", barton_RT_prices)
+CSV.write("scripts/results/chuhsi_DA_prices.csv", DA_prices)
+CSV.write("scripts/results/chuhsi_RT_prices.csv", RT_prices)
 
 # Forecast
-CSV.write("scripts/results/barton_renewable_forecast_DA.csv", maxpower_da_df)
-CSV.write("scripts/results/barton_renewable_forecast_RT.csv", maxpower_rt_df)
+CSV.write("scripts/results/chuhsi_renewable_forecast_DA.csv", maxpower_da_df)
+CSV.write("scripts/results/chuhsi_renewable_forecast_RT.csv", maxpower_rt_df)
 
 # Load TimeSeries Forecast
-CSV.write("scripts/results/barton_load_forecast_DA.csv", load_da_df)
-CSV.write("scripts/results/barton_load_forecast_RT.csv", load_rt_df)
+CSV.write("scripts/results/chuhsi_load_forecast_DA.csv", load_da_df)
+CSV.write("scripts/results/chuhsi_load_forecast_RT.csv", load_rt_df)
 
 # Additional Data
-CSV.write("scripts/results/barton_battery_data.csv", bat_param_df)
-CSV.write("scripts/results/barton_thermal_data.csv", thermal_param_df)
-
-three_cost = get_operation_cost(t_gen)
-three_cost
+CSV.write("scripts/results/chuhsi_battery_data.csv", bat_param_df)
+CSV.write("scripts/results/chuhsi_thermal_data.csv", thermal_param_df)

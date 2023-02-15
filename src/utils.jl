@@ -29,7 +29,6 @@ function get_time_series(
     )
 end
 
-
 function _update_parameter_values!(
     param_array::SparseAxisArray,
     attributes::TimeSeriesAttributes{U},

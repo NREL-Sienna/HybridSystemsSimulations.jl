@@ -54,5 +54,18 @@ end
 
 function get_thermal_params(t_gen)
     P_min, P_max = get_active_power_limits(t_gen)
-    return DataFrame(ParamName=["P_min", "P_max"], Value=[P_min, P_max])
+    # TODO Implement the proper three part cost
+    three_cost = get_operation_cost(t_gen)
+    first_part = three_cost.variable[1]
+    second_part = three_cost.variable[2]
+    slope = (second_part[1] - first_part[1]) / (second_part[2] - first_part[2]) # $/MWh
+    fix_cost = three_cost.fixed # $/h    
+    return DataFrame(
+        ParamName=["P_min", "P_max", "C_var", "C_fix"],
+        Value=[P_min, P_max, slope, fix_cost],
+    )
+end
+
+function get_row_val(df, row_name)
+    return df[only(findall(==(row_name), df.ParamName)), :]["Value"]
 end

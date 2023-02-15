@@ -53,13 +53,13 @@ C_th_var = get_row_val(th_df, "C_var") * 100.0 # Multiply by 100 to transform to
 C_th_fix = get_row_val(th_df, "C_fix")
 
 # Battery Params
-P_ch_max = get_row_val(b_df, "P_ch_max") * 2
-P_ds_max = get_row_val(b_df, "P_ds_max") * 2
+P_ch_max = get_row_val(b_df, "P_ch_max") 
+P_ds_max = get_row_val(b_df, "P_ds_max") 
 η_ch = get_row_val(b_df, "η_in")
 η_ds = get_row_val(b_df, "η_out")
 inv_η_ds = 1.0 / η_ds
-E_max = get_row_val(b_df, "SoC_max") * 2
-E_min = get_row_val(b_df, "SoC_min") * 2
+E_max = get_row_val(b_df, "SoC_max") 
+E_min = get_row_val(b_df, "SoC_min") 
 E0 = get_row_val(b_df, "initial_energy")
 
 # Renewable Forecast

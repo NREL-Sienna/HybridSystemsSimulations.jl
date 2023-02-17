@@ -53,6 +53,7 @@ function build_simulation_case(
                     source=OnVariable,
                     affected_values=[ActivePowerVariable],
                 ),
+                #=
                 FixValueFeedforward(
                     component_type=VariableReserve{ReserveUp},
                     source=ActivePowerReserveVariable,
@@ -63,6 +64,7 @@ function build_simulation_case(
                     source=ActivePowerReserveVariable,
                     affected_values=[ActivePowerReserveVariable],
                 ),
+                =#
             ],
         ),
         ini_cond_chronology=InterProblemChronology(),

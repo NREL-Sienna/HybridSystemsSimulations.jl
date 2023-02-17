@@ -20,7 +20,7 @@ function build_simulation_case(
                 ),
                 system_to_file=false,
                 initialize_model=true,
-                optimizer_solve_log_print=false,
+                optimizer_solve_log_print=true,
                 direct_mode_optimizer=true,
                 rebuild_model=false,
                 store_variable_names=true,

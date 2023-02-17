@@ -10,6 +10,7 @@ using PowerSimulations
 using PowerSystems
 using PowerSystemCaseBuilder
 using InfrastructureSystems
+using PowerNetworkMatrices
 import OrderedCollections: OrderedDict
 const PSY = PowerSystems
 const PSI = PowerSimulations
@@ -36,8 +37,8 @@ include("utils.jl")
 ######## Load Systems #########
 ###############################
 
-sys_rts_da = build_system(PSITestSystems, "modified_RTS_GMLC_DA_sys")
-sys_rts_rt = build_system(PSITestSystems, "modified_RTS_GMLC_RT_sys")
+sys_rts_da = build_system(PSISystems, "modified_RTS_GMLC_DA_sys")
+sys_rts_rt = build_system(PSISystems, "modified_RTS_GMLC_RT_sys")
 
 # There is no Wind + Thermal in a Single Bus.
 # We will try to pick the Wind in 317 bus Chuhsi
@@ -166,7 +167,7 @@ sim_dcp = build_simulation_case(
 )
 build_dcp = build!(sim_dcp; console_level=Logging.Info, serialize=false)
 
-execute_status = execute!(sim_dcp; enable_progress_bar=true);
+execute_status = execute!(sim_dcp; enable_progress_bar=false);
 
 results_dcp = SimulationResults(sim_dcp; ignore_status=true)
 results_ed_dcp = get_decision_problem_results(results_dcp, "ED")

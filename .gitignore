@@ -38,6 +38,8 @@ docs/site/
 Manifest.toml
 .vscode
 *.h5
+*.json
+*.bin
 
 ################################################################################
 #                              Operating systems                               #

@@ -79,8 +79,6 @@ function PSI.build_impl!(decision_model::DecisionModel{HybridOptimizer})
     container.time_steps = T_rt
 
     tmap = [div(k - 1, Int(length(T_rt) / length(T_da))) + 1 for k in T_rt]
-    T_end = T_rt[end]
-    #set_horizon!(settings, T_end)
 
     ###############################
     ######## Parameters ###########
@@ -137,8 +135,8 @@ function PSI.build_impl!(decision_model::DecisionModel{HybridOptimizer})
     add_binary_variable!(decision_model, HybridStatus(), T_rt)
 
     # Add Thermal Vars: No Thermal For now
-    #add_variable!(decision_model, ThermalPower(), T_rt, 0.0, P_max_th)
-    #add_binary_variable!(decision_model, ThermalStatus(), T_da)
+    add_variable!(decision_model, ThermalPower(), T_rt, 0.0, P_max_th)
+    add_binary_variable!(decision_model, ThermalStatus(), T_da)
 
     # Add Renewable Variables
     add_variable!(decision_model, RenewablePower(), T_rt, 0.0, P_re_star)
@@ -156,15 +154,15 @@ function PSI.build_impl!(decision_model::DecisionModel{HybridOptimizer})
     # DA costs
     eb_da_out = PSI.get_variable(container, energyDABidOut(), HybridSystem)
     eb_da_in = PSI.get_variable(container, energyDABidIn(), HybridSystem)
-    #on_th = PSI.get_variable(container, ThermalStatus(), HybridSystem)
+    on_th = PSI.get_variable(container, ThermalStatus(), HybridSystem)
 
     for t in T_da
         lin_cost_da_out = Δt_DA * λ_da[t] * eb_da_out[t]
         lin_cost_da_in = -Δt_DA * λ_da[t] * eb_da_in[t]
-        #lin_cost_on_th = - Δt_DA * C_th_fix * on_th[t]
+        lin_cost_on_th = -Δt_DA * C_th_fix * on_th[t]
         PSI.add_to_objective_invariant_expression!(container, lin_cost_da_out)
         PSI.add_to_objective_invariant_expression!(container, lin_cost_da_in)
-        #PSI.add_to_objective_invariant_expression!(container, lin_cost_on_th)
+        PSI.add_to_objective_invariant_expression!(container, lin_cost_on_th)
     end
 
     # RT costs
@@ -173,7 +171,7 @@ function PSI.build_impl!(decision_model::DecisionModel{HybridOptimizer})
     p_out = PSI.get_variable(container, HybridPowerOut(), HybridSystem)
     p_in = PSI.get_variable(container, HybridPowerIn(), HybridSystem)
     status = PSI.get_variable(container, HybridStatus(), HybridSystem)
-    #p_th = PSI.get_variable(container, ThermalPower(), HybridSystem)
+    p_th = PSI.get_variable(container, ThermalPower(), HybridSystem)
     p_re = PSI.get_variable(container, RenewablePower(), HybridSystem)
     p_ch = PSI.get_variable(container, BatteryCharge(), HybridSystem)
     p_ds = PSI.get_variable(container, BatteryDischarge(), HybridSystem)
@@ -183,12 +181,12 @@ function PSI.build_impl!(decision_model::DecisionModel{HybridOptimizer})
     for t in T_rt
         lin_cost_rt_out = Δt_RT * λ_rt[t] * eb_rt_out[t]
         lin_cost_rt_in = -Δt_RT * λ_rt[t] * eb_rt_in[t]
-        #lin_cost_p_th = - Δt_RT * C_th_var * p_th[t]
+        lin_cost_p_th = -Δt_RT * C_th_var * p_th[t]
         lin_cost_p_ch = -Δt_RT * VOM * p_ch[t]
         lin_cost_p_ds = -Δt_RT * VOM * p_ds[t]
         PSI.add_to_objective_invariant_expression!(container, lin_cost_rt_out)
         PSI.add_to_objective_invariant_expression!(container, lin_cost_rt_in)
-        #PSI.add_to_objective_invariant_expression!(container, lin_cost_p_th)
+        PSI.add_to_objective_invariant_expression!(container, lin_cost_p_th)
         PSI.add_to_objective_invariant_expression!(container, lin_cost_p_ch)
         PSI.add_to_objective_invariant_expression!(container, lin_cost_p_ds)
     end
@@ -213,22 +211,13 @@ function PSI.build_impl!(decision_model::DecisionModel{HybridOptimizer})
     constraint_balance =
         PSI.add_constraints_container!(container, EnergyAssetBalance(), HybridSystem, T_rt)
 
-    # Thermal not implemented yet
-    #=
-    constraint_thermal_on = PSI.add_constraints_container!(
-        container,
-        ThermalStatusOn(),
-        HybridSystem,
-        T_da,
-    )
+    # Thermal
+    constraint_thermal_on =
+        PSI.add_constraints_container!(container, ThermalStatusOn(), HybridSystem, T_rt)
 
-    constraint_thermal_off = PSI.add_constraints_container!(
-        container,
-        ThermalStatusOff(),
-        HybridSystem,
-        T_da,
-    )
-    =#
+    constraint_thermal_off =
+        PSI.add_constraints_container!(container, ThermalStatusOff(), HybridSystem, T_rt)
+    # Battery Charging
     constraint_battery_charging = PSI.add_constraints_container!(
         container,
         BatteryStatusChargeOn(),
@@ -266,10 +255,11 @@ function PSI.build_impl!(decision_model::DecisionModel{HybridOptimizer})
             model,
             p_re[t] + p_ds[t] - p_ch[t] - P_ld[t] - p_out[t] + p_in[t] == 0.0
         )
-        #= Thermal Status
-        constraint_thermal_on[t] =  JuMP.@constraint(model, p_th[t] <= on_th[tmap[t]] * P_max_th)
-        constraint_thermal_off[t] = JuMP.@constraint(model, p_th[t] >= on_th[tmap[t]] * P_min_th)
-        =#
+        # Thermal Status
+        constraint_thermal_on[t] =
+            JuMP.@constraint(model, p_th[t] <= on_th[tmap[t]] * P_max_th)
+        constraint_thermal_off[t] =
+            JuMP.@constraint(model, p_th[t] >= on_th[tmap[t]] * P_min_th)
         # Battery Constraints
         constraint_battery_charging[t] =
             JuMP.@constraint(model, p_ch[t] <= (1.0 - status_st[t]) * P_ch_max)
@@ -293,5 +283,8 @@ function PSI.build_impl!(decision_model::DecisionModel{HybridOptimizer})
         JuMP.@constraint(model, inv_η_ds * Δt_RT * sum(p_ds) <= Cycles * E_max)
     constraint_cycling_discharge[1] =
         JuMP.@constraint(model, η_ch * Δt_RT * sum(p_ch) <= Cycles * E_max)
+
+    # Fix Thermal Variable
+    JuMP.fix.(on_th, 0, force=true)
     return
 end

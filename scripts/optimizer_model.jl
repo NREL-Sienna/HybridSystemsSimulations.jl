@@ -12,14 +12,14 @@ include("utils.jl")
 
 bus_name = "chuhsi"
 
-b_df = CSV.read("scripts/results/$(bus_name)_battery_data.csv", DataFrame)
-th_df = CSV.read("scripts/results/$(bus_name)_thermal_data.csv", DataFrame)
-P_da = CSV.read("scripts/results/$(bus_name)_renewable_forecast_DA.csv", DataFrame)
-P_rt = CSV.read("scripts/results/$(bus_name)_renewable_forecast_RT.csv", DataFrame)
-λ_da_df = CSV.read("scripts/results/$(bus_name)_DA_prices.csv", DataFrame)
-λ_rt_df = CSV.read("scripts/results/$(bus_name)_RT_prices.csv", DataFrame)
-Pload_da = CSV.read("scripts/results/$(bus_name)_load_forecast_DA.csv", DataFrame)
-Pload_rt = CSV.read("scripts/results/$(bus_name)_load_forecast_RT.csv", DataFrame)
+b_df = CSV.read("inputs/$(bus_name)_battery_data.csv", DataFrame)
+th_df = CSV.read("inputs/$(bus_name)_thermal_data.csv", DataFrame)
+P_da = CSV.read("inputs/$(bus_name)_renewable_forecast_DA.csv", DataFrame)
+P_rt = CSV.read("inputs/$(bus_name)_renewable_forecast_RT.csv", DataFrame)
+λ_da_df = CSV.read("inputs/$(bus_name)_DA_prices.csv", DataFrame)
+λ_rt_df = CSV.read("inputs/$(bus_name)_RT_prices.csv", DataFrame)
+Pload_da = CSV.read("inputs/$(bus_name)_load_forecast_DA.csv", DataFrame)
+Pload_rt = CSV.read("inputs/$(bus_name)_load_forecast_RT.csv", DataFrame)
 
 ###############################
 ######## Create Sets ##########
@@ -53,20 +53,20 @@ C_th_var = get_row_val(th_df, "C_var") * 100.0 # Multiply by 100 to transform to
 C_th_fix = get_row_val(th_df, "C_fix")
 
 # Battery Params
-P_ch_max = get_row_val(b_df, "P_ch_max") 
-P_ds_max = get_row_val(b_df, "P_ds_max") 
+P_ch_max = get_row_val(b_df, "P_ch_max")
+P_ds_max = get_row_val(b_df, "P_ds_max")
 η_ch = get_row_val(b_df, "η_in")
 η_ds = get_row_val(b_df, "η_out")
 inv_η_ds = 1.0 / η_ds
-E_max = get_row_val(b_df, "SoC_max") 
-E_min = get_row_val(b_df, "SoC_min") 
+E_max = get_row_val(b_df, "SoC_max")
+E_min = get_row_val(b_df, "SoC_min")
 E0 = get_row_val(b_df, "initial_energy")
 
 # Renewable Forecast
 P_re_star = P_rt[!, "MaxPower"]
 
 # Load Forecast
-P_ld = Pload_rt[!, "MaxPower"]
+P_ld = Pload_rt[!, "MaxPower"] * 0.0
 
 # Forecast Prices
 λ_da = λ_da_df[!, Bus_name] * 100.0 # Multiply by 100 to transform to $/pu
@@ -94,6 +94,7 @@ m = Model(Xpress.Optimizer)
 # Thermal Vars
 @variable(m, 0.0 <= p_th[T_rt] <= P_max_th)
 @variable(m, on_th[T_da], Bin) # On for thermal is used as 1 hour DA decision
+fix.(on_th, 0, force=true)
 # Renewable Variables
 @variable(m, 0.0 <= p_re[i=1:length(dates_rt)] <= P_re_star[i])
 # Battery Variables
@@ -179,9 +180,24 @@ plot([
         name="eb_da: out - in",
     ),
 ])
+
+dart = [λ_da[tmap[t]] - λ_rt[t] for t in T_rt]
+
 p1 = plot([
     scatter(x=dates_rt, y=(value.(eb_rt_out[T_rt]).data), name="eb_rt: out"),
     scatter(x=dates_rt, y=-(value.(eb_rt_in[T_rt]).data), name="eb_rt: in"),
+    scatter(
+        x=dates_da,
+        y=(value.(eb_da_out[T_da]).data),
+        name="eb_da: out",
+        line_shape="hv",
+    ),
+    scatter(
+        x=dates_da,
+        y=-(value.(eb_da_in[T_da]).data),
+        name="eb_da: in",
+        line_shape="hv",
+    ),
 ])
 p2 = plot([
     scatter(x=dates_rt, y=value.(p_re[T_rt]), name="p_re"),
@@ -192,6 +208,11 @@ p2 = plot([
 ])
 p3 = plot([
     scatter(x=dates_da, y=λ_da / 100, name="λ_DA", line_shape="hv"),
-    scatter(x=dates_rt, y=λ_rt / 100, name="λ_RT"),
+    scatter(x=dates_rt, y=λ_rt / 100, name="λ_RT", line_shape="hv"),
+    scatter(x=dates_rt, y=dart / 100, name="DART", line_shape="hv"),
 ])
 p = [p1; p2; p3]
+
+savefig(p, "test.pdf")
+
+dart = [λ_da[tmap[t]] - λ_rt[t] for t in T_rt]

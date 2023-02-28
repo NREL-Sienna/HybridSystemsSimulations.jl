@@ -69,3 +69,54 @@ function build_simulation_case(
 
     return sim
 end
+
+# No emulation
+function build_simulation_case_optimizer(
+    template_uc,
+    decision_optimizer,
+    sys_da::System,
+    sys_rt::System,
+    num_steps::Int,
+    mipgap::Float64,
+    start_time,
+)
+    models = SimulationModels(
+        decision_models=[
+            decision_optimizer,
+            DecisionModel(
+                template_uc,
+                sys_da;
+                name="UC",
+                optimizer=optimizer_with_attributes(
+                    Xpress.Optimizer,
+                    "MIPRELSTOP" => mipgap,
+                ),
+                system_to_file=false,
+                initialize_model=true,
+                optimizer_solve_log_print=false,
+                direct_mode_optimizer=true,
+                rebuild_model=false,
+                store_variable_names=true,
+                #check_numerical_bounds=false,
+            ),
+        ],
+    )
+
+    # Set-up the sequence Optimizer-UC
+    sequence = SimulationSequence(
+        models=models,
+        feedforwards=Dict(),
+        ini_cond_chronology=InterProblemChronology(),
+    )
+
+    sim = Simulation(
+        name="compact_sim",
+        steps=num_steps,
+        models=models,
+        sequence=sequence,
+        initial_time=start_time,
+        simulation_folder=mktempdir(cleanup=true),
+    )
+
+    return sim
+end

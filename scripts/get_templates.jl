@@ -69,7 +69,7 @@ function get_uc_ptdf_template(sys_rts_da)
         NetworkModel(
             StandardPTDFModel,
             use_slacks=true,
-            PTDF=PTDF(sys_rts_da),
+            PTDF_matrix=PTDF(sys_rts_da),
             duals=[CopperPlateBalanceConstraint],
         ),
     )
@@ -105,7 +105,7 @@ function get_uc_copperplate_template(sys_rts_da)
         NetworkModel(
             CopperPlatePowerModel,
             use_slacks=true,
-            PTDF=PTDF(sys_rts_da),
+            PTDF_matrix=PTDF(sys_rts_da),
             duals=[CopperPlateBalanceConstraint],
         ),
     )

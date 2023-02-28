@@ -70,7 +70,6 @@ function build_simulation_case(
     return sim
 end
 
-
 # No emulation
 function build_simulation_case_optimizer(
     template_uc,
@@ -114,7 +113,7 @@ function build_simulation_case_optimizer(
         name="compact_sim",
         steps=num_steps,
         models=models,
-        sequence = sequence,
+        sequence=sequence,
         initial_time=start_time,
         simulation_folder=mktempdir(cleanup=true),
     )

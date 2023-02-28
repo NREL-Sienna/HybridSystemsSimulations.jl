@@ -10,6 +10,7 @@ using PowerSimulations
 using PowerSystems
 using PowerSystemCaseBuilder
 using InfrastructureSystems
+using PowerNetworkMatrices
 import OrderedCollections: OrderedDict
 const PSY = PowerSystems
 const PSI = PowerSimulations
@@ -39,8 +40,8 @@ include("../src/hybrid_build.jl")
 ######## Load Systems #########
 ###############################
 
-sys_rts_da = build_system(PSITestSystems, "modified_RTS_GMLC_DA_sys")
-sys_rts_rt = build_system(PSITestSystems, "modified_RTS_GMLC_RT_sys")
+sys_rts_da = build_system(PSISystems, "modified_RTS_GMLC_DA_sys")
+sys_rts_rt = build_system(PSISystems, "modified_RTS_GMLC_RT_sys")
 
 # There is no Wind + Thermal in a Single Bus.
 # We will try to pick the Wind in 317 bus Chuhsi
@@ -77,12 +78,12 @@ template_ed_dcp = get_ed_dcp_template()
 ###### Simulation Params ######
 ###############################
 
-mipgap = 0.002
+mipgap = 0.01
 num_steps = 3
 starttime = DateTime("2020-10-03T00:00:00")
 
 ### Create Custom System
-sys = build_system(PSITestSystems, "modified_RTS_GMLC_RT_sys")
+sys = build_system(PSISystems, "modified_RTS_GMLC_DA_sys")
 
 # Attach Data to System Ext
 bus_name = "chuhsi"
@@ -102,21 +103,25 @@ dic["Pload_da"] =
 dic["Pload_rt"] =
     CSV.read("scripts/results_old/$(bus_name)_load_forecast_RT.csv", DataFrame)
 
-
 ### Create Decision Problem
 m = DecisionModel(
     HybridOptimizer,
     ProblemTemplate(CopperPlatePowerModel),
     sys,
     optimizer=Xpress.Optimizer,
+    horizon=864,
 )
 
-sim_optimizer = build_simulation_case_optimizer(template_uc_dcp,
+sim_optimizer = build_simulation_case_optimizer(
+    template_uc_dcp,
     m,
     sys_rts_da,
     sys_rts_rt,
     num_steps,
-    mipgap,
+    0.01,
     starttime,
 )
 
+build!(sim_optimizer)
+
+execute_status = execute!(sim_optimizer; enable_progress_bar=true);

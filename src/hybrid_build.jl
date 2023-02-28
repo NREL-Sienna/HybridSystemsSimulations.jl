@@ -62,6 +62,7 @@ end
 
 function PSI.build_impl!(decision_model::DecisionModel{HybridOptimizer})
     container = PSI.get_optimization_container(decision_model)
+    #settings = PSI.get_settings(container)
     model = container.JuMPmodel
     s = PSI.get_system(decision_model)
     PSI.init_optimization_container!(container, CopperPlatePowerModel, s)
@@ -76,8 +77,10 @@ function PSI.build_impl!(decision_model::DecisionModel{HybridOptimizer})
     T_da = 1:length(dates_da)
     T_rt = 1:length(dates_rt)
     container.time_steps = T_rt
+
     tmap = [div(k - 1, Int(length(T_rt) / length(T_da))) + 1 for k in T_rt]
     T_end = T_rt[end]
+    #set_horizon!(settings, T_end)
 
     ###############################
     ######## Parameters ###########

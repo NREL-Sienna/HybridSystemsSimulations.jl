@@ -12,14 +12,14 @@ include("utils.jl")
 
 bus_name = "chuhsi"
 
-b_df = CSV.read("scripts/results_old/$(bus_name)_battery_data.csv", DataFrame)
-th_df = CSV.read("scripts/results_old/$(bus_name)_thermal_data.csv", DataFrame)
-P_da = CSV.read("scripts/results_old/$(bus_name)_renewable_forecast_DA.csv", DataFrame)
-P_rt = CSV.read("scripts/results_old/$(bus_name)_renewable_forecast_RT.csv", DataFrame)
-λ_da_df = CSV.read("scripts/results_old/$(bus_name)_DA_prices.csv", DataFrame)
-λ_rt_df = CSV.read("scripts/results_old/$(bus_name)_RT_prices.csv", DataFrame)
-Pload_da = CSV.read("scripts/results_old/$(bus_name)_load_forecast_DA.csv", DataFrame)
-Pload_rt = CSV.read("scripts/results_old/$(bus_name)_load_forecast_RT.csv", DataFrame)
+b_df = CSV.read("inputs/$(bus_name)_battery_data.csv", DataFrame)
+th_df = CSV.read("inputs/$(bus_name)_thermal_data.csv", DataFrame)
+P_da = CSV.read("inputs/$(bus_name)_renewable_forecast_DA.csv", DataFrame)
+P_rt = CSV.read("inputs/$(bus_name)_renewable_forecast_RT.csv", DataFrame)
+λ_da_df = CSV.read("inputs/$(bus_name)_DA_prices.csv", DataFrame)
+λ_rt_df = CSV.read("inputs/$(bus_name)_RT_prices.csv", DataFrame)
+Pload_da = CSV.read("inputs/$(bus_name)_load_forecast_DA.csv", DataFrame)
+Pload_rt = CSV.read("inputs/$(bus_name)_load_forecast_RT.csv", DataFrame)
 
 ###############################
 ######## Create Sets ##########

@@ -50,24 +50,24 @@ reg_up_ta = get_time_series_array(
     SingleTimeSeries,
     res_reg_up,
     "requirement",
-    start_time = DateTime("2020-10-03T00:00:00"),
-    len = 24*3*12,
+    start_time=DateTime("2020-10-03T00:00:00"),
+    len=24 * 3 * 12,
 )
 
 reg_down_ta = get_time_series_array(
     SingleTimeSeries,
     res_reg_down,
     "requirement",
-    start_time = DateTime("2020-10-03T00:00:00"),
-    len = 24*3*12,
+    start_time=DateTime("2020-10-03T00:00:00"),
+    len=24 * 3 * 12,
 )
 
 reg_spin_ta = get_time_series_array(
     SingleTimeSeries,
     res_spin_up,
     "requirement",
-    start_time = DateTime("2020-10-03T00:00:00"),
-    len = 24*3*12,
+    start_time=DateTime("2020-10-03T00:00:00"),
+    len=24 * 3 * 12,
 )
 
 hourly_range = 1:12:864

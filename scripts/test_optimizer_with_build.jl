@@ -34,14 +34,14 @@ dic["b_df"] = CSV.read("inputs/$(bus_name)_battery_data.csv", DataFrame)
 dic["th_df"] = CSV.read("inputs/$(bus_name)_thermal_data.csv", DataFrame)
 dic["P_da"] = CSV.read("inputs/$(bus_name)_renewable_forecast_DA.csv", DataFrame)
 dic["P_rt"] = CSV.read("inputs/$(bus_name)_renewable_forecast_RT.csv", DataFrame)
-dic["λ_da_df"] = CSV.read("inputs/$(bus_name)_DA_prices.csv", DataFrame)
+dic["λ_da_df"] = CSV.read("inputs/$(bus_name)_DA_AS_prices.csv", DataFrame)
 dic["λ_rt_df"] = CSV.read("inputs/$(bus_name)_RT_prices.csv", DataFrame)
 dic["Pload_da"] = CSV.read("inputs/$(bus_name)_load_forecast_DA.csv", DataFrame)
 dic["Pload_rt"] = CSV.read("inputs/$(bus_name)_load_forecast_RT.csv", DataFrame)
 
 ### Create Decision Problem
 m = DecisionModel(
-    HybridOptimizer,
+    HybridCoOptimizer,
     ProblemTemplate(CopperPlatePowerModel),
     sys,
     optimizer=Xpress.Optimizer,

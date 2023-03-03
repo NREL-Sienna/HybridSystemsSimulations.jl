@@ -25,7 +25,7 @@ include("../src/hybrid_build.jl")
 
 ### Create Custom System
 #sys = build_system(PSISystems, "modified_RTS_GMLC_RT_sys"; horizon = 864, force_build = true)
-sys = PSB.build_RTS_GMLC_RT_sys(raw_data = PSB.RTS_DIR, horizon = 864)
+sys = PSB.build_RTS_GMLC_RT_sys(raw_data=PSB.RTS_DIR, horizon=864)
 
 # Attach Data to System Ext
 bus_name = "chuhsi"
@@ -47,8 +47,8 @@ m = DecisionModel(
     ProblemTemplate(CopperPlatePowerModel),
     sys,
     optimizer=Xpress.Optimizer,
-    calculate_conflict = true,
-    store_variable_names = true,
+    calculate_conflict=true,
+    store_variable_names=true,
 )
 PSI.build!(m, output_dir=pwd())
 
@@ -69,32 +69,31 @@ Pl = dic["Pload_rt"][!, "MaxPower"]
 #df["ene"]
 using Plots
 
-plot(p_out, label = "p_out")
-plot!(p_re, label = "p_re")
-plot!(p_ds, label = "p_ds")
+plot(p_out, label="p_out")
+plot!(p_re, label="p_re")
+plot!(p_ds, label="p_ds")
 
-plot(-p_in, label = "- p_in")
-plot!(-p_ch, label = "- p_ch")
-plot!(-Pl, label = "- P_load")
+plot(-p_in, label="- p_in")
+plot!(-p_ch, label="- p_ch")
+plot!(-Pl, label="- P_load")
 
-plot(p_re + p_ds - Pl, label = "p_re + p_ds - Pl")
-plot!(p_out, label = "p_out")
+plot(p_re + p_ds - Pl, label="p_re + p_ds - Pl")
+plot!(p_out, label="p_out")
 
-plot(-p_ch, label = "p_ch - Pl")
-plot!(-p_in, label = "p_in")
+plot(-p_ch, label="p_ch - Pl")
+plot!(-p_in, label="p_in")
 
-plot(p_out, label = "p_out")
-plot!(energy_rt_out, label = "eb_rt_out")
+plot(p_out, label="p_out")
+plot!(energy_rt_out, label="eb_rt_out")
 
-plot(-p_in, label = "-p_in")
-plot!(-energy_rt_in, label = "-eb_rt_in")
-plot!(-Pl, label = "-P_load")
+plot(-p_in, label="-p_in")
+plot!(-energy_rt_in, label="-eb_rt_in")
+plot!(-Pl, label="-P_load")
 
-plot(p_out, label = "p_out")
-plot!(-p_in, label = "p_in")
+plot(p_out, label="p_out")
+plot!(-p_in, label="p_in")
 
-plot(p_out - p_in, label = "p_out - p_in")
-
+plot(p_out - p_in, label="p_out - p_in")
 
 #=
 vars = m.internal.container.variables

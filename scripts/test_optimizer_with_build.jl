@@ -25,7 +25,7 @@ include("../src/hybrid_build.jl")
 
 ### Create Custom System
 #sys = build_system(PSISystems, "modified_RTS_GMLC_RT_sys"; horizon = 864, force_build = true)
-sys = PSB.build_RTS_GMLC_RT_sys(raw_data = PSB.RTS_DIR, horizon = 864)
+sys = PSB.build_RTS_GMLC_RT_sys(raw_data=PSB.RTS_DIR, horizon=864)
 
 # Attach Data to System Ext
 bus_name = "chuhsi"
@@ -47,8 +47,8 @@ m = DecisionModel(
     ProblemTemplate(CopperPlatePowerModel),
     sys,
     optimizer=Xpress.Optimizer,
-    calculate_conflict = true,
-    store_variable_names = true,
+    calculate_conflict=true,
+    store_variable_names=true,
 )
 PSI.build!(m, output_dir=pwd())
 
@@ -63,5 +63,3 @@ energy_rt_in = read_variable(res, "energyRTBidIn__HybridSystem")[!, 2]
 p_out = read_variable(res, "HybridPowerOut__HybridSystem")[!, 2]
 p_in = read_variable(res, "HybridPowerIn__HybridSystem")[!, 2]
 #df["ene"]
-
-

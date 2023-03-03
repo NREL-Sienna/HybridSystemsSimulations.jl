@@ -27,6 +27,11 @@ struct spinBatteryDischargeCoverage <: PSI.ConstraintType end
 ## Energy Market Asset Balance ##
 struct energyBidAssetBalance <: PSI.ConstraintType end
 
+## AS Market Convergence ##
+struct regUpBidMarketConvergence <: PSI.ConstraintType end
+struct regDownBidMarketConvergence <: PSI.ConstraintType end
+struct spinBidMarketConvergence <: PSI.ConstraintType end
+
 ## AS Market Asset Balance ##
 struct regUpBidAssetBalance <: PSI.ConstraintType end
 struct regDownBidAssetBalance <: PSI.ConstraintType end

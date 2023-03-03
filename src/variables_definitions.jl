@@ -15,12 +15,18 @@ struct energyBatteryDischargeBid <: PSI.VariableType end
 
 # AS Total DA Bids
 struct regUpDABidOut <: PSI.VariableType end
+struct regUpDABidIn <: PSI.VariableType end
 struct regSpinDABidOut <: PSI.VariableType end
+struct regSpinDABidIn <: PSI.VariableType end
+struct regDownDABidOut <: PSI.VariableType end
 struct regDownDABidIn <: PSI.VariableType end
 
 # AS Total RT Bids
 struct regUpRTBidOut <: PSI.VariableType end
+struct regUpRTBidIn <: PSI.VariableType end
 struct regSpinRTBidOut <: PSI.VariableType end
+struct regSpinRTBidIn <: PSI.VariableType end
+struct regDownRTBidOut <: PSI.VariableType end
 struct regDownRTBidIn <: PSI.VariableType end
 
 # AS Thermal Bids

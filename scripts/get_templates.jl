@@ -28,6 +28,7 @@ function update_ed_models!(template_ed)
     set_device_model!(template_ed, ThermalStandard, ThermalBasicDispatch)
     set_device_model!(template_ed, HydroDispatch, FixedOutput)
     #set_device_model!(template_ed, HydroEnergyReservoir, HydroDispatchRunOfRiver)
+    empty!(template_ed.services)
     return
 end
 

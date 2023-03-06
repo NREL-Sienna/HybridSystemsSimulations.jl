@@ -43,7 +43,7 @@ dic["Pload_rt"] = CSV.read("inputs/$(bus_name)_load_forecast_RT.csv", DataFrame)
 
 ### Create Decision Problem
 m = DecisionModel(
-    HybridOptimizer,
+    HybridCoOptimizer,
     ProblemTemplate(CopperPlatePowerModel),
     sys,
     optimizer=Xpress.Optimizer,
@@ -62,4 +62,66 @@ energy_rt_out = read_variable(res, "energyRTBidOut__HybridSystem")[!, 2]
 energy_rt_in = read_variable(res, "energyRTBidIn__HybridSystem")[!, 2]
 p_out = read_variable(res, "HybridPowerOut__HybridSystem")[!, 2]
 p_in = read_variable(res, "HybridPowerIn__HybridSystem")[!, 2]
+p_ds = read_variable(res, "BatteryDischarge__HybridSystem")[!, 2]
+p_ch = read_variable(res, "BatteryCharge__HybridSystem")[!, 2]
+p_re = read_variable(res, "RenewablePower__HybridSystem")[!, 2]
+Pl = dic["Pload_rt"][!, "MaxPower"]
 #df["ene"]
+using Plots
+
+plot(p_out, label="p_out")
+plot!(p_re, label="p_re")
+plot!(p_ds, label="p_ds")
+
+plot(-p_in, label="- p_in")
+plot!(-p_ch, label="- p_ch")
+plot!(-Pl, label="- P_load")
+
+plot(p_re + p_ds - Pl, label="p_re + p_ds - Pl")
+plot!(p_out, label="p_out")
+
+plot(-p_ch, label="p_ch - Pl")
+plot!(-p_in, label="p_in")
+
+plot(p_out, label="p_out")
+plot!(energy_rt_out, label="eb_rt_out")
+
+plot(-p_in, label="-p_in")
+plot!(-energy_rt_in, label="-eb_rt_in")
+plot!(-Pl, label="-P_load")
+
+plot(p_out, label="p_out")
+plot!(-p_in, label="p_in")
+
+plot(p_out - p_in, label="p_out - p_in")
+
+#=
+vars = m.internal.container.variables
+for (k, v) in vars
+    for y in v
+        if y.index == MOI.VariableIndex(17929)
+            @show k
+            @show y
+            break
+        end
+    end
+end
+
+consts = m.internal.container.constraints
+for (k, v) in consts
+    #try
+        for y in v
+            if y.index == MOI.ConstraintIndex(7923)
+                @show k
+                @show y
+                break
+            end
+        end
+    #catch
+    #    @error k
+    #end
+end
+=#
+
+container = PSI.get_optimization_container(m)
+res = ProblemResults(m)

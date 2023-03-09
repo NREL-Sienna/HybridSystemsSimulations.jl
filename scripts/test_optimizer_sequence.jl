@@ -41,8 +41,8 @@ include("../src/hybrid_build.jl")
 ######## Load Systems #########
 ###############################
 
-sys_rts_da = build_system(PSISystems, "modified_RTS_GMLC_DA_sys")
-sys_rts_rt = build_system(PSISystems, "modified_RTS_GMLC_RT_sys")
+sys_rts_da = PSB.build_RTS_GMLC_DA_sys(raw_data=PSB.RTS_DIR, horizon=48)
+sys_rts_rt = PSB.build_RTS_GMLC_RT_sys(raw_data=PSB.RTS_DIR, horizon=864, interval=Minute(1440))
 
 # There is no Wind + Thermal in a Single Bus.
 # We will try to pick the Wind in 317 bus Chuhsi
@@ -83,14 +83,11 @@ mipgap = 0.01
 num_steps = 3
 starttime = DateTime("2020-10-03T00:00:00")
 
-### Create Custom System
-sys = build_system(PSISystems, "modified_RTS_GMLC_DA_sys")
-
 # Attach Data to System Ext
 bus_name = "chuhsi"
 
-sys.internal.ext = Dict{String, DataFrame}()
-dic = get_ext(sys)
+sys_rts_rt.internal.ext = Dict{String, DataFrame}()
+dic = get_ext(sys_rts_rt)
 dic["b_df"] = CSV.read("inputs/$(bus_name)_battery_data.csv", DataFrame)
 dic["th_df"] = CSV.read("inputs/$(bus_name)_thermal_data.csv", DataFrame)
 dic["P_da"] = CSV.read("inputs/$(bus_name)_renewable_forecast_DA.csv", DataFrame)
@@ -104,7 +101,7 @@ dic["Pload_rt"] = CSV.read("inputs/$(bus_name)_load_forecast_RT.csv", DataFrame)
 m = DecisionModel(
     HybridOptimizer,
     ProblemTemplate(CopperPlatePowerModel),
-    sys,
+    sys_rts_rt,
     optimizer=Xpress.Optimizer,
     horizon=864,
 )

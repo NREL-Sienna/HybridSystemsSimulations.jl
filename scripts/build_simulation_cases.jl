@@ -117,7 +117,7 @@ function build_simulation_case_optimizer(
                     source=energyDABidIn,
                     affected_values=[ActivePowerInVariable],
                 ),
-            ]
+            ],
         ),
         ini_cond_chronology=InterProblemChronology(),
     )

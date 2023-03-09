@@ -11,6 +11,7 @@ using PowerSystems
 using PowerSystemCaseBuilder
 using InfrastructureSystems
 using PowerNetworkMatrices
+using HybridSystemsSimulations
 import OrderedCollections: OrderedDict
 const PSY = PowerSystems
 const PSI = PowerSimulations
@@ -32,10 +33,6 @@ include("modify_systems.jl")
 include("price_generation_utils.jl")
 include("build_simulation_cases.jl")
 include("utils.jl")
-include("../src/formulations.jl")
-include("../src/variables_definitions.jl")
-include("../src/constraints_definitions.jl")
-include("../src/hybrid_build.jl")
 
 ###############################
 ######## Load Systems #########

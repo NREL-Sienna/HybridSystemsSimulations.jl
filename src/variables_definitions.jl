@@ -1,5 +1,3 @@
-using PowerSimulations
-const PSI = PowerSimulations
 ### Define Variables using PSI.VariableType
 # Energy Bids
 struct energyDABidOut <: PSI.VariableType end

@@ -95,7 +95,6 @@ get_subcomponent(v::PSY.HybridSystem, ::Type{PSY.RenewableGen}) = PSY.get_renewa
 get_subcomponent(v::PSY.HybridSystem, ::Type{PSY.ElectricLoad}) = PSY.get_electric_load(v)
 get_subcomponent(v::PSY.HybridSystem, ::Type{PSY.Storage}) = PSY.get_storage(v)
 
-
 ################################ output power constraints ###########################
 
 get_min_max_limits(

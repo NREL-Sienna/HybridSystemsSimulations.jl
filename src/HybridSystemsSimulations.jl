@@ -20,7 +20,6 @@ const MOI = MathOptInterface
 const PSI = PowerSimulations
 const PSY = PowerSystems
 
-
 using DocStringExtensions
 @template (FUNCTIONS, METHODS) = """
                                  $(TYPEDSIGNATURES)

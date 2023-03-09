@@ -213,8 +213,12 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridEnergyOnly}
     constraint_status_bid_out =
         PSI.add_constraints_container!(container, StatusOutOn(), PSY.HybridSystem, T_rt)
 
-    constraint_balance =
-        PSI.add_constraints_container!(container, EnergyAssetBalance(), PSY.HybridSystem, T_rt)
+    constraint_balance = PSI.add_constraints_container!(
+        container,
+        EnergyAssetBalance(),
+        PSY.HybridSystem,
+        T_rt,
+    )
 
     # Thermal
     constraint_thermal_on =
@@ -530,24 +534,56 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridCooptimized
     ###################
 
     # Bid PCC Limits DA
-    constraint_da_bid_up_out =
-        PSI.add_constraints_container!(container, BidOutDAUpperLimit(), PSY.HybridSystem, T_da)
-    constraint_da_bid_up_in =
-        PSI.add_constraints_container!(container, BidInDAUpperLimit(), PSY.HybridSystem, T_da)
-    constraint_da_bid_low_out =
-        PSI.add_constraints_container!(container, BidOutDALowerLimit(), PSY.HybridSystem, T_da)
-    constraint_da_bid_low_in =
-        PSI.add_constraints_container!(container, BidInDALowerLimit(), PSY.HybridSystem, T_da)
+    constraint_da_bid_up_out = PSI.add_constraints_container!(
+        container,
+        BidOutDAUpperLimit(),
+        PSY.HybridSystem,
+        T_da,
+    )
+    constraint_da_bid_up_in = PSI.add_constraints_container!(
+        container,
+        BidInDAUpperLimit(),
+        PSY.HybridSystem,
+        T_da,
+    )
+    constraint_da_bid_low_out = PSI.add_constraints_container!(
+        container,
+        BidOutDALowerLimit(),
+        PSY.HybridSystem,
+        T_da,
+    )
+    constraint_da_bid_low_in = PSI.add_constraints_container!(
+        container,
+        BidInDALowerLimit(),
+        PSY.HybridSystem,
+        T_da,
+    )
 
     # Bid PCC Limits RT
-    constraint_rt_bid_up_out =
-        PSI.add_constraints_container!(container, BidOutRTUpperLimit(), PSY.HybridSystem, T_rt)
-    constraint_rt_bid_low_out =
-        PSI.add_constraints_container!(container, BidOutRTLowerLimit(), PSY.HybridSystem, T_rt)
-    constraint_rt_bid_up_in =
-        PSI.add_constraints_container!(container, BidInRTUpperLimit(), PSY.HybridSystem, T_rt)
-    constraint_rt_bid_low_in =
-        PSI.add_constraints_container!(container, BidInRTLowerLimit(), PSY.HybridSystem, T_rt)
+    constraint_rt_bid_up_out = PSI.add_constraints_container!(
+        container,
+        BidOutRTUpperLimit(),
+        PSY.HybridSystem,
+        T_rt,
+    )
+    constraint_rt_bid_low_out = PSI.add_constraints_container!(
+        container,
+        BidOutRTLowerLimit(),
+        PSY.HybridSystem,
+        T_rt,
+    )
+    constraint_rt_bid_up_in = PSI.add_constraints_container!(
+        container,
+        BidInRTUpperLimit(),
+        PSY.HybridSystem,
+        T_rt,
+    )
+    constraint_rt_bid_low_in = PSI.add_constraints_container!(
+        container,
+        BidInRTLowerLimit(),
+        PSY.HybridSystem,
+        T_rt,
+    )
 
     # Battery AS Coverage
     constraint_rd_charge_coverage = PSI.add_constraints_container!(
@@ -610,8 +646,12 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridCooptimized
         PSY.HybridSystem,
         T_rt,
     )
-    constraint_spin_bid_balance =
-        PSI.add_constraints_container!(container, SpinBidAssetBalance(), PSY.HybridSystem, T_rt)
+    constraint_spin_bid_balance = PSI.add_constraints_container!(
+        container,
+        SpinBidAssetBalance(),
+        PSY.HybridSystem,
+        T_rt,
+    )
 
     # Thermal Bid Limits
     constraint_bid_up_thermal =
@@ -622,12 +662,20 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridCooptimized
     # Renewable Bid Limits
     constraint_bid_up_renewable =
         PSI.add_constraints_container!(container, RenewableBidUp(), PSY.HybridSystem, T_rt)
-    constraint_bid_down_renewable =
-        PSI.add_constraints_container!(container, RenewableBidDown(), PSY.HybridSystem, T_rt)
+    constraint_bid_down_renewable = PSI.add_constraints_container!(
+        container,
+        RenewableBidDown(),
+        PSY.HybridSystem,
+        T_rt,
+    )
 
     # Battery Bid Limits
-    constraint_bid_up_charge =
-        PSI.add_constraints_container!(container, BatteryChargeBidUp(), PSY.HybridSystem, T_rt)
+    constraint_bid_up_charge = PSI.add_constraints_container!(
+        container,
+        BatteryChargeBidUp(),
+        PSY.HybridSystem,
+        T_rt,
+    )
     constraint_bid_down_charge = PSI.add_constraints_container!(
         container,
         BatteryChargeBidDown(),
@@ -662,8 +710,12 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridCooptimized
     ###################
 
     # Asset Balance
-    constraint_balance =
-        PSI.add_constraints_container!(container, EnergyAssetBalance(), PSY.HybridSystem, T_rt)
+    constraint_balance = PSI.add_constraints_container!(
+        container,
+        EnergyAssetBalance(),
+        PSY.HybridSystem,
+        T_rt,
+    )
 
     # Thermal
     constraint_thermal_on =

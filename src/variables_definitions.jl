@@ -20,8 +20,8 @@ struct RegDownDABidOut <: PSI.VariableType end
 struct RegDownDABidIn <: PSI.VariableType end
 
 # AS Total RT Bids
-struct RegURTBidOut <: PSI.VariableType end
-struct RegURTBidIn <: PSI.VariableType end
+struct RegUpRTBidOut <: PSI.VariableType end
+struct RegUpRTBidIn <: PSI.VariableType end
 struct SpinRTBidOut <: PSI.VariableType end
 struct SpinRTBidIn <: PSI.VariableType end
 struct RegDownRTBidOut <: PSI.VariableType end
@@ -33,7 +33,7 @@ struct RegDownThermalBid <: PSI.VariableType end
 struct SpinThermalBid <: PSI.VariableType end
 
 # AS Renewable Bids
-struct RegURenewableBid <: PSI.VariableType end
+struct RegUpRenewableBid <: PSI.VariableType end
 struct RegDownRenewableBid <: PSI.VariableType end
 struct SpinRenewableBid <: PSI.VariableType end
 

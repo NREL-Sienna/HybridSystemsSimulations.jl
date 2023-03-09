@@ -61,5 +61,5 @@ dic_res = get_variable_values(res)
 energy_rt_out = read_variable(res, "energyRTBidOut__HybridSystem")[!, 2]
 energy_rt_in = read_variable(res, "energyRTBidIn__HybridSystem")[!, 2]
 p_out = read_variable(res, "ActivePowerOutVariable__HybridSystem")[!, 2]
-p_in = read_variable(res, "HybridPowerIn__HybridSystem")[!, 2]
+p_in = read_variable(res, "ActivePowerInVariable__HybridSystem")[!, 2]
 #df["ene"]

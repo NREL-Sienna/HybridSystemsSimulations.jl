@@ -115,7 +115,7 @@ function build_simulation_case_optimizer(
                 FixValueFeedforward(
                     component_type=HybridSystem,
                     source=energyDABidIn,
-                    affected_values=[HybridPowerIn],
+                    affected_values=[ActivePowerInVariable],
                 ),
             ]
         ),

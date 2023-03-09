@@ -130,8 +130,8 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridEnergyOnly}
     add_variable!(decision_model, energyRTBidIn(), T_rt, 0.0, P_max_pcc)
 
     # Add PCC Variables
-    add_variable!(decision_model, ActivePowerOutVariable(), T_rt, 0.0, P_max_pcc)
-    add_variable!(decision_model, HybridPowerIn(), T_rt, 0.0, P_max_pcc)
+    add_variable!(decision_model, PSI.ActivePowerOutVariable(), T_rt, 0.0, P_max_pcc)
+    add_variable!(decision_model, PSI.ActivePowerInVariable(), T_rt, 0.0, P_max_pcc)
     add_binary_variable!(decision_model, ReservationVariable(), T_rt)
 
     # Add Thermal Vars: No Thermal For now
@@ -168,8 +168,8 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridEnergyOnly}
     # RT costs
     eb_rt_out = PSI.get_variable(container, energyRTBidOut(), HybridSystem)
     eb_rt_in = PSI.get_variable(container, energyRTBidIn(), HybridSystem)
-    p_out = PSI.get_variable(container, ActivePowerOutVariable(), HybridSystem)
-    p_in = PSI.get_variable(container, HybridPowerIn(), HybridSystem)
+    p_out = PSI.get_variable(container, PSI.ActivePowerOutVariable(), HybridSystem)
+    p_in = PSI.get_variable(container, PSI.ActivePowerInVariable(), HybridSystem)
     status = PSI.get_variable(container, ReservationVariable(), HybridSystem)
     p_th = PSI.get_variable(container, ThermalPower(), HybridSystem)
     p_re = PSI.get_variable(container, RenewablePower(), HybridSystem)
@@ -412,8 +412,8 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridCooptimized
     add_variable!(decision_model, regDownBatteryDischargeBid(), T_rt, 0.0, P_ds_max) #sb_rd_ds
 
     # Add PCC Variables
-    add_variable!(decision_model, ActivePowerOutVariable(), T_rt, 0.0, P_max_pcc)
-    add_variable!(decision_model, HybridPowerIn(), T_rt, 0.0, P_max_pcc)
+    add_variable!(decision_model, PSI.ActivePowerOutVariable(), T_rt, 0.0, P_max_pcc)
+    add_variable!(decision_model, PSI.ActivePowerInVariable(), T_rt, 0.0, P_max_pcc)
     add_binary_variable!(decision_model, ReservationVariable(), T_rt)
 
     # Add Thermal Power Vars
@@ -462,8 +462,8 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridCooptimized
     # RT costs
     eb_rt_out = PSI.get_variable(container, energyRTBidOut(), HybridSystem)
     eb_rt_in = PSI.get_variable(container, energyRTBidIn(), HybridSystem)
-    p_out = PSI.get_variable(container, ActivePowerOutVariable(), HybridSystem)
-    p_in = PSI.get_variable(container, HybridPowerIn(), HybridSystem)
+    p_out = PSI.get_variable(container, PSI.ActivePowerOutVariable(), HybridSystem)
+    p_in = PSI.get_variable(container, PSI.ActivePowerInVariable(), HybridSystem)
     status = PSI.get_variable(container, ReservationVariable(), HybridSystem)
     p_th = PSI.get_variable(container, ThermalPower(), HybridSystem)
     p_re = PSI.get_variable(container, RenewablePower(), HybridSystem)

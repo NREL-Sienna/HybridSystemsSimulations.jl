@@ -49,14 +49,8 @@ struct regUpBatteryDischargeBid <: PSI.VariableType end
 struct regDownBatteryDischargeBid <: PSI.VariableType end
 struct regSpinBatteryDischargeBid <: PSI.VariableType end
 
-# Physical Variables
-struct HybridPowerOut <: PSI.VariableType end
-struct HybridPowerIn <: PSI.VariableType end
-struct HybridStatus <: PSI.VariableType end
-
-# Asset Variables
+# Component Variables
 struct ThermalPower <: PSI.VariableType end
-struct ThermalStatus <: PSI.VariableType end
 struct RenewablePower <: PSI.VariableType end
 struct BatteryCharge <: PSI.VariableType end
 struct BatteryDischarge <: PSI.VariableType end

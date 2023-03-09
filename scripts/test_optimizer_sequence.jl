@@ -99,7 +99,7 @@ dic["Pload_rt"] = CSV.read("inputs/$(bus_name)_load_forecast_RT.csv", DataFrame)
 
 ### Create Decision Problem
 m = DecisionModel(
-    HybridOptimizer,
+    MerchantHybridEnergyOnly,
     ProblemTemplate(CopperPlatePowerModel),
     sys_rts_rt,
     optimizer=Xpress.Optimizer,

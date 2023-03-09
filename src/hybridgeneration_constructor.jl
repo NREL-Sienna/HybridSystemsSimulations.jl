@@ -8,7 +8,7 @@ function construct_device!(
     devices = get_available_components(T, sys)
 
     # Variables
-    add_variables!(container, ActivePowerInVariable, devices, D())
+    add_variables!(container, ActivePowerOutVariable, devices, D())
     add_variables!(container, ActivePowerOutVariable, devices, D())
     add_variables!(container, ComponentInputActivePowerVariable, devices, D())
     add_variables!(container, ComponentOutputActivePowerVariable, devices, D())
@@ -31,7 +31,7 @@ function construct_device!(
     add_to_expression!(
         container,
         ActivePowerBalance,
-        ActivePowerInVariable,
+        ActivePowerOutVariable,
         devices,
         model,
         S,
@@ -105,7 +105,7 @@ function construct_device!(
     add_constraints!(
         container,
         InputActivePowerVariableLimitsConstraint,
-        ActivePowerInVariable,
+        ActivePowerOutVariable,
         devices,
         model,
         S,
@@ -192,7 +192,7 @@ function construct_device!(
     devices = get_available_components(T, sys)
 
     # Variables
-    add_variables!(container, ActivePowerInVariable, devices, D())
+    add_variables!(container, ActivePowerOutVariable, devices, D())
     add_variables!(container, ActivePowerOutVariable, devices, D())
     add_variables!(container, ComponentInputActivePowerVariable, devices, D())
     add_variables!(container, ComponentOutputActivePowerVariable, devices, D())
@@ -213,7 +213,7 @@ function construct_device!(
     add_to_expression!(
         container,
         ActivePowerBalance,
-        ActivePowerInVariable,
+        ActivePowerOutVariable,
         devices,
         model,
         S,
@@ -293,7 +293,7 @@ function construct_device!(
     add_constraints!(
         container,
         InputActivePowerVariableLimitsConstraint,
-        ActivePowerInVariable,
+        ActivePowerOutVariable,
         devices,
         model,
         S,
@@ -364,7 +364,7 @@ function construct_device!(
     # Variables
     add_variables!(container, ComponentOutputActivePowerVariable, devices, D())
     add_variables!(container, ReactivePowerVariable, devices, D())
-    add_variables!(container, ActivePowerInVariable, devices, D())
+    add_variables!(container, ActivePowerOutVariable, devices, D())
     add_variables!(container, ActivePowerOutVariable, devices, D())
     add_variables!(container, EnergyVariable, devices, D())
     if get_attribute(model, "reservation")
@@ -380,7 +380,7 @@ function construct_device!(
     add_to_expression!(
         container,
         ActivePowerBalance,
-        ActivePowerInVariable,
+        ActivePowerOutVariable,
         devices,
         model,
         S,
@@ -470,7 +470,7 @@ function construct_device!(
     add_constraints!(
         container,
         InputActivePowerVariableLimitsConstraint,
-        ActivePowerInVariable,
+        ActivePowerOutVariable,
         devices,
         model,
         S,
@@ -513,7 +513,7 @@ function construct_device!(
 
     # Variables
     add_variables!(container, ActivePowerVariable, devices, D())
-    add_variables!(container, ActivePowerInVariable, devices, D())
+    add_variables!(container, ActivePowerOutVariable, devices, D())
     add_variables!(container, ActivePowerOutVariable, devices, D())
     add_variables!(container, ComponentOutputActivePowerVariable, devices, D())
     add_variables!(container, EnergyVariable, devices, D())
@@ -533,7 +533,7 @@ function construct_device!(
     add_to_expression!(
         container,
         ActivePowerBalance,
-        ActivePowerInVariable,
+        ActivePowerOutVariable,
         devices,
         model,
         S,
@@ -633,7 +633,7 @@ function construct_device!(
     add_constraints!(
         container,
         InputActivePowerVariableLimitsConstraint,
-        ActivePowerInVariable,
+        ActivePowerOutVariable,
         devices,
         model,
         S,

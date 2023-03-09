@@ -2,7 +2,7 @@
 requires_initialization(::AbstractHybridFormulation) = false
 
 get_variable_multiplier(::ActivePowerOutVariable, ::Type{<:PSY.HybridSystem}, ::AbstractHybridFormulation) = 1.0
-get_variable_multiplier(::ActivePowerInVariable, ::Type{<:PSY.HybridSystem}, ::AbstractHybridFormulation) = -1.0
+get_variable_multiplier(::ActivePowerOutVariable, ::Type{<:PSY.HybridSystem}, ::AbstractHybridFormulation) = -1.0
 get_expression_type_for_reserve(::ActivePowerReserveVariable, ::Type{<:PSY.HybridSystem}, ::Type{<:PSY.Reserve{PSY.ReserveUp}}) = ComponentReserveUpBalanceExpression
 get_expression_type_for_reserve(::ActivePowerReserveVariable, ::Type{<:PSY.HybridSystem}, ::Type{<:PSY.Reserve{PSY.ReserveDown}}) = ComponentReserveDownBalanceExpression
 
@@ -20,10 +20,10 @@ get_variable_binary(::ComponentOutputActivePowerVariable, ::Type{PSY.HybridSyste
 get_variable_lower_bound(::ComponentOutputActivePowerVariable, d::PSY.HybridSystem, ::AbstractHybridFormulation) = 0.0
 
 
-############## ActivePowerInVariable, HybridSystem ####################
-get_variable_binary(::ActivePowerInVariable, ::Type{PSY.HybridSystem}, ::AbstractHybridFormulation) = false
-get_variable_lower_bound(::ActivePowerInVariable, d::PSY.HybridSystem, ::AbstractHybridFormulation) = PSY.get_input_active_power_limits(d).min
-get_variable_upper_bound(::ActivePowerInVariable, d::PSY.HybridSystem, ::AbstractHybridFormulation) = PSY.get_input_active_power_limits(d).max
+############## ActivePowerOutVariable, HybridSystem ####################
+get_variable_binary(::ActivePowerOutVariable, ::Type{PSY.HybridSystem}, ::AbstractHybridFormulation) = false
+get_variable_lower_bound(::ActivePowerOutVariable, d::PSY.HybridSystem, ::AbstractHybridFormulation) = PSY.get_input_active_power_limits(d).min
+get_variable_upper_bound(::ActivePowerOutVariable, d::PSY.HybridSystem, ::AbstractHybridFormulation) = PSY.get_input_active_power_limits(d).max
 
 ############## ActivePowerOutVariable, HybridSystem ####################
 get_variable_binary(::ActivePowerOutVariable, ::Type{PSY.HybridSystem}, ::AbstractHybridFormulation) = false
@@ -930,7 +930,7 @@ function add_constraints!(
     var_sub_in = get_variable(container, ComponentInputActivePowerVariable(), V)
     var_sub_out = get_variable(container, ComponentOutputActivePowerVariable(), V)
     var_out = get_variable(container, ActivePowerOutVariable(), V)
-    var_in = get_variable(container, ActivePowerInVariable(), V)
+    var_in = get_variable(container, ActivePowerOutVariable(), V)
 
     constraint_in = add_constraints_container!(
         container,
@@ -1042,7 +1042,7 @@ function add_constraints!(
     name_index = [PSY.get_name(d) for d in devices]
 
     var_q = get_variable(container, ReactivePowerVariable(), V)
-    var_p_in = get_variable(container, ActivePowerInVariable(), V)
+    var_p_in = get_variable(container, ActivePowerOutVariable(), V)
     var_p_out = get_variable(container, ActivePowerOutVariable(), V)
 
     constraint = add_constraints_container!(
@@ -1167,7 +1167,7 @@ function add_constraints!(
     ::Type{<:PM.AbstractPowerModel},
 ) where {T <: PSY.HybridSystem, D <: AbstractHybridFormulation}
     time_steps = get_time_steps(container)
-    var_in = get_variable(container, ActivePowerInVariable(), T)
+    var_in = get_variable(container, ActivePowerOutVariable(), T)
     var_out = get_variable(container, ActivePowerOutVariable(), T)
     r_up = get_variable(container, ComponentActivePowerReserveUpVariable(), T)
     r_dn = get_variable(container, ComponentActivePowerReserveDownVariable(), T)
@@ -1286,7 +1286,7 @@ function objective_function!(
     ::DeviceModel{T, U},
     ::Type{<:PM.AbstractPowerModel},
 ) where {T <: PSY.HybridSystem, U <: AbstractHybridFormulation}
-    add_variable_cost!(container, ActivePowerInVariable(), devices, U())
+    add_variable_cost!(container, ActivePowerOutVariable(), devices, U())
     add_variable_cost!(container, ActivePowerOutVariable(), devices, U())
     add_proportional_cost!(container, OnVariable(), devices, U())
     return

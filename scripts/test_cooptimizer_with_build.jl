@@ -43,7 +43,7 @@ dic["Pload_rt"] = CSV.read("inputs/$(bus_name)_load_forecast_RT.csv", DataFrame)
 
 ### Create Decision Problem
 m = DecisionModel(
-    HybridCoOptimizer,
+    MerchantHybridCooptimized,
     ProblemTemplate(CopperPlatePowerModel),
     sys,
     optimizer=Xpress.Optimizer,
@@ -60,7 +60,7 @@ dic_res = get_variable_values(res)
 #df = read_variable(res, PSI.VariableKey{energyRTBidIn, HybridSystem}(""))
 energy_rt_out = read_variable(res, "energyRTBidOut__HybridSystem")[!, 2]
 energy_rt_in = read_variable(res, "energyRTBidIn__HybridSystem")[!, 2]
-p_out = read_variable(res, "HybridPowerOut__HybridSystem")[!, 2]
+p_out = read_variable(res, "ActivePowerOutVariable__HybridSystem")[!, 2]
 p_in = read_variable(res, "HybridPowerIn__HybridSystem")[!, 2]
 p_ds = read_variable(res, "BatteryDischarge__HybridSystem")[!, 2]
 p_ch = read_variable(res, "BatteryCharge__HybridSystem")[!, 2]

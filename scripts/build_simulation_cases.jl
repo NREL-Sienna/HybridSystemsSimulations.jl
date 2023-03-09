@@ -105,7 +105,20 @@ function build_simulation_case_optimizer(
     # Set-up the sequence Optimizer-UC
     sequence = SimulationSequence(
         models=models,
-        feedforwards=Dict(),
+        feedforwards=Dict(
+            "UC" => [
+                FixValueFeedforward(
+                    component_type=HybridSystem,
+                    source=energyDABidOut,
+                    affected_values=[ActivePowerOutVariable],
+                ),
+                FixValueFeedforward(
+                    component_type=HybridSystem,
+                    source=energyDABidIn,
+                    affected_values=[HybridPowerIn],
+                ),
+            ]
+        ),
         ini_cond_chronology=InterProblemChronology(),
     )
 

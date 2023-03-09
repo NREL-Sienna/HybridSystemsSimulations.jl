@@ -60,7 +60,7 @@ function add_binary_variable!(
     return
 end
 
-function PSI.build_impl!(decision_model::DecisionModel{HybridOptimizer})
+function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridEnergyOnly})
     container = PSI.get_optimization_container(decision_model)
     #settings = PSI.get_settings(container)
     model = container.JuMPmodel
@@ -85,7 +85,7 @@ function PSI.build_impl!(decision_model::DecisionModel{HybridOptimizer})
     ###############################
 
     # This Information should be extracted from the system
-    # However, we need DA and RT data, and the problem 
+    # However, we need DA and RT data, and the problem
     # probably have only information about one system
 
     Bus_name = "Chuhsi"
@@ -130,13 +130,13 @@ function PSI.build_impl!(decision_model::DecisionModel{HybridOptimizer})
     add_variable!(decision_model, energyRTBidIn(), T_rt, 0.0, P_max_pcc)
 
     # Add PCC Variables
-    add_variable!(decision_model, HybridPowerOut(), T_rt, 0.0, P_max_pcc)
+    add_variable!(decision_model, ActivePowerOutVariable(), T_rt, 0.0, P_max_pcc)
     add_variable!(decision_model, HybridPowerIn(), T_rt, 0.0, P_max_pcc)
-    add_binary_variable!(decision_model, HybridStatus(), T_rt)
+    add_binary_variable!(decision_model, ReservationVariable(), T_rt)
 
     # Add Thermal Vars: No Thermal For now
     add_variable!(decision_model, ThermalPower(), T_rt, 0.0, P_max_th)
-    add_binary_variable!(decision_model, ThermalStatus(), T_da)
+    add_binary_variable!(decision_model, OnVariable(), T_da)
 
     # Add Renewable Variables
     add_variable!(decision_model, RenewablePower(), T_rt, 0.0, P_re_star)
@@ -154,7 +154,7 @@ function PSI.build_impl!(decision_model::DecisionModel{HybridOptimizer})
     # DA costs
     eb_da_out = PSI.get_variable(container, energyDABidOut(), HybridSystem)
     eb_da_in = PSI.get_variable(container, energyDABidIn(), HybridSystem)
-    on_th = PSI.get_variable(container, ThermalStatus(), HybridSystem)
+    on_th = PSI.get_variable(container, OnVariable(), HybridSystem)
 
     for t in T_da
         lin_cost_da_out = Δt_DA * λ_da[t] * eb_da_out[t]
@@ -168,9 +168,9 @@ function PSI.build_impl!(decision_model::DecisionModel{HybridOptimizer})
     # RT costs
     eb_rt_out = PSI.get_variable(container, energyRTBidOut(), HybridSystem)
     eb_rt_in = PSI.get_variable(container, energyRTBidIn(), HybridSystem)
-    p_out = PSI.get_variable(container, HybridPowerOut(), HybridSystem)
+    p_out = PSI.get_variable(container, ActivePowerOutVariable(), HybridSystem)
     p_in = PSI.get_variable(container, HybridPowerIn(), HybridSystem)
-    status = PSI.get_variable(container, HybridStatus(), HybridSystem)
+    status = PSI.get_variable(container, ReservationVariable(), HybridSystem)
     p_th = PSI.get_variable(container, ThermalPower(), HybridSystem)
     p_re = PSI.get_variable(container, RenewablePower(), HybridSystem)
     p_ch = PSI.get_variable(container, BatteryCharge(), HybridSystem)
@@ -217,10 +217,10 @@ function PSI.build_impl!(decision_model::DecisionModel{HybridOptimizer})
 
     # Thermal
     constraint_thermal_on =
-        PSI.add_constraints_container!(container, ThermalStatusOn(), HybridSystem, T_rt)
+        PSI.add_constraints_container!(container, OnVariableOn(), HybridSystem, T_rt)
 
     constraint_thermal_off =
-        PSI.add_constraints_container!(container, ThermalStatusOff(), HybridSystem, T_rt)
+        PSI.add_constraints_container!(container, OnVariableOff(), HybridSystem, T_rt)
     # Battery Charging
     constraint_battery_charging = PSI.add_constraints_container!(
         container,
@@ -293,7 +293,7 @@ function PSI.build_impl!(decision_model::DecisionModel{HybridOptimizer})
     return
 end
 
-function PSI.build_impl!(decision_model::DecisionModel{HybridCoOptimizer})
+function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridCooptimized})
     container = PSI.get_optimization_container(decision_model)
     #settings = PSI.get_settings(container)
     model = container.JuMPmodel
@@ -318,7 +318,7 @@ function PSI.build_impl!(decision_model::DecisionModel{HybridCoOptimizer})
     ###############################
 
     # This Information should be extracted from the system
-    # However, we need DA and RT data, and the problem 
+    # However, we need DA and RT data, and the problem
     # probably have only information about one system
 
     Bus_name = "Chuhsi"
@@ -412,13 +412,13 @@ function PSI.build_impl!(decision_model::DecisionModel{HybridCoOptimizer})
     add_variable!(decision_model, regDownBatteryDischargeBid(), T_rt, 0.0, P_ds_max) #sb_rd_ds
 
     # Add PCC Variables
-    add_variable!(decision_model, HybridPowerOut(), T_rt, 0.0, P_max_pcc)
+    add_variable!(decision_model, ActivePowerOutVariable(), T_rt, 0.0, P_max_pcc)
     add_variable!(decision_model, HybridPowerIn(), T_rt, 0.0, P_max_pcc)
-    add_binary_variable!(decision_model, HybridStatus(), T_rt)
+    add_binary_variable!(decision_model, ReservationVariable(), T_rt)
 
     # Add Thermal Power Vars
     add_variable!(decision_model, ThermalPower(), T_rt, 0.0, P_max_th)
-    add_binary_variable!(decision_model, ThermalStatus(), T_da)
+    add_binary_variable!(decision_model, OnVariable(), T_da)
 
     # Add Renewable Variables
     add_variable!(decision_model, RenewablePower(), T_rt, 0.0, P_re_star)
@@ -436,7 +436,7 @@ function PSI.build_impl!(decision_model::DecisionModel{HybridCoOptimizer})
     # DA costs
     eb_da_out = PSI.get_variable(container, energyDABidOut(), HybridSystem)
     eb_da_in = PSI.get_variable(container, energyDABidIn(), HybridSystem)
-    on_th = PSI.get_variable(container, ThermalStatus(), HybridSystem)
+    on_th = PSI.get_variable(container, OnVariable(), HybridSystem)
     sb_ru_da_out = PSI.get_variable(container, regUpDABidOut(), HybridSystem)
     sb_ru_da_in = PSI.get_variable(container, regUpDABidIn(), HybridSystem)
     sb_spin_da_out = PSI.get_variable(container, regSpinDABidOut(), HybridSystem)
@@ -462,9 +462,9 @@ function PSI.build_impl!(decision_model::DecisionModel{HybridCoOptimizer})
     # RT costs
     eb_rt_out = PSI.get_variable(container, energyRTBidOut(), HybridSystem)
     eb_rt_in = PSI.get_variable(container, energyRTBidIn(), HybridSystem)
-    p_out = PSI.get_variable(container, HybridPowerOut(), HybridSystem)
+    p_out = PSI.get_variable(container, ActivePowerOutVariable(), HybridSystem)
     p_in = PSI.get_variable(container, HybridPowerIn(), HybridSystem)
-    status = PSI.get_variable(container, HybridStatus(), HybridSystem)
+    status = PSI.get_variable(container, ReservationVariable(), HybridSystem)
     p_th = PSI.get_variable(container, ThermalPower(), HybridSystem)
     p_re = PSI.get_variable(container, RenewablePower(), HybridSystem)
     p_ch = PSI.get_variable(container, BatteryCharge(), HybridSystem)
@@ -666,9 +666,9 @@ function PSI.build_impl!(decision_model::DecisionModel{HybridCoOptimizer})
 
     # Thermal
     constraint_thermal_on =
-        PSI.add_constraints_container!(container, ThermalStatusOn(), HybridSystem, T_rt)
+        PSI.add_constraints_container!(container, OnVariableOn(), HybridSystem, T_rt)
     constraint_thermal_off =
-        PSI.add_constraints_container!(container, ThermalStatusOff(), HybridSystem, T_rt)
+        PSI.add_constraints_container!(container, OnVariableOff(), HybridSystem, T_rt)
 
     # Battery
     constraint_battery_charging = PSI.add_constraints_container!(

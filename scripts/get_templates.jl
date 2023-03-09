@@ -13,7 +13,7 @@ function set_uc_models!(template_uc)
     #set_device_model!(template_uc, Transformer2W, StaticBranchUnbounded)
     set_device_model!(template_uc, TapTransformer, StaticBranchUnbounded)
     set_device_model!(template_uc, HydroDispatch, FixedOutput)
-    #set_device_model!(template_uc, HydroEnergyReservoir, HydroDispatchRunOfRiver)
+    set_device_model!(template_uc, HybridSystem, FixedOutput)
     set_device_model!(template_uc, GenericBattery, BookKeeping)
     set_service_model!(template_uc, ServiceModel(VariableReserve{ReserveUp}, RangeReserve))
     set_service_model!(

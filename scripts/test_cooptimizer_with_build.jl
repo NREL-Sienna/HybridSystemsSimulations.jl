@@ -14,14 +14,11 @@ using Dates
 using CSV
 using TimeSeries
 using DataFrames
+using HybridSystemsSimulations
 const PSI = PowerSimulations
 const PSB = PowerSystemCaseBuilder
 
 include("utils.jl")
-include("../src/formulations.jl")
-include("../src/variables_definitions.jl")
-include("../src/constraints_definitions.jl")
-include("../src/hybrid_build.jl")
 
 ### Create Custom System
 #sys = build_system(PSISystems, "modified_RTS_GMLC_RT_sys"; horizon = 864, force_build = true)
@@ -56,7 +53,7 @@ PSI.solve!(m)
 res = ProblemResults(m)
 dic_res = get_variable_values(res)
 #read_variables(res)
-#dic[PSI.VariableKey{energyDABidIn, HybridSystem}("")]
+#dic[PSI.VariableKey{EnergyDABidIn, HybridSystem}("")]
 #df = read_variable(res, PSI.VariableKey{energyRTBidIn, HybridSystem}(""))
 energy_rt_out = read_variable(res, "energyRTBidOut__HybridSystem")[!, 2]
 energy_rt_in = read_variable(res, "energyRTBidIn__HybridSystem")[!, 2]

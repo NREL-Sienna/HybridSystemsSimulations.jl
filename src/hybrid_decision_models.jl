@@ -407,12 +407,12 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridCooptimized
     add_variable!(decision_model, RegDownRenewableBid(), T_rt, 0.0, P_re_star) #sb_rd_re
 
     # AS Battery Charge RT Internal Bids
-    add_variable!(decision_model, RegUBatteryChargeBid(), T_rt, 0.0, P_ch_max) #sb_ru_ch
+    add_variable!(decision_model, RegUpBatteryChargeBid(), T_rt, 0.0, P_ch_max) #sb_ru_ch
     add_variable!(decision_model, SpinBatteryChargeBid(), T_rt, 0.0, P_ch_max) #sb_spin_ch
     add_variable!(decision_model, RegDownBatteryChargeBid(), T_rt, 0.0, P_ch_max) #sb_rd_ch
 
     # AS Battery Charge RT Internal Bids
-    add_variable!(decision_model, RegUBatteryDischargeBid(), T_rt, 0.0, P_ds_max) #sb_ru_ds
+    add_variable!(decision_model, RegUpBatteryDischargeBid(), T_rt, 0.0, P_ds_max) #sb_ru_ds
     add_variable!(decision_model, SpinBatteryDischargeBid(), T_rt, 0.0, P_ds_max) #sb_spin_ds
     add_variable!(decision_model, RegDownBatteryDischargeBid(), T_rt, 0.0, P_ds_max) #sb_rd_ds
 
@@ -516,11 +516,11 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridCooptimized
     sb_spin_re = PSI.get_variable(container, SpinRenewableBid(), PSY.HybridSystem)
     sb_rd_re = PSI.get_variable(container, RegDownRenewableBid(), PSY.HybridSystem)
     # Internal Ancillary Services Bid Charge Battery
-    sb_ru_ch = PSI.get_variable(container, RegUBatteryChargeBid(), PSY.HybridSystem)
+    sb_ru_ch = PSI.get_variable(container, RegUpBatteryChargeBid(), PSY.HybridSystem)
     sb_spin_ch = PSI.get_variable(container, SpinBatteryChargeBid(), PSY.HybridSystem)
     sb_rd_ch = PSI.get_variable(container, RegDownBatteryChargeBid(), PSY.HybridSystem)
     # Internal Ancillary Services Bid Discharge Battery
-    sb_ru_ds = PSI.get_variable(container, RegUBatteryDischargeBid(), PSY.HybridSystem)
+    sb_ru_ds = PSI.get_variable(container, RegUpBatteryDischargeBid(), PSY.HybridSystem)
     sb_spin_ds = PSI.get_variable(container, SpinBatteryDischargeBid(), PSY.HybridSystem)
     sb_rd_ds = PSI.get_variable(container, RegDownBatteryDischargeBid(), PSY.HybridSystem)
     # RT Internal Asset Energy Bid
@@ -594,7 +594,7 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridCooptimized
     )
     constraint_ru_discharge_coverage = PSI.add_constraints_container!(
         container,
-        RegUBatteryDischargeCoverage(),
+        RegUpBatteryDischargeCoverage(),
         PSY.HybridSystem,
         T_rt,
     )
@@ -616,7 +616,7 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridCooptimized
     # Ancillary Services Market Convergence
     constraint_regup_bid_convergence = PSI.add_constraints_container!(
         container,
-        RegUBidMarketConvergence(),
+        RegUpBidMarketConvergence(),
         PSY.HybridSystem,
         T_rt,
     )
@@ -636,7 +636,7 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridCooptimized
     # Ancillary Services Bid Balance
     constraint_regup_bid_balance = PSI.add_constraints_container!(
         container,
-        RegUBidAssetBalance(),
+        RegUpBidAssetBalance(),
         PSY.HybridSystem,
         T_rt,
     )

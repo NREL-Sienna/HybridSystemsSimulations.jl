@@ -38,12 +38,12 @@ struct RegDownRenewableBid <: PSI.VariableType end
 struct SpinRenewableBid <: PSI.VariableType end
 
 # AS Battery Charge Bids
-struct RegUBatteryChargeBid <: PSI.VariableType end
+struct RegUpBatteryChargeBid <: PSI.VariableType end
 struct RegDownBatteryChargeBid <: PSI.VariableType end
 struct SpinBatteryChargeBid <: PSI.VariableType end
 
 # AS Battery Discharge Bids
-struct RegUBatteryDischargeBid <: PSI.VariableType end
+struct RegUpBatteryDischargeBid <: PSI.VariableType end
 struct RegDownBatteryDischargeBid <: PSI.VariableType end
 struct SpinBatteryDischargeBid <: PSI.VariableType end
 

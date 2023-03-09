@@ -21,19 +21,19 @@ struct BidInRTLowerLimit <: PSI.ConstraintType end
 
 ## Battery AS State of Charge Coverage ##
 struct RegDownBatteryChargeCoverage <: PSI.ConstraintType end
-struct RegUBatteryDischargeCoverage <: PSI.ConstraintType end
+struct RegUpBatteryDischargeCoverage <: PSI.ConstraintType end
 struct SpinBatteryDischargeCoverage <: PSI.ConstraintType end
 
 ## Energy Market Asset Balance ##
 struct EnergyBidAssetBalance <: PSI.ConstraintType end
 
 ## AS Market Convergence ##
-struct RegUBidMarketConvergence <: PSI.ConstraintType end
+struct RegUpBidMarketConvergence <: PSI.ConstraintType end
 struct RegDownBidMarketConvergence <: PSI.ConstraintType end
 struct SpinBidMarketConvergence <: PSI.ConstraintType end
 
 ## AS Market Asset Balance ##
-struct RegUBidAssetBalance <: PSI.ConstraintType end
+struct RegUpBidAssetBalance <: PSI.ConstraintType end
 struct RegDownBidAssetBalance <: PSI.ConstraintType end
 struct SpinBidAssetBalance <: PSI.ConstraintType end
 

@@ -108,12 +108,12 @@ function build_simulation_case_optimizer(
         feedforwards=Dict(
             "UC" => [
                 FixValueFeedforward(
-                    component_type=PSY.PSY.HybridSystem,
+                    component_type=PSY.HybridSystem,
                     source=EnergyDABidOut,
                     affected_values=[ActivePowerOutVariable],
                 ),
                 FixValueFeedforward(
-                    component_type=PSY.PSY.HybridSystem,
+                    component_type=PSY.HybridSystem,
                     source=EnergyDABidIn,
                     affected_values=[ActivePowerInVariable],
                 ),

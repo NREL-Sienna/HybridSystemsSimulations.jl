@@ -185,7 +185,7 @@ function construct_device!(
     model::DeviceModel{T, D},
     ::Type{S},
 ) where {
-    T <: PSY.HybridSystem,
+    T <: PSY.PSY.HybridSystem,
     D <: AbstractHybridFormulation,
     S <: PM.AbstractActivePowerModel,
 }
@@ -283,7 +283,7 @@ function construct_device!(
     model::DeviceModel{T, D},
     ::Type{S},
 ) where {
-    T <: PSY.HybridSystem,
+    T <: PSY.PSY.HybridSystem,
     D <: AbstractHybridFormulation,
     S <: PM.AbstractActivePowerModel,
 }
@@ -355,7 +355,7 @@ function construct_device!(
     model::DeviceModel{T, D},
     ::Type{S},
 ) where {
-    T <: PSY.HybridSystem,
+    T <: PSY.PSY.HybridSystem,
     D <: StandardHybridDispatch,
     S <: PM.AbstractActivePowerModel,
 }
@@ -444,7 +444,7 @@ function construct_device!(
     model::DeviceModel{T, D},
     ::Type{S},
 ) where {
-    T <: PSY.HybridSystem,
+    T <: PSY.PSY.HybridSystem,
     D <: StandardHybridDispatch,
     S <: PM.AbstractActivePowerModel,
 }

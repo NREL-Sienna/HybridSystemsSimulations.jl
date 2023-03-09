@@ -8,7 +8,7 @@ function add_variable!(
     name = string(type)[1:(end - 2)]
     container = PSI.get_optimization_container(decision_model)
     model = PSI.get_jump_model(decision_model)
-    var = PSI.add_variable_container!(container, type, HybridSystem, time_range)
+    var = PSI.add_variable_container!(container, type, PSY.HybridSystem, time_range)
     for t in time_range
         var[t] = JuMP.@variable(
             model,
@@ -30,7 +30,7 @@ function add_variable!(
     name = string(type)[1:(end - 2)]
     container = PSI.get_optimization_container(decision_model)
     model = PSI.get_jump_model(decision_model)
-    var = PSI.add_variable_container!(container, type, HybridSystem, time_range)
+    var = PSI.add_variable_container!(container, type, PSY.HybridSystem, time_range)
     for t in time_range
         var[t] = JuMP.@variable(
             model,
@@ -50,11 +50,15 @@ function add_binary_variable!(
     name = string(type)[1:(end - 2)]
     container = PSI.get_optimization_container(decision_model)
     model = PSI.get_jump_model(decision_model)
-    var = PSI.add_variable_container!(container, type, HybridSystem, time_range)
+    var = PSI.add_variable_container!(container, type, PSY.HybridSystem, time_range)
     for t in time_range
         var[t] = JuMP.@variable(model, base_name = "$(name)_$(t)", binary = true)
     end
     return
+end
+
+function _get_row_val(df, row_name)
+    return df[only(findall(==(row_name), df.ParamName)), :]["Value"]
 end
 
 function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridEnergyOnly})
@@ -64,7 +68,7 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridEnergyOnly}
     s = PSI.get_system(decision_model)
     PSI.init_optimization_container!(container, CopperPlatePowerModel, s)
     PSI.init_model_store_params!(decision_model)
-    ext = get_ext(s)
+    ext = PSY.get_ext(s)
     ###############################
     ######## Create Sets ##########
     ###############################
@@ -95,20 +99,20 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridEnergyOnly}
     Cycles = 4.11
 
     # Thermal Params
-    P_max_th = get_row_val(ext["th_df"], "P_max")
-    P_min_th = get_row_val(ext["th_df"], "P_min")
-    C_th_var = get_row_val(ext["th_df"], "C_var") * 100.0 # Multiply by 100 to transform to $/pu
-    C_th_fix = get_row_val(ext["th_df"], "C_fix")
+    P_max_th = _get_row_val(ext["th_df"], "P_max")
+    P_min_th = _get_row_val(ext["th_df"], "P_min")
+    C_th_var = _get_row_val(ext["th_df"], "C_var") * 100.0 # Multiply by 100 to transform to $/pu
+    C_th_fix = _get_row_val(ext["th_df"], "C_fix")
 
     # Battery Params
-    P_ch_max = get_row_val(ext["b_df"], "P_ch_max")
-    P_ds_max = get_row_val(ext["b_df"], "P_ds_max")
-    η_ch = get_row_val(ext["b_df"], "η_in")
-    η_ds = get_row_val(ext["b_df"], "η_out")
+    P_ch_max = _get_row_val(ext["b_df"], "P_ch_max")
+    P_ds_max = _get_row_val(ext["b_df"], "P_ds_max")
+    η_ch = _get_row_val(ext["b_df"], "η_in")
+    η_ds = _get_row_val(ext["b_df"], "η_out")
     inv_η_ds = 1.0 / η_ds
-    E_max = get_row_val(ext["b_df"], "SoC_max")
-    E_min = get_row_val(ext["b_df"], "SoC_min")
-    E0 = get_row_val(ext["b_df"], "initial_energy")
+    E_max = _get_row_val(ext["b_df"], "SoC_max")
+    E_min = _get_row_val(ext["b_df"], "SoC_min")
+    E0 = _get_row_val(ext["b_df"], "initial_energy")
 
     # Renewable Forecast
     P_re_star = ext["P_rt"][!, "MaxPower"]
@@ -149,9 +153,9 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridEnergyOnly}
     ###############################
 
     # DA costs
-    eb_da_out = PSI.get_variable(container, EnergyDABidOut(), HybridSystem)
-    eb_da_in = PSI.get_variable(container, EnergyDABidIn(), HybridSystem)
-    on_th = PSI.get_variable(container, OnVariable(), HybridSystem)
+    eb_da_out = PSI.get_variable(container, EnergyDABidOut(), PSY.HybridSystem)
+    eb_da_in = PSI.get_variable(container, EnergyDABidIn(), PSY.HybridSystem)
+    on_th = PSI.get_variable(container, OnVariable(), PSY.HybridSystem)
 
     for t in T_da
         lin_cost_da_out = Δt_DA * λ_da[t] * eb_da_out[t]
@@ -163,17 +167,17 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridEnergyOnly}
     end
 
     # RT costs
-    eb_rt_out = PSI.get_variable(container, EnergyRTBidOut(), HybridSystem)
-    eb_rt_in = PSI.get_variable(container, EnergyRTBidIn(), HybridSystem)
-    p_out = PSI.get_variable(container, PSI.ActivePowerOutVariable(), HybridSystem)
-    p_in = PSI.get_variable(container, PSI.ActivePowerInVariable(), HybridSystem)
-    status = PSI.get_variable(container, ReservationVariable(), HybridSystem)
-    p_th = PSI.get_variable(container, ThermalPower(), HybridSystem)
-    p_re = PSI.get_variable(container, RenewablePower(), HybridSystem)
-    p_ch = PSI.get_variable(container, BatteryCharge(), HybridSystem)
-    p_ds = PSI.get_variable(container, BatteryDischarge(), HybridSystem)
-    e_st = PSI.get_variable(container, BatteryStateOfCharge(), HybridSystem)
-    status_st = PSI.get_variable(container, BatteryStatus(), HybridSystem)
+    eb_rt_out = PSI.get_variable(container, EnergyRTBidOut(), PSY.HybridSystem)
+    eb_rt_in = PSI.get_variable(container, EnergyRTBidIn(), PSY.HybridSystem)
+    p_out = PSI.get_variable(container, PSI.ActivePowerOutVariable(), PSY.HybridSystem)
+    p_in = PSI.get_variable(container, PSI.ActivePowerInVariable(), PSY.HybridSystem)
+    status = PSI.get_variable(container, ReservationVariable(), PSY.HybridSystem)
+    p_th = PSI.get_variable(container, ThermalPower(), PSY.HybridSystem)
+    p_re = PSI.get_variable(container, RenewablePower(), PSY.HybridSystem)
+    p_ch = PSI.get_variable(container, BatteryCharge(), PSY.HybridSystem)
+    p_ds = PSI.get_variable(container, BatteryDischarge(), PSY.HybridSystem)
+    e_st = PSI.get_variable(container, BatteryStateOfCharge(), PSY.HybridSystem)
+    status_st = PSI.get_variable(container, BatteryStatus(), PSY.HybridSystem)
 
     for t in T_rt
         lin_cost_rt_out = Δt_RT * λ_rt[t] * eb_rt_out[t]
@@ -199,48 +203,48 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridEnergyOnly}
 
     # BidBalance
     constraint_eb_out =
-        PSI.add_constraints_container!(container, BidBalanceOut(), HybridSystem, T_rt)
+        PSI.add_constraints_container!(container, BidBalanceOut(), PSY.HybridSystem, T_rt)
     constraint_eb_in =
-        PSI.add_constraints_container!(container, BidBalanceIn(), HybridSystem, T_rt)
+        PSI.add_constraints_container!(container, BidBalanceIn(), PSY.HybridSystem, T_rt)
 
     constraint_status_bid_in =
-        PSI.add_constraints_container!(container, StatusInOn(), HybridSystem, T_rt)
+        PSI.add_constraints_container!(container, StatusInOn(), PSY.HybridSystem, T_rt)
 
     constraint_status_bid_out =
-        PSI.add_constraints_container!(container, StatusOutOn(), HybridSystem, T_rt)
+        PSI.add_constraints_container!(container, StatusOutOn(), PSY.HybridSystem, T_rt)
 
     constraint_balance =
-        PSI.add_constraints_container!(container, EnergyAssetBalance(), HybridSystem, T_rt)
+        PSI.add_constraints_container!(container, EnergyAssetBalance(), PSY.HybridSystem, T_rt)
 
     # Thermal
     constraint_thermal_on =
-        PSI.add_constraints_container!(container, OnVariableOn(), HybridSystem, T_rt)
+        PSI.add_constraints_container!(container, OnVariableOn(), PSY.HybridSystem, T_rt)
 
     constraint_thermal_off =
-        PSI.add_constraints_container!(container, OnVariableOff(), HybridSystem, T_rt)
+        PSI.add_constraints_container!(container, OnVariableOff(), PSY.HybridSystem, T_rt)
     # Battery Charging
     constraint_battery_charging = PSI.add_constraints_container!(
         container,
         BatteryStatusChargeOn(),
-        HybridSystem,
+        PSY.HybridSystem,
         T_rt,
     )
 
     constraint_battery_discharging = PSI.add_constraints_container!(
         container,
         BatteryStatusDischargeOn(),
-        HybridSystem,
+        PSY.HybridSystem,
         T_rt,
     )
 
     constraint_battery_balance =
-        PSI.add_constraints_container!(container, BatteryBalance(), HybridSystem, T_rt)
+        PSI.add_constraints_container!(container, BatteryBalance(), PSY.HybridSystem, T_rt)
 
     constraint_cycling_charge =
-        PSI.add_constraints_container!(container, CyclingCharge(), HybridSystem, 1)
+        PSI.add_constraints_container!(container, CyclingCharge(), PSY.HybridSystem, 1)
 
     constraint_cycling_discharge =
-        PSI.add_constraints_container!(container, CyclingDischarge(), HybridSystem, 1)
+        PSI.add_constraints_container!(container, CyclingDischarge(), PSY.HybridSystem, 1)
 
     for t in T_rt
         # Market Constraint Bids in/out
@@ -332,20 +336,20 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridCooptimized
     N = 12 # Number of periods of compliance: 12 * 5 minutes = 1 hour
 
     # Thermal Params
-    P_max_th = get_row_val(ext["th_df"], "P_max")
-    P_min_th = get_row_val(ext["th_df"], "P_min")
-    C_th_var = get_row_val(ext["th_df"], "C_var") * 100.0 # Multiply by 100 to transform to $/pu
-    C_th_fix = get_row_val(ext["th_df"], "C_fix")
+    P_max_th = _get_row_val(ext["th_df"], "P_max")
+    P_min_th = _get_row_val(ext["th_df"], "P_min")
+    C_th_var = _get_row_val(ext["th_df"], "C_var") * 100.0 # Multiply by 100 to transform to $/pu
+    C_th_fix = _get_row_val(ext["th_df"], "C_fix")
 
     # Battery Params
-    P_ch_max = get_row_val(ext["b_df"], "P_ch_max")
-    P_ds_max = get_row_val(ext["b_df"], "P_ds_max")
-    η_ch = get_row_val(ext["b_df"], "η_in")
-    η_ds = get_row_val(ext["b_df"], "η_out")
+    P_ch_max = _get_row_val(ext["b_df"], "P_ch_max")
+    P_ds_max = _get_row_val(ext["b_df"], "P_ds_max")
+    η_ch = _get_row_val(ext["b_df"], "η_in")
+    η_ds = _get_row_val(ext["b_df"], "η_out")
     inv_η_ds = 1.0 / η_ds
-    E_max = get_row_val(ext["b_df"], "SoC_max")
-    E_min = get_row_val(ext["b_df"], "SoC_min")
-    E0 = get_row_val(ext["b_df"], "initial_energy")
+    E_max = _get_row_val(ext["b_df"], "SoC_max")
+    E_min = _get_row_val(ext["b_df"], "SoC_min")
+    E0 = _get_row_val(ext["b_df"], "initial_energy")
 
     # Renewable Forecast
     P_re_star = ext["P_rt"][!, "MaxPower"]
@@ -431,15 +435,15 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridCooptimized
     ###############################
 
     # DA costs
-    eb_da_out = PSI.get_variable(container, EnergyDABidOut(), HybridSystem)
-    eb_da_in = PSI.get_variable(container, EnergyDABidIn(), HybridSystem)
-    on_th = PSI.get_variable(container, OnVariable(), HybridSystem)
-    sb_ru_da_out = PSI.get_variable(container, RegUDABidOut(), HybridSystem)
-    sb_ru_da_in = PSI.get_variable(container, RegUDABidIn(), HybridSystem)
-    sb_spin_da_out = PSI.get_variable(container, SpinDABidOut(), HybridSystem)
-    sb_spin_da_in = PSI.get_variable(container, SpinDABidIn(), HybridSystem)
-    sb_rd_da_out = PSI.get_variable(container, RegDownDABidOut(), HybridSystem)
-    sb_rd_da_in = PSI.get_variable(container, RegDownDABidIn(), HybridSystem)
+    eb_da_out = PSI.get_variable(container, EnergyDABidOut(), PSY.HybridSystem)
+    eb_da_in = PSI.get_variable(container, EnergyDABidIn(), PSY.HybridSystem)
+    on_th = PSI.get_variable(container, OnVariable(), PSY.HybridSystem)
+    sb_ru_da_out = PSI.get_variable(container, RegUDABidOut(), PSY.HybridSystem)
+    sb_ru_da_in = PSI.get_variable(container, RegUDABidIn(), PSY.HybridSystem)
+    sb_spin_da_out = PSI.get_variable(container, SpinDABidOut(), PSY.HybridSystem)
+    sb_spin_da_in = PSI.get_variable(container, SpinDABidIn(), PSY.HybridSystem)
+    sb_rd_da_out = PSI.get_variable(container, RegDownDABidOut(), PSY.HybridSystem)
+    sb_rd_da_in = PSI.get_variable(container, RegDownDABidIn(), PSY.HybridSystem)
 
     for t in T_da
         lin_cost_da_out = Δt_DA * λ_da[t] * eb_da_out[t]
@@ -457,17 +461,17 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridCooptimized
     end
 
     # RT costs
-    eb_rt_out = PSI.get_variable(container, EnergyRTBidOut(), HybridSystem)
-    eb_rt_in = PSI.get_variable(container, EnergyRTBidIn(), HybridSystem)
-    p_out = PSI.get_variable(container, PSI.ActivePowerOutVariable(), HybridSystem)
-    p_in = PSI.get_variable(container, PSI.ActivePowerInVariable(), HybridSystem)
-    status = PSI.get_variable(container, ReservationVariable(), HybridSystem)
-    p_th = PSI.get_variable(container, ThermalPower(), HybridSystem)
-    p_re = PSI.get_variable(container, RenewablePower(), HybridSystem)
-    p_ch = PSI.get_variable(container, BatteryCharge(), HybridSystem)
-    p_ds = PSI.get_variable(container, BatteryDischarge(), HybridSystem)
-    e_st = PSI.get_variable(container, BatteryStateOfCharge(), HybridSystem)
-    status_st = PSI.get_variable(container, BatteryStatus(), HybridSystem)
+    eb_rt_out = PSI.get_variable(container, EnergyRTBidOut(), PSY.HybridSystem)
+    eb_rt_in = PSI.get_variable(container, EnergyRTBidIn(), PSY.HybridSystem)
+    p_out = PSI.get_variable(container, PSI.ActivePowerOutVariable(), PSY.HybridSystem)
+    p_in = PSI.get_variable(container, PSI.ActivePowerInVariable(), PSY.HybridSystem)
+    status = PSI.get_variable(container, ReservationVariable(), PSY.HybridSystem)
+    p_th = PSI.get_variable(container, ThermalPower(), PSY.HybridSystem)
+    p_re = PSI.get_variable(container, RenewablePower(), PSY.HybridSystem)
+    p_ch = PSI.get_variable(container, BatteryCharge(), PSY.HybridSystem)
+    p_ds = PSI.get_variable(container, BatteryDischarge(), PSY.HybridSystem)
+    e_st = PSI.get_variable(container, BatteryStateOfCharge(), PSY.HybridSystem)
+    status_st = PSI.get_variable(container, BatteryStatus(), PSY.HybridSystem)
 
     for t in T_rt
         lin_cost_rt_out = Δt_RT * λ_rt[t] * p_out[t]
@@ -493,33 +497,33 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridCooptimized
 
     ## Read remaining variables
     # Internal Ancillary Services Bid RT
-    sb_ru_rt_out = PSI.get_variable(container, RegURTBidOut(), HybridSystem)
-    sb_ru_rt_in = PSI.get_variable(container, RegURTBidIn(), HybridSystem)
-    sb_spin_rt_out = PSI.get_variable(container, SpinRTBidOut(), HybridSystem)
-    sb_spin_rt_in = PSI.get_variable(container, SpinRTBidIn(), HybridSystem)
-    sb_rd_rt_out = PSI.get_variable(container, RegDownRTBidOut(), HybridSystem)
-    sb_rd_rt_in = PSI.get_variable(container, RegDownRTBidIn(), HybridSystem)
+    sb_ru_rt_out = PSI.get_variable(container, RegURTBidOut(), PSY.HybridSystem)
+    sb_ru_rt_in = PSI.get_variable(container, RegURTBidIn(), PSY.HybridSystem)
+    sb_spin_rt_out = PSI.get_variable(container, SpinRTBidOut(), PSY.HybridSystem)
+    sb_spin_rt_in = PSI.get_variable(container, SpinRTBidIn(), PSY.HybridSystem)
+    sb_rd_rt_out = PSI.get_variable(container, RegDownRTBidOut(), PSY.HybridSystem)
+    sb_rd_rt_in = PSI.get_variable(container, RegDownRTBidIn(), PSY.HybridSystem)
     # Internal Ancillary Services Bid Thermal
-    sb_ru_th = PSI.get_variable(container, RegUThermalBid(), HybridSystem)
-    sb_spin_th = PSI.get_variable(container, SpinThermalBid(), HybridSystem)
-    sb_rd_th = PSI.get_variable(container, RegDownThermalBid(), HybridSystem)
+    sb_ru_th = PSI.get_variable(container, RegUThermalBid(), PSY.HybridSystem)
+    sb_spin_th = PSI.get_variable(container, SpinThermalBid(), PSY.HybridSystem)
+    sb_rd_th = PSI.get_variable(container, RegDownThermalBid(), PSY.HybridSystem)
     # Internal Ancillary Services Bid Renewable
-    sb_ru_re = PSI.get_variable(container, RegURenewableBid(), HybridSystem)
-    sb_spin_re = PSI.get_variable(container, SpinRenewableBid(), HybridSystem)
-    sb_rd_re = PSI.get_variable(container, RegDownRenewableBid(), HybridSystem)
+    sb_ru_re = PSI.get_variable(container, RegURenewableBid(), PSY.HybridSystem)
+    sb_spin_re = PSI.get_variable(container, SpinRenewableBid(), PSY.HybridSystem)
+    sb_rd_re = PSI.get_variable(container, RegDownRenewableBid(), PSY.HybridSystem)
     # Internal Ancillary Services Bid Charge Battery
-    sb_ru_ch = PSI.get_variable(container, RegUBatteryChargeBid(), HybridSystem)
-    sb_spin_ch = PSI.get_variable(container, SpinBatteryChargeBid(), HybridSystem)
-    sb_rd_ch = PSI.get_variable(container, RegDownBatteryChargeBid(), HybridSystem)
+    sb_ru_ch = PSI.get_variable(container, RegUBatteryChargeBid(), PSY.HybridSystem)
+    sb_spin_ch = PSI.get_variable(container, SpinBatteryChargeBid(), PSY.HybridSystem)
+    sb_rd_ch = PSI.get_variable(container, RegDownBatteryChargeBid(), PSY.HybridSystem)
     # Internal Ancillary Services Bid Discharge Battery
-    sb_ru_ds = PSI.get_variable(container, RegUBatteryDischargeBid(), HybridSystem)
-    sb_spin_ds = PSI.get_variable(container, SpinBatteryDischargeBid(), HybridSystem)
-    sb_rd_ds = PSI.get_variable(container, RegDownBatteryDischargeBid(), HybridSystem)
+    sb_ru_ds = PSI.get_variable(container, RegUBatteryDischargeBid(), PSY.HybridSystem)
+    sb_spin_ds = PSI.get_variable(container, SpinBatteryDischargeBid(), PSY.HybridSystem)
+    sb_rd_ds = PSI.get_variable(container, RegDownBatteryDischargeBid(), PSY.HybridSystem)
     # RT Internal Asset Energy Bid
-    eb_rt_th = PSI.get_variable(container, EnergyThermalBid(), HybridSystem)
-    eb_rt_re = PSI.get_variable(container, EnergyRenewableBid(), HybridSystem)
-    eb_rt_ch = PSI.get_variable(container, EnergyBatteryChargeBid(), HybridSystem)
-    eb_rt_ds = PSI.get_variable(container, EnergyBatteryDischargeBid(), HybridSystem)
+    eb_rt_th = PSI.get_variable(container, EnergyThermalBid(), PSY.HybridSystem)
+    eb_rt_re = PSI.get_variable(container, EnergyRenewableBid(), PSY.HybridSystem)
+    eb_rt_ch = PSI.get_variable(container, EnergyBatteryChargeBid(), PSY.HybridSystem)
+    eb_rt_ds = PSI.get_variable(container, EnergyBatteryDischargeBid(), PSY.HybridSystem)
 
     ###################
     ### Upper Level ###
@@ -527,41 +531,41 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridCooptimized
 
     # Bid PCC Limits DA
     constraint_da_bid_up_out =
-        PSI.add_constraints_container!(container, BidOutDAUpperLimit(), HybridSystem, T_da)
+        PSI.add_constraints_container!(container, BidOutDAUpperLimit(), PSY.HybridSystem, T_da)
     constraint_da_bid_up_in =
-        PSI.add_constraints_container!(container, BidInDAUpperLimit(), HybridSystem, T_da)
+        PSI.add_constraints_container!(container, BidInDAUpperLimit(), PSY.HybridSystem, T_da)
     constraint_da_bid_low_out =
-        PSI.add_constraints_container!(container, BidOutDALowerLimit(), HybridSystem, T_da)
+        PSI.add_constraints_container!(container, BidOutDALowerLimit(), PSY.HybridSystem, T_da)
     constraint_da_bid_low_in =
-        PSI.add_constraints_container!(container, BidInDALowerLimit(), HybridSystem, T_da)
+        PSI.add_constraints_container!(container, BidInDALowerLimit(), PSY.HybridSystem, T_da)
 
     # Bid PCC Limits RT
     constraint_rt_bid_up_out =
-        PSI.add_constraints_container!(container, BidOutRTUpperLimit(), HybridSystem, T_rt)
+        PSI.add_constraints_container!(container, BidOutRTUpperLimit(), PSY.HybridSystem, T_rt)
     constraint_rt_bid_low_out =
-        PSI.add_constraints_container!(container, BidOutRTLowerLimit(), HybridSystem, T_rt)
+        PSI.add_constraints_container!(container, BidOutRTLowerLimit(), PSY.HybridSystem, T_rt)
     constraint_rt_bid_up_in =
-        PSI.add_constraints_container!(container, BidInRTUpperLimit(), HybridSystem, T_rt)
+        PSI.add_constraints_container!(container, BidInRTUpperLimit(), PSY.HybridSystem, T_rt)
     constraint_rt_bid_low_in =
-        PSI.add_constraints_container!(container, BidInRTLowerLimit(), HybridSystem, T_rt)
+        PSI.add_constraints_container!(container, BidInRTLowerLimit(), PSY.HybridSystem, T_rt)
 
     # Battery AS Coverage
     constraint_rd_charge_coverage = PSI.add_constraints_container!(
         container,
         RegDownBatteryChargeCoverage(),
-        HybridSystem,
+        PSY.HybridSystem,
         T_rt,
     )
     constraint_ru_discharge_coverage = PSI.add_constraints_container!(
         container,
         RegUBatteryDischargeCoverage(),
-        HybridSystem,
+        PSY.HybridSystem,
         T_rt,
     )
     constraint_spin_discharge_coverage = PSI.add_constraints_container!(
         container,
         SpinBatteryDischargeCoverage(),
-        HybridSystem,
+        PSY.HybridSystem,
         T_rt,
     )
 
@@ -569,7 +573,7 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridCooptimized
     constraint_energy_bid_asset_balance = PSI.add_constraints_container!(
         container,
         EnergyBidAssetBalance(),
-        HybridSystem,
+        PSY.HybridSystem,
         T_rt,
     )
 
@@ -577,19 +581,19 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridCooptimized
     constraint_regup_bid_convergence = PSI.add_constraints_container!(
         container,
         RegUBidMarketConvergence(),
-        HybridSystem,
+        PSY.HybridSystem,
         T_rt,
     )
     constraint_regdown_bid_convergence = PSI.add_constraints_container!(
         container,
         RegDownBidMarketConvergence(),
-        HybridSystem,
+        PSY.HybridSystem,
         T_rt,
     )
     constraint_spin_bid_convergence = PSI.add_constraints_container!(
         container,
         SpinBidMarketConvergence(),
-        HybridSystem,
+        PSY.HybridSystem,
         T_rt,
     )
 
@@ -597,61 +601,61 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridCooptimized
     constraint_regup_bid_balance = PSI.add_constraints_container!(
         container,
         RegUBidAssetBalance(),
-        HybridSystem,
+        PSY.HybridSystem,
         T_rt,
     )
     constraint_regdown_bid_balance = PSI.add_constraints_container!(
         container,
         RegDownBidAssetBalance(),
-        HybridSystem,
+        PSY.HybridSystem,
         T_rt,
     )
     constraint_spin_bid_balance =
-        PSI.add_constraints_container!(container, SpinBidAssetBalance(), HybridSystem, T_rt)
+        PSI.add_constraints_container!(container, SpinBidAssetBalance(), PSY.HybridSystem, T_rt)
 
     # Thermal Bid Limits
     constraint_bid_up_thermal =
-        PSI.add_constraints_container!(container, ThermalBidUp(), HybridSystem, T_rt)
+        PSI.add_constraints_container!(container, ThermalBidUp(), PSY.HybridSystem, T_rt)
     constraint_bid_down_thermal =
-        PSI.add_constraints_container!(container, ThermalBidDown(), HybridSystem, T_rt)
+        PSI.add_constraints_container!(container, ThermalBidDown(), PSY.HybridSystem, T_rt)
 
     # Renewable Bid Limits
     constraint_bid_up_renewable =
-        PSI.add_constraints_container!(container, RenewableBidUp(), HybridSystem, T_rt)
+        PSI.add_constraints_container!(container, RenewableBidUp(), PSY.HybridSystem, T_rt)
     constraint_bid_down_renewable =
-        PSI.add_constraints_container!(container, RenewableBidDown(), HybridSystem, T_rt)
+        PSI.add_constraints_container!(container, RenewableBidDown(), PSY.HybridSystem, T_rt)
 
     # Battery Bid Limits
     constraint_bid_up_charge =
-        PSI.add_constraints_container!(container, BatteryChargeBidUp(), HybridSystem, T_rt)
+        PSI.add_constraints_container!(container, BatteryChargeBidUp(), PSY.HybridSystem, T_rt)
     constraint_bid_down_charge = PSI.add_constraints_container!(
         container,
         BatteryChargeBidDown(),
-        HybridSystem,
+        PSY.HybridSystem,
         T_rt,
     )
     constraint_bid_up_discharge = PSI.add_constraints_container!(
         container,
         BatteryDischargeBidUp(),
-        HybridSystem,
+        PSY.HybridSystem,
         T_rt,
     )
     constraint_bid_down_discharge = PSI.add_constraints_container!(
         container,
         BatteryDischargeBidDown(),
-        HybridSystem,
+        PSY.HybridSystem,
         T_rt,
     )
 
     # Across Market Balance
     constraint_eb_out =
-        PSI.add_constraints_container!(container, BidBalanceOut(), HybridSystem, T_rt)
+        PSI.add_constraints_container!(container, BidBalanceOut(), PSY.HybridSystem, T_rt)
     constraint_eb_in =
-        PSI.add_constraints_container!(container, BidBalanceIn(), HybridSystem, T_rt)
+        PSI.add_constraints_container!(container, BidBalanceIn(), PSY.HybridSystem, T_rt)
     constraint_status_bid_in =
-        PSI.add_constraints_container!(container, StatusInOn(), HybridSystem, T_rt)
+        PSI.add_constraints_container!(container, StatusInOn(), PSY.HybridSystem, T_rt)
     constraint_status_bid_out =
-        PSI.add_constraints_container!(container, StatusOutOn(), HybridSystem, T_rt)
+        PSI.add_constraints_container!(container, StatusOutOn(), PSY.HybridSystem, T_rt)
 
     ###################
     ### Lower Level ###
@@ -659,33 +663,33 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridCooptimized
 
     # Asset Balance
     constraint_balance =
-        PSI.add_constraints_container!(container, EnergyAssetBalance(), HybridSystem, T_rt)
+        PSI.add_constraints_container!(container, EnergyAssetBalance(), PSY.HybridSystem, T_rt)
 
     # Thermal
     constraint_thermal_on =
-        PSI.add_constraints_container!(container, OnVariableOn(), HybridSystem, T_rt)
+        PSI.add_constraints_container!(container, OnVariableOn(), PSY.HybridSystem, T_rt)
     constraint_thermal_off =
-        PSI.add_constraints_container!(container, OnVariableOff(), HybridSystem, T_rt)
+        PSI.add_constraints_container!(container, OnVariableOff(), PSY.HybridSystem, T_rt)
 
     # Battery
     constraint_battery_charging = PSI.add_constraints_container!(
         container,
         BatteryStatusChargeOn(),
-        HybridSystem,
+        PSY.HybridSystem,
         T_rt,
     )
     constraint_battery_discharging = PSI.add_constraints_container!(
         container,
         BatteryStatusDischargeOn(),
-        HybridSystem,
+        PSY.HybridSystem,
         T_rt,
     )
     constraint_battery_balance =
-        PSI.add_constraints_container!(container, BatteryBalance(), HybridSystem, T_rt)
+        PSI.add_constraints_container!(container, BatteryBalance(), PSY.HybridSystem, T_rt)
     constraint_cycling_charge =
-        PSI.add_constraints_container!(container, CyclingCharge(), HybridSystem, 1)
+        PSI.add_constraints_container!(container, CyclingCharge(), PSY.HybridSystem, 1)
     constraint_cycling_discharge =
-        PSI.add_constraints_container!(container, CyclingDischarge(), HybridSystem, 1)
+        PSI.add_constraints_container!(container, CyclingDischarge(), PSY.HybridSystem, 1)
 
     ### Implement Constraints ###
     for t in T_da

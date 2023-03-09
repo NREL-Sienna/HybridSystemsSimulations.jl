@@ -1,6 +1,6 @@
 function _get_time_series(
     container::OptimizationContainer,
-    component::PSY.HybridSystem,
+    component::PSY.PSY.HybridSystem,
     subcomponent::S,
     attributes::TimeSeriesAttributes{T},
 ) where {S <: PSY.Component, T <: PSY.TimeSeriesData}

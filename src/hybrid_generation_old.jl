@@ -99,32 +99,32 @@ get_subcomponent(v::PSY.HybridSystem, ::Type{PSY.Storage}) = PSY.get_storage(v)
 ################################ output power constraints ###########################
 
 get_min_max_limits(
-    device::PSY.HybridSystem,
+    device::PSY.PSY.HybridSystem,
     ::Type{<:ReactivePowerVariableLimitsConstraint},
     ::Type{<:AbstractHybridFormulation},
 ) = PSY.get_reactive_power_limits(device)
 
 get_min_max_limits(
-    device::PSY.HybridSystem,
+    device::PSY.PSY.HybridSystem,
     ::Type{InputActivePowerVariableLimitsConstraint},
     ::Type{<:AbstractHybridFormulation},
 ) = PSY.get_input_active_power_limits(PSY.get_storage(device))
 
 get_min_max_limits(
-    device::PSY.HybridSystem,
+    device::PSY.PSY.HybridSystem,
     ::Type{OutputActivePowerVariableLimitsConstraint},
     ::Type{<:AbstractHybridFormulation},
 ) = PSY.get_output_active_power_limits(PSY.get_storage(device))
 
 get_min_max_limits(
-    device::PSY.HybridSystem,
+    device::PSY.PSY.HybridSystem,
     ::Type{PSY.RenewableGen},
     ::Type{ComponentActivePowerVariableLimitsConstraint},
     ::Type{<:AbstractHybridFormulation},
 ) = PSY.get_active_power_limits(PSY.get_renewable_unit(device))
 
 get_min_max_limits(
-    device::PSY.HybridSystem,
+    device::PSY.PSY.HybridSystem,
     ::Type{ActivePowerVariableLimitsConstraint},
     ::Type{<:AbstractHybridFormulation},
 ) = (
@@ -133,41 +133,41 @@ get_min_max_limits(
 )
 
 get_min_max_limits(
-    device::PSY.HybridSystem,
+    device::PSY.PSY.HybridSystem,
     ::Type{PSY.ThermalGen},
     ::Type{ComponentActivePowerVariableLimitsConstraint},
     ::Type{<:AbstractHybridFormulation},
 ) = PSY.get_active_power_limits(PSY.get_thermal_unit(device))
 
 get_min_max_limits(
-    device::PSY.HybridSystem,
+    device::PSY.PSY.HybridSystem,
     ::Type{PSY.ThermalGen},
     ::Type{ComponentReactivePowerVariableLimitsConstraint},
     ::Type{<:AbstractHybridFormulation},
 ) = PSY.get_reactive_power_limits(PSY.get_thermal_unit(device))
 
 get_min_max_limits(
-    device::PSY.HybridSystem,
+    device::PSY.PSY.HybridSystem,
     ::Type{PSY.RenewableGen},
     ::Type{ComponentReactivePowerVariableLimitsConstraint},
     ::Type{<:AbstractHybridFormulation},
 ) = PSY.get_reactive_power_limits(PSY.get_renewable_unit(device))
 
 get_min_max_limits(
-    device::PSY.HybridSystem,
+    device::PSY.PSY.HybridSystem,
     ::Type{PSY.Storage},
     ::Type{ComponentReactivePowerVariableLimitsConstraint},
     ::Type{<:AbstractHybridFormulation},
 ) = PSY.get_reactive_power_limits(PSY.get_storage(device))
 
 get_min_max_limits(
-    device::PSY.HybridSystem,
+    device::PSY.PSY.HybridSystem,
     ::Type{EnergyCapacityConstraint},
     ::Type{<:AbstractHybridFormulation},
 ) = PSY.get_state_of_charge_limits(PSY.get_storage(device))
 
 get_min_max_limits(
-    device::PSY.HybridSystem,
+    device::PSY.PSY.HybridSystem,
     ::Type{PSY.ElectricLoad},
     ::Type{ComponentReactivePowerVariableLimitsConstraint},
     ::Type{<:AbstractHybridFormulation},
@@ -409,7 +409,7 @@ function add_variables!(
         ComponentOutputActivePowerVariable,
         ComponentReactivePowerVariable,
     },
-    U <: PSY.HybridSystem,
+    U <: PSY.PSY.HybridSystem,
 }
     _add_variable!(container, T(), devices, formulation)
     return
@@ -422,7 +422,7 @@ function add_variables!(
     formulation::AbstractHybridFormulation,
 ) where {
     T <: Union{ComponentEnergyVariable, ComponentReservationVariable},
-    U <: PSY.HybridSystem,
+    U <: PSY.PSY.HybridSystem,
 }
     if !all(isnothing.(PSY.get_storage.(devices)))
         _add_variable!(container, T(), devices, formulation)
@@ -442,7 +442,7 @@ function add_to_expression!(
     T <:
     Union{ComponentActivePowerRangeExpressionUB, ComponentActivePowerRangeExpressionLB},
     U <: Union{ComponentInputActivePowerVariable, ComponentOutputActivePowerVariable},
-    V <: PSY.HybridSystem,
+    V <: PSY.PSY.HybridSystem,
     W <: AbstractDeviceFormulation,
     X <: PM.AbstractPowerModel,
 }
@@ -676,7 +676,7 @@ function _add_range_constraints!(
 ) where {
     T <: ComponentActivePowerVariableLimitsConstraint,
     U <: VariableType,
-    V <: PSY.HybridSystem,
+    V <: PSY.PSY.HybridSystem,
     W <: AbstractDeviceFormulation,
     X <: PM.AbstractPowerModel,
 }

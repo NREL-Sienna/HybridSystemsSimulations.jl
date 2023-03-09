@@ -12,8 +12,8 @@ struct EnergyBatteryChargeBid <: PSI.VariableType end
 struct EnergyBatteryDischargeBid <: PSI.VariableType end
 
 # AS Total DA Bids
-struct RegUDABidOut <: PSI.VariableType end
-struct RegUDABidIn <: PSI.VariableType end
+struct RegUpDABidOut <: PSI.VariableType end
+struct RegUpDABidIn <: PSI.VariableType end
 struct SpinDABidOut <: PSI.VariableType end
 struct SpinDABidIn <: PSI.VariableType end
 struct RegDownDABidOut <: PSI.VariableType end

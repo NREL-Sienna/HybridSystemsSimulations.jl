@@ -381,8 +381,8 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridCooptimized
     add_variable!(decision_model, EnergyBatteryDischargeBid(), T_rt, 0.0, P_ds_max) #eb_rt_ds
 
     # AS Total DA Bids
-    add_variable!(decision_model, RegUDABidOut(), T_da, 0.0, P_max_pcc) #sb_ru_da_out
-    add_variable!(decision_model, RegUDABidIn(), T_da, 0.0, P_max_pcc) #sb_ru_da_in
+    add_variable!(decision_model, RegUpDABidOut(), T_da, 0.0, P_max_pcc) #sb_ru_da_out
+    add_variable!(decision_model, RegUpDABidIn(), T_da, 0.0, P_max_pcc) #sb_ru_da_in
     add_variable!(decision_model, SpinDABidOut(), T_da, 0.0, P_max_pcc) #sb_spin_da_out
     add_variable!(decision_model, SpinDABidIn(), T_da, 0.0, P_max_pcc) #sb_spin_da_in
     add_variable!(decision_model, RegDownDABidOut(), T_da, 0.0, P_max_pcc) #sb_rd_da_out
@@ -442,8 +442,8 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridCooptimized
     eb_da_out = PSI.get_variable(container, EnergyDABidOut(), PSY.HybridSystem)
     eb_da_in = PSI.get_variable(container, EnergyDABidIn(), PSY.HybridSystem)
     on_th = PSI.get_variable(container, OnVariable(), PSY.HybridSystem)
-    sb_ru_da_out = PSI.get_variable(container, RegUDABidOut(), PSY.HybridSystem)
-    sb_ru_da_in = PSI.get_variable(container, RegUDABidIn(), PSY.HybridSystem)
+    sb_ru_da_out = PSI.get_variable(container, RegUpDABidOut(), PSY.HybridSystem)
+    sb_ru_da_in = PSI.get_variable(container, RegUpDABidIn(), PSY.HybridSystem)
     sb_spin_da_out = PSI.get_variable(container, SpinDABidOut(), PSY.HybridSystem)
     sb_spin_da_in = PSI.get_variable(container, SpinDABidIn(), PSY.HybridSystem)
     sb_rd_da_out = PSI.get_variable(container, RegDownDABidOut(), PSY.HybridSystem)

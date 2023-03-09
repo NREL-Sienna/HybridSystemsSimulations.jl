@@ -10,11 +10,11 @@ function construct_device!(
     # Variables
     add_variables!(container, PSI.ActivePowerOutVariable, devices, D())
     add_variables!(container, PSI.ActivePowerInVariable, devices, D())
-    add_variables!(container, ComponentInputActivePowerVariable, devices, D())
-    add_variables!(container, ComponentOutputActivePowerVariable, devices, D())
-    add_variables!(container, ComponentReactivePowerVariable, devices, D())
-    add_variables!(container, ComponentEnergyVariable, devices, D())
-    add_variables!(container, ReactivePowerVariable, devices, D())
+    # add_variables!(container, ComponentInputActivePowerVariable, devices, D())
+    # add_variables!(container, ComponentOutputActivePowerVariable, devices, D())
+    # add_variables!(container, ComponentReactivePowerVariable, devices, D())
+    # add_variables!(container, ComponentEnergyVariable, devices, D())
+    # add_variables!(container, ReactivePowerVariable, devices, D())
     if get_attribute(model, "reservation")
         add_variables!(container, PSI.ReservationVariable, devices, D())
     end
@@ -194,8 +194,8 @@ function construct_device!(
     # Variables
     add_variables!(container, PSI.ActivePowerInVariable, devices, D())
     add_variables!(container, ActivePowerOutVariable, devices, D())
-    add_variables!(container, ComponentInputActivePowerVariable, devices, D())
-    add_variables!(container, ComponentOutputActivePowerVariable, devices, D())
+    # add_variables!(container, ComponentInputActivePowerVariable, devices, D())
+    # add_variables!(container, ComponentOutputActivePowerVariable, devices, D())
     add_variables!(container, ComponentEnergyVariable, devices, D())
     if get_attribute(model, "reservation")
         add_variables!(container, PSI.ReservationVariable, devices, D())

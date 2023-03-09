@@ -32,6 +32,6 @@ include("formulations.jl")
 include("variables_definitions.jl")
 include("constraints_definitions.jl")
 include("hybrid_decision_models.jl")
-include("Hybrid_generation.jl")
+include("hybridsystems_device_models.jl")
 
 end

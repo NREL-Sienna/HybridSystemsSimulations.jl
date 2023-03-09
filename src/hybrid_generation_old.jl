@@ -10,12 +10,12 @@ get_expression_type_for_reserve(::ActivePowerReserveVariable, ::Type{<:PSY.Hybri
 get_variable_binary(::ActivePowerVariable, ::Type{PSY.HybridSystem}, ::AbstractHybridFormulation) = false
 get_variable_warm_start_value(::ActivePowerVariable, d::PSY.HybridSystem, ::AbstractHybridFormulation) = PSY.get_active_power(d)
 get_variable_lower_bound(::ActivePowerVariable, d::PSY.HybridSystem, ::AbstractHybridFormulation) = -1.0 * PSY.get_input_active_power_limits(d).max
-get_variable_lower_bound(::ActivePowerVariable, d::PSY.HybridSystem, ::AbstractStandardHybridFormulation) = PSY.get_output_active_power_limits(d).min
+get_variable_lower_bound(::ActivePowerVariable, d::PSY.HybridSystem, ::AbstractHybridFormulation) = PSY.get_output_active_power_limits(d).min
 get_variable_upper_bound(::ActivePowerVariable, d::PSY.HybridSystem, ::AbstractHybridFormulation) = PSY.get_output_active_power_limits(d).max
 
 ############## ComponentOutputActivePowerVariable, HybridSystem ####################
-get_variable_binary(::ComponentInputActivePowerVariable, ::Type{PSY.HybridSystem}, ::AbstractHybridFormulation) = false
-get_variable_lower_bound(::ComponentInputActivePowerVariable, d::PSY.HybridSystem, ::AbstractHybridFormulation) = 0.0
+# get_variable_binary(::ComponentInputActivePowerVariable, ::Type{PSY.HybridSystem}, ::AbstractHybridFormulation) = false
+# get_variable_lower_bound(::ComponentInputActivePowerVariable, d::PSY.HybridSystem, ::AbstractHybridFormulation) = 0.0
 get_variable_binary(::ComponentOutputActivePowerVariable, ::Type{PSY.HybridSystem}, ::AbstractHybridFormulation) = false
 get_variable_lower_bound(::ComponentOutputActivePowerVariable, d::PSY.HybridSystem, ::AbstractHybridFormulation) = 0.0
 
@@ -95,21 +95,6 @@ get_subcomponent(v::PSY.HybridSystem, ::Type{PSY.RenewableGen}) = PSY.get_renewa
 get_subcomponent(v::PSY.HybridSystem, ::Type{PSY.ElectricLoad}) = PSY.get_electric_load(v)
 get_subcomponent(v::PSY.HybridSystem, ::Type{PSY.Storage}) = PSY.get_storage(v)
 
-function get_default_time_series_names(
-    ::Type{<:PSY.HybridSystem},
-    ::Type{<:Union{FixedOutput, AbstractHybridFormulation}},
-)
-    return Dict{Type{<:TimeSeriesParameter}, String}(
-        ActivePowerTimeSeriesParameter => "max_active_power",
-    )
-end
-
-function get_default_attributes(
-    ::Type{<:PSY.HybridSystem},
-    ::Type{<:AbstractHybridFormulation},
-)
-    return Dict{String, Any}("reservation" => true, "storage_reservation" => true)
-end
 
 ################################ output power constraints ###########################
 

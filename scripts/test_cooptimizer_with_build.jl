@@ -54,9 +54,9 @@ res = ProblemResults(m)
 dic_res = get_variable_values(res)
 #read_variables(res)
 #dic[PSI.VariableKey{EnergyDABidIn, HybridSystem}("")]
-#df = read_variable(res, PSI.VariableKey{energyRTBidIn, HybridSystem}(""))
-energy_rt_out = read_variable(res, "energyRTBidOut__HybridSystem")[!, 2]
-energy_rt_in = read_variable(res, "energyRTBidIn__HybridSystem")[!, 2]
+#df = read_variable(res, PSI.VariableKey{EnergyRTBidIn, HybridSystem}(""))
+energy_rt_out = read_variable(res, "EnergyRTBidOut__HybridSystem")[!, 2]
+energy_rt_in = read_variable(res, "EnergyRTBidIn__HybridSystem")[!, 2]
 p_out = read_variable(res, "ActivePowerOutVariable__HybridSystem")[!, 2]
 p_in = read_variable(res, "ActivePowerInVariable__HybridSystem")[!, 2]
 p_ds = read_variable(res, "BatteryDischarge__HybridSystem")[!, 2]

@@ -13,7 +13,7 @@ export EnergyDABidIn
 
 import MathOptInterface
 import PowerSimulations
-import PowerSytems
+import PowerSystems
 import JuMP
 
 const MOI = MathOptInterface

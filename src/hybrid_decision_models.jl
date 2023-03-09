@@ -560,7 +560,7 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridCooptimized
     )
     constraint_spin_discharge_coverage = PSI.add_constraints_container!(
         container,
-        spinBatteryDischargeCoverage(),
+        SpinBatteryDischargeCoverage(),
         HybridSystem,
         T_rt,
     )
@@ -588,7 +588,7 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridCooptimized
     )
     constraint_spin_bid_convergence = PSI.add_constraints_container!(
         container,
-        spinBidMarketConvergence(),
+        SpinBidMarketConvergence(),
         HybridSystem,
         T_rt,
     )
@@ -607,7 +607,7 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridCooptimized
         T_rt,
     )
     constraint_spin_bid_balance =
-        PSI.add_constraints_container!(container, spinBidAssetBalance(), HybridSystem, T_rt)
+        PSI.add_constraints_container!(container, SpinBidAssetBalance(), HybridSystem, T_rt)
 
     # Thermal Bid Limits
     constraint_bid_up_thermal =

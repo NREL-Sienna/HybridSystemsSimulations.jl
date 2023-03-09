@@ -1,6 +1,3 @@
-import MathOptInterface
-const MOI = MathOptInterface
-
 function add_variable!(
     decision_model::DecisionModel{U},
     type::T,
@@ -124,8 +121,8 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridEnergyOnly}
     λ_rt = ext["λ_rt_df"][!, Bus_name] * 100.0 # Multiply by 100 to transform to $/pu
 
     # Add Market variables
-    add_variable!(decision_model, energyDABidOut(), T_da, 0.0, P_max_pcc)
-    add_variable!(decision_model, energyDABidIn(), T_da, 0.0, P_max_pcc)
+    add_variable!(decision_model, EnergyDABidOut(), T_da, 0.0, P_max_pcc)
+    add_variable!(decision_model, EnergyDABidIn(), T_da, 0.0, P_max_pcc)
     add_variable!(decision_model, energyRTBidOut(), T_rt, 0.0, P_max_pcc)
     add_variable!(decision_model, energyRTBidIn(), T_rt, 0.0, P_max_pcc)
 
@@ -152,8 +149,8 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridEnergyOnly}
     ###############################
 
     # DA costs
-    eb_da_out = PSI.get_variable(container, energyDABidOut(), HybridSystem)
-    eb_da_in = PSI.get_variable(container, energyDABidIn(), HybridSystem)
+    eb_da_out = PSI.get_variable(container, EnergyDABidOut(), HybridSystem)
+    eb_da_in = PSI.get_variable(container, EnergyDABidIn(), HybridSystem)
     on_th = PSI.get_variable(container, OnVariable(), HybridSystem)
 
     for t in T_da
@@ -364,8 +361,8 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridCooptimized
     λ_da_spin = ext["λ_da_df"][!, "Reg_Spin_Prices"] * 100.0 # Multiply by 100 to transform to $/pu
 
     # Add Market variables
-    add_variable!(decision_model, energyDABidOut(), T_da, 0.0, P_max_pcc) #eb_da_out
-    add_variable!(decision_model, energyDABidIn(), T_da, 0.0, P_max_pcc) #eb_da_in
+    add_variable!(decision_model, EnergyDABidOut(), T_da, 0.0, P_max_pcc) #eb_da_out
+    add_variable!(decision_model, EnergyDABidIn(), T_da, 0.0, P_max_pcc) #eb_da_in
     add_variable!(decision_model, energyRTBidOut(), T_rt, 0.0, P_max_pcc) #eb_rt_out
     add_variable!(decision_model, energyRTBidIn(), T_rt, 0.0, P_max_pcc) #eb_rt_in
 
@@ -434,8 +431,8 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridCooptimized
     ###############################
 
     # DA costs
-    eb_da_out = PSI.get_variable(container, energyDABidOut(), HybridSystem)
-    eb_da_in = PSI.get_variable(container, energyDABidIn(), HybridSystem)
+    eb_da_out = PSI.get_variable(container, EnergyDABidOut(), HybridSystem)
+    eb_da_in = PSI.get_variable(container, EnergyDABidIn(), HybridSystem)
     on_th = PSI.get_variable(container, OnVariable(), HybridSystem)
     sb_ru_da_out = PSI.get_variable(container, regUpDABidOut(), HybridSystem)
     sb_ru_da_in = PSI.get_variable(container, regUpDABidIn(), HybridSystem)

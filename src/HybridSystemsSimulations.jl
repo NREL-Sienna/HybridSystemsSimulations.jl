@@ -13,11 +13,13 @@ export EnergyDABidIn
 
 import MathOptInterface
 import PowerSimulations
+import PowerSytems
 import JuMP
 
-
-const PSI = PowerSimulations
 const MOI = MathOptInterface
+const PSI = PowerSimulations
+const PSY = PowerSystems
+
 
 using DocStringExtensions
 @template (FUNCTIONS, METHODS) = """

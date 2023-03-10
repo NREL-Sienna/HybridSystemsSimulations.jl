@@ -28,7 +28,7 @@ struct RegDownRTBidOut <: PSI.VariableType end
 struct RegDownRTBidIn <: PSI.VariableType end
 
 # AS Thermal Bids
-struct RegUThermalBid <: PSI.VariableType end
+struct RegUpThermalBid <: PSI.VariableType end
 struct RegDownThermalBid <: PSI.VariableType end
 struct SpinThermalBid <: PSI.VariableType end
 

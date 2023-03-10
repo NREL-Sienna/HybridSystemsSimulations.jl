@@ -397,7 +397,7 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridCooptimized
     add_variable!(decision_model, RegDownRTBidIn(), T_rt, 0.0, P_max_pcc) #sb_rd_rt_in
 
     # AS Thermal RT Internal Bids
-    add_variable!(decision_model, RegUThermalBid(), T_rt, 0.0, P_max_th) #sb_ru_th
+    add_variable!(decision_model, RegUpThermalBid(), T_rt, 0.0, P_max_th) #sb_ru_th
     add_variable!(decision_model, SpinThermalBid(), T_rt, 0.0, P_max_th) #sb_spin_th
     add_variable!(decision_model, RegDownThermalBid(), T_rt, 0.0, P_max_th) #sb_rd_th
 
@@ -508,7 +508,7 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridCooptimized
     sb_rd_rt_out = PSI.get_variable(container, RegDownRTBidOut(), PSY.HybridSystem)
     sb_rd_rt_in = PSI.get_variable(container, RegDownRTBidIn(), PSY.HybridSystem)
     # Internal Ancillary Services Bid Thermal
-    sb_ru_th = PSI.get_variable(container, RegUThermalBid(), PSY.HybridSystem)
+    sb_ru_th = PSI.get_variable(container, RegUpThermalBid(), PSY.HybridSystem)
     sb_spin_th = PSI.get_variable(container, SpinThermalBid(), PSY.HybridSystem)
     sb_rd_th = PSI.get_variable(container, RegDownThermalBid(), PSY.HybridSystem)
     # Internal Ancillary Services Bid Renewable

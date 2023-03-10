@@ -11,6 +11,7 @@ using PowerSystems
 using PowerSystemCaseBuilder
 using InfrastructureSystems
 using PowerNetworkMatrices
+using HybridSystemsSimulations
 import OrderedCollections: OrderedDict
 const PSY = PowerSystems
 const PSI = PowerSimulations
@@ -32,17 +33,14 @@ include("modify_systems.jl")
 include("price_generation_utils.jl")
 include("build_simulation_cases.jl")
 include("utils.jl")
-include("../src/formulations.jl")
-include("../src/variables_definitions.jl")
-include("../src/constraints_definitions.jl")
-include("../src/hybrid_build.jl")
 
 ###############################
 ######## Load Systems #########
 ###############################
 
 sys_rts_da = PSB.build_RTS_GMLC_DA_sys(raw_data=PSB.RTS_DIR, horizon=48)
-sys_rts_rt = PSB.build_RTS_GMLC_RT_sys(raw_data=PSB.RTS_DIR, horizon=864, interval=Minute(1440))
+sys_rts_rt =
+    PSB.build_RTS_GMLC_RT_sys(raw_data=PSB.RTS_DIR, horizon=864, interval=Minute(1440))
 
 # There is no Wind + Thermal in a Single Bus.
 # We will try to pick the Wind in 317 bus Chuhsi
@@ -99,7 +97,7 @@ dic["Pload_rt"] = CSV.read("inputs/$(bus_name)_load_forecast_RT.csv", DataFrame)
 
 ### Create Decision Problem
 m = DecisionModel(
-    HybridOptimizer,
+    MerchantHybridEnergyOnly,
     ProblemTemplate(CopperPlatePowerModel),
     sys_rts_rt,
     optimizer=Xpress.Optimizer,

@@ -14,14 +14,11 @@ using Dates
 using CSV
 using TimeSeries
 using DataFrames
+using HybridSystemsSimulations
 const PSI = PowerSimulations
 const PSB = PowerSystemCaseBuilder
 
 include("utils.jl")
-include("../src/formulations.jl")
-include("../src/variables_definitions.jl")
-include("../src/constraints_definitions.jl")
-include("../src/hybrid_build.jl")
 
 ### Create Custom System
 #sys = build_system(PSISystems, "modified_RTS_GMLC_RT_sys"; horizon = 864, force_build = true)
@@ -43,7 +40,7 @@ dic["Pload_rt"] = CSV.read("inputs/$(bus_name)_load_forecast_RT.csv", DataFrame)
 
 ### Create Decision Problem
 m = DecisionModel(
-    HybridCoOptimizer,
+    MerchantHybridCooptimized,
     ProblemTemplate(CopperPlatePowerModel),
     sys,
     optimizer=Xpress.Optimizer,
@@ -56,12 +53,12 @@ PSI.solve!(m)
 res = ProblemResults(m)
 dic_res = get_variable_values(res)
 #read_variables(res)
-#dic[PSI.VariableKey{energyDABidIn, HybridSystem}("")]
-#df = read_variable(res, PSI.VariableKey{energyRTBidIn, HybridSystem}(""))
-energy_rt_out = read_variable(res, "energyRTBidOut__HybridSystem")[!, 2]
-energy_rt_in = read_variable(res, "energyRTBidIn__HybridSystem")[!, 2]
-p_out = read_variable(res, "HybridPowerOut__HybridSystem")[!, 2]
-p_in = read_variable(res, "HybridPowerIn__HybridSystem")[!, 2]
+#dic[PSI.VariableKey{EnergyDABidIn, HybridSystem}("")]
+#df = read_variable(res, PSI.VariableKey{EnergyRTBidIn, HybridSystem}(""))
+energy_rt_out = read_variable(res, "EnergyRTBidOut__HybridSystem")[!, 2]
+energy_rt_in = read_variable(res, "EnergyRTBidIn__HybridSystem")[!, 2]
+p_out = read_variable(res, "ActivePowerOutVariable__HybridSystem")[!, 2]
+p_in = read_variable(res, "ActivePowerInVariable__HybridSystem")[!, 2]
 p_ds = read_variable(res, "BatteryDischarge__HybridSystem")[!, 2]
 p_ch = read_variable(res, "BatteryCharge__HybridSystem")[!, 2]
 p_re = read_variable(res, "RenewablePower__HybridSystem")[!, 2]

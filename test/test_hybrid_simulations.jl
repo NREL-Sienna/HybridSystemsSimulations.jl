@@ -2,7 +2,7 @@
     sys_uc = PSB.build_system(PSITestSystems, "c_sys5_hybrid_uc")
 
     template_uc = get_template_standard_uc_simulation()
-    set_device_model!(template_uc, PSY.HybridSystem, BasicHybridDispatch)
+    set_device_model!(template_uc, PSY.HybridSystem, HybridEnergyOnlyDispatchDispatch)
     set_network_model!(template_uc, NetworkModel(CopperPlatePowerModel, use_slacks=true))
 
     models = SimulationModels(
@@ -36,12 +36,12 @@ end
     sys_ed = PSB.build_system(PSITestSystems, "c_sys5_hybrid_ed")
 
     template_uc = get_template_standard_uc_simulation()
-    set_device_model!(template_uc, PSY.HybridSystem, BasicHybridDispatch)
+    set_device_model!(template_uc, PSY.HybridSystem, HybridEnergyOnlyDispatchDispatch)
     set_network_model!(template_uc, NetworkModel(CopperPlatePowerModel, use_slacks=true))
     template_ed = get_thermal_dispatch_template_network(
         NetworkModel(CopperPlatePowerModel, use_slacks=true),
     )
-    set_device_model!(template_ed, PSY.HybridSystem, BasicHybridDispatch)
+    set_device_model!(template_ed, PSY.HybridSystem, HybridEnergyOnlyDispatchDispatch)
 
     models = SimulationModels(
         decision_models=[

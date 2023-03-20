@@ -305,7 +305,7 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridCooptimized
     s = PSI.get_system(decision_model)
     PSI.init_optimization_container!(container, CopperPlatePowerModel, s)
     PSI.init_model_store_params!(decision_model)
-    ext = get_ext(s)
+    ext = PSY.get_ext(s)
     ###############################
     ######## Create Sets ##########
     ###############################

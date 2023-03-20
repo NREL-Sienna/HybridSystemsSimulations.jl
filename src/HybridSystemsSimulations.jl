@@ -6,6 +6,7 @@ export HybridDispatch
 
 # Decision Models
 export MerchantHybridEnergyOnly
+export MerchantHybridCooptimized
 
 # Variables
 export EnergyDABidOut
@@ -19,6 +20,8 @@ import JuMP
 const MOI = MathOptInterface
 const PSI = PowerSimulations
 const PSY = PowerSystems
+const PM = PSI.PM
+const IS = PSI.IS
 
 using DocStringExtensions
 @template (FUNCTIONS, METHODS) = """
@@ -32,5 +35,6 @@ include("variables_definitions.jl")
 include("constraints_definitions.jl")
 include("hybrid_decision_models.jl")
 include("hybridsystems_device_models.jl")
+include("hybridgeneration_constructor.jl")
 
 end

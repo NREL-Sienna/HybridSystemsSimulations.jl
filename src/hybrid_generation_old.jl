@@ -2,7 +2,7 @@
 requires_initialization(::AbstractHybridFormulation) = false
 
 get_variable_multiplier(::PSI.ActivePowerOutVariable, ::Type{<:PSY.HybridSystem}, ::AbstractHybridFormulation) = 1.0
-get_variable_multiplier(::PSI.ActivePowerOutVariable, ::Type{<:PSY.HybridSystem}, ::AbstractHybridFormulation) = -1.0
+get_variable_multiplier(::PSI.ActivePowerInVariable, ::Type{<:PSY.HybridSystem}, ::AbstractHybridFormulation) = -1.0
 get_expression_type_for_reserve(::ActivePowerReserveVariable, ::Type{<:PSY.HybridSystem}, ::Type{<:PSY.Reserve{PSY.ReserveUp}}) = ComponentReserveUpBalanceExpression
 get_expression_type_for_reserve(::ActivePowerReserveVariable, ::Type{<:PSY.HybridSystem}, ::Type{<:PSY.Reserve{PSY.ReserveDown}}) = ComponentReserveDownBalanceExpression
 
@@ -79,7 +79,7 @@ get_multiplier_value(::ActivePowerTimeSeriesParameter, d::PSY.HybridSystem, ::Ty
 get_initial_conditions_device_model(
     ::OperationModel,
     ::DeviceModel{T, <:AbstractHybridFormulation},
-) where {T <: PSY.HybridSystem} = DeviceModel(T, BasicHybridDisaptch)
+) where {T <: PSY.HybridSystem} = DeviceModel(T, HybridEnergyOnlyDispatchDisaptch)
 
 does_subcomponent_exist(v::PSY.HybridSystem, ::Type{PSY.ThermalGen}) =
     !isnothing(PSY.get_thermal_unit(v))
@@ -693,7 +693,7 @@ function _add_range_constraints!(
     return
 end
 
-function add_constraints!(
+function PSI.add_constraints!(
     container::OptimizationContainer,
     T::Type{<:PowerVariableLimitsConstraint},
     U::Type{<:Union{VariableType, ExpressionType}},
@@ -701,7 +701,7 @@ function add_constraints!(
     model::DeviceModel{V, W},
     X::Type{<:PM.AbstractPowerModel},
 ) where {V <: PSY.HybridSystem, W <: AbstractHybridFormulation}
-    add_range_constraints!(container, T, U, devices, model, X)
+    PSI.add_range_constraints!(container, T, U, devices, model, X)
     return
 end
 

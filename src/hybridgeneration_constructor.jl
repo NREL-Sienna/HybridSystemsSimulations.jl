@@ -52,6 +52,8 @@ function PSI.construct_device!(
     PSI.add_variables!(container, BatteryDischarge, _hybrids_with_storage, D())
     PSI.add_variables!(container, BatteryStateOfCharge, _hybrids_with_storage, D())
     PSI.add_variables!(container, BatteryStatus, _hybrids_with_storage, D())
+
+    ### Add Parameters ###
     return
 end
 
@@ -85,6 +87,27 @@ function PSI.construct_device!(
         model,
         S,
     )
+
+    # Energy Asset Balance
+    # PSI.add_constraints!(container, EnergyAssetBalance, devices, model, S)
+
+    ### Add Component Constraints ###
+    _hybrids_with_thermal = [d for d in devices if PSY.get_thermal_unit(d) !== nothing]
+    # _hybrids_with_renewable = [d for d in devices if PSY.get_renewable_unit(d) !== nothing]
+    _hybrids_with_storage = [d for d in devices if PSY.get_storage(d) !== nothing]
+
+    # Thermal
+    PSI.add_constraints!(container, ThermalOnVariableOn, _hybrids_with_thermal, model, S)
+    PSI.add_constraints!(container, ThermalOnVariableOff, _hybrids_with_thermal, model, S)
+
+    #=
+    # Storage
+    PSI.add_constraints!(container, BatteryStatusChargeOn, _hybrids_with_storage, model, S)
+    PSI.add_constraints!(container, BatteryStatusChargeOff, _hybrids_with_storage, model, S)
+    PSI.add_constraints!(container, BatteryBalance, _hybrids_with_storage, model, S)
+    PSI.add_constraints!(container, CyclingCharge, _hybrids_with_storage, model, S)
+    PSI.add_constraints!(container, CyclingDischarge, _hybrids_with_storage, model, S)
+    =#
 
     return
 end

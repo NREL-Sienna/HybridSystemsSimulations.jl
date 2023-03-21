@@ -221,11 +221,19 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridEnergyOnly}
     )
 
     # Thermal
-    constraint_thermal_on =
-        PSI.add_constraints_container!(container, OnVariableOn(), PSY.HybridSystem, T_rt)
+    constraint_thermal_on = PSI.add_constraints_container!(
+        container,
+        ThermalOnVariableOn(),
+        PSY.HybridSystem,
+        T_rt,
+    )
 
-    constraint_thermal_off =
-        PSI.add_constraints_container!(container, OnVariableOff(), PSY.HybridSystem, T_rt)
+    constraint_thermal_off = PSI.add_constraints_container!(
+        container,
+        ThermalOnVariableOff(),
+        PSY.HybridSystem,
+        T_rt,
+    )
     # Battery Charging
     constraint_battery_charging = PSI.add_constraints_container!(
         container,
@@ -718,10 +726,18 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridCooptimized
     )
 
     # Thermal
-    constraint_thermal_on =
-        PSI.add_constraints_container!(container, OnVariableOn(), PSY.HybridSystem, T_rt)
-    constraint_thermal_off =
-        PSI.add_constraints_container!(container, OnVariableOff(), PSY.HybridSystem, T_rt)
+    constraint_thermal_on = PSI.add_constraints_container!(
+        container,
+        ThermalOnVariableOn(),
+        PSY.HybridSystem,
+        T_rt,
+    )
+    constraint_thermal_off = PSI.add_constraints_container!(
+        container,
+        ThermalOnVariableOff(),
+        PSY.HybridSystem,
+        T_rt,
+    )
 
     # Battery
     constraint_battery_charging = PSI.add_constraints_container!(

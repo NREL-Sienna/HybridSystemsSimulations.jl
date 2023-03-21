@@ -178,9 +178,13 @@ PSI.get_variable_binary(
     ::AbstractHybridFormulation,
 ) = true
 
-# Warm Start
+# Warm Start TODO
 
-############## Thermal Variables, HybridSystem ####################
+###################################################################
+######################### Variables ###############################
+###################################################################
+
+############### Asset Variables, HybridSystem #####################
 
 function _add_variable!(
     container::PSI.OptimizationContainer,
@@ -237,7 +241,9 @@ function add_variables!(
     return
 end
 
-### Parameters ###
+###################################################################
+######################## Parameters ###############################
+###################################################################
 
 #function PSI.get_default_time_series_names(
 #    ::Type{<:PSY.HybridSystem},
@@ -285,7 +291,9 @@ function PSI.add_parameters!(
     return
 end
 
-### Constraints ###
+###################################################################
+####################### Constraints ###############################
+###################################################################
 
 function PSI.add_constraints!(
     container::PSI.OptimizationContainer,
@@ -296,5 +304,61 @@ function PSI.add_constraints!(
     X::Type{<:PM.AbstractPowerModel},
 ) where {V <: PSY.HybridSystem, W <: AbstractHybridFormulation}
     PSI.add_range_constraints!(container, T, U, devices, model, X)
+    return
+end
+
+############## Thermal Constraints, HybridSystem ###################
+
+function PSI.add_constraints!(
+    container::PSI.OptimizationContainer,
+    T::Type{<:ThermalOnVariableOn},
+    devices::U,
+    ::PSI.DeviceModel{D, W},
+    X::Type{<:PM.AbstractPowerModel},
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
+    time_steps = PSI.get_time_steps(container)
+    names = [PSY.get_name(d) for d in devices]
+    varon = PSI.get_variable(container, ThermalStatus(), D)
+    p_th = PSI.get_variable(container, ThermalPower(), D)
+    con_ub = PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="ub")
+
+    for device in devices, t in time_steps
+        ci_name = PSY.get_name(device)
+        max_limit = PSY.get_active_power_limits(PSY.get_thermal_unit(device)).max
+        con_ub[ci_name, t] = JuMP.@constraint(
+            container.JuMPmodel,
+            p_th[ci_name, t] <= max_limit * varon[ci_name, t]
+        )
+    end
+    return
+end
+
+function PSI.add_constraints!(
+    container::PSI.OptimizationContainer,
+    T::Type{<:ThermalOnVariableOff},
+    devices::U,
+    ::PSI.DeviceModel{D, W},
+    X::Type{<:PM.AbstractPowerModel},
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
+    time_steps = PSI.get_time_steps(container)
+    names = [PSY.get_name(d) for d in devices]
+    varon = PSI.get_variable(container, ThermalStatus(), D)
+    p_th = PSI.get_variable(container, ThermalPower(), D)
+    con_lb = PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="lb")
+
+    for device in devices, t in time_steps
+        ci_name = PSY.get_name(device)
+        min_limit = PSY.get_active_power_limits(PSY.get_thermal_unit(device)).min
+        con_lb[ci_name, t] = JuMP.@constraint(
+            container.JuMPmodel,
+            min_limit * varon[ci_name, t] <= p_th[ci_name, t]
+        )
+    end
     return
 end

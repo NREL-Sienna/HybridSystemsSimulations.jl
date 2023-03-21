@@ -61,8 +61,8 @@ struct StatusInOn <: PSI.ConstraintType end
 ###################
 
 struct EnergyAssetBalance <: PSI.ConstraintType end
-struct OnVariableOn <: PSI.ConstraintType end
-struct OnVariableOff <: PSI.ConstraintType end
+struct ThermalOnVariableOn <: PSI.ConstraintType end
+struct ThermalOnVariableOff <: PSI.ConstraintType end
 struct BatteryStatusChargeOn <: PSI.ConstraintType end
 struct BatteryStatusDischargeOn <: PSI.ConstraintType end
 struct BatteryBalance <: PSI.ConstraintType end

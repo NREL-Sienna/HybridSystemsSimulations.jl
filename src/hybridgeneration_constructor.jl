@@ -33,6 +33,25 @@ function PSI.construct_device!(
     if PSI.has_service_model(model)
         error("Services are not supported by $D")
     end
+
+    ### Add Component Variables ###
+
+    _hybrids_with_thermal = [d for d in devices if PSY.get_thermal_unit(d) !== nothing]
+    _hybrids_with_renewable = [d for d in devices if PSY.get_renewable_unit(d) !== nothing]
+    _hybrids_with_storage = [d for d in devices if PSY.get_storage(d) !== nothing]
+
+    # Thermal
+    PSI.add_variables!(container, ThermalPower, _hybrids_with_thermal, D())
+    PSI.add_variables!(container, ThermalStatus, _hybrids_with_thermal, D())
+
+    # Renewable
+    PSI.add_variables!(container, RenewablePower, _hybrids_with_renewable, D())
+
+    # Storage
+    PSI.add_variables!(container, BatteryCharge, _hybrids_with_storage, D())
+    PSI.add_variables!(container, BatteryDischarge, _hybrids_with_storage, D())
+    PSI.add_variables!(container, BatteryStateOfCharge, _hybrids_with_storage, D())
+    PSI.add_variables!(container, BatteryStatus, _hybrids_with_storage, D())
     return
 end
 

@@ -53,7 +53,14 @@ for sys in [sys_rts_da, sys_rts_rt]
 end
 
 template_uc_dcp = get_uc_dcp_template()
-set_device_model!(template_uc_dcp, PSY.HybridSystem, HybridEnergyOnlyDispatch)
+set_device_model!(
+    template_uc_dcp,
+    DeviceModel(
+        PSY.HybridSystem,
+        HybridEnergyOnlyDispatch;
+        attributes=Dict{String, Any}("cycling" => true),
+    ),
+)
 
 m = DecisionModel(
     template_uc_dcp,

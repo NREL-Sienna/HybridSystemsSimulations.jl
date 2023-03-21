@@ -99,6 +99,11 @@ PSI.get_variable_upper_bound(
     ::AbstractHybridFormulation,
 ) = PSY.get_output_active_power_limits(PSY.get_storage(d)).max
 PSI.get_variable_upper_bound(
+    ::BatteryStateOfCharge,
+    d::PSY.HybridSystem,
+    ::AbstractHybridFormulation,
+) = PSY.get_state_of_charge_limits(PSY.get_storage(d)).max
+PSI.get_variable_upper_bound(
     ::ThermalStatus,
     d::PSY.HybridSystem,
     ::AbstractHybridFormulation,
@@ -130,6 +135,11 @@ PSI.get_variable_lower_bound(
     d::PSY.HybridSystem,
     ::AbstractHybridFormulation,
 ) = 0.0
+PSI.get_variable_lower_bound(
+    ::BatteryStateOfCharge,
+    d::PSY.HybridSystem,
+    ::AbstractHybridFormulation,
+) = PSY.get_state_of_charge_limits(PSY.get_storage(d)).min
 PSI.get_variable_lower_bound(
     ::ThermalStatus,
     d::PSY.HybridSystem,
@@ -314,7 +324,7 @@ function PSI.add_constraints!(
     T::Type{<:ThermalOnVariableOn},
     devices::U,
     ::PSI.DeviceModel{D, W},
-    X::Type{<:PM.AbstractPowerModel},
+    ::Type{<:PM.AbstractPowerModel},
 ) where {
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     W <: AbstractHybridFormulation,
@@ -341,7 +351,7 @@ function PSI.add_constraints!(
     T::Type{<:ThermalOnVariableOff},
     devices::U,
     ::PSI.DeviceModel{D, W},
-    X::Type{<:PM.AbstractPowerModel},
+    ::Type{<:PM.AbstractPowerModel},
 ) where {
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     W <: AbstractHybridFormulation,
@@ -359,6 +369,182 @@ function PSI.add_constraints!(
             container.JuMPmodel,
             min_limit * varon[ci_name, t] <= p_th[ci_name, t]
         )
+    end
+    return
+end
+
+############## Storage Constraints, HybridSystem ###################
+
+function PSI.add_constraints!(
+    container::PSI.OptimizationContainer,
+    T::Type{<:BatteryStatusChargeOn},
+    devices::U,
+    ::PSI.DeviceModel{D, W},
+    ::Type{<:PM.AbstractPowerModel},
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
+    time_steps = PSI.get_time_steps(container)
+    names = [PSY.get_name(d) for d in devices]
+    status_st = PSI.get_variable(container, BatteryStatus(), D)
+    p_ch = PSI.get_variable(container, BatteryCharge(), D)
+    con_ub_ch =
+        PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="ub")
+
+    for device in devices, t in time_steps
+        ci_name = PSY.get_name(device)
+        max_limit = PSY.get_input_active_power_limits(PSY.get_storage(device)).max
+        con_ub_ch[ci_name, t] = JuMP.@constraint(
+            container.JuMPmodel,
+            p_ch[ci_name, t] <= (1.0 - status_st[ci_name, t]) * max_limit
+        )
+    end
+    return
+end
+
+function PSI.add_constraints!(
+    container::PSI.OptimizationContainer,
+    T::Type{<:BatteryStatusDischargeOn},
+    devices::U,
+    ::PSI.DeviceModel{D, W},
+    ::Type{<:PM.AbstractPowerModel},
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
+    time_steps = PSI.get_time_steps(container)
+    names = [PSY.get_name(d) for d in devices]
+    status_st = PSI.get_variable(container, BatteryStatus(), D)
+    p_ds = PSI.get_variable(container, BatteryDischarge(), D)
+    con_ub_ds =
+        PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="ub")
+
+    for device in devices, t in time_steps
+        ci_name = PSY.get_name(device)
+        max_limit = PSY.get_output_active_power_limits(PSY.get_storage(device)).max
+        con_ub_ds[ci_name, t] = JuMP.@constraint(
+            container.JuMPmodel,
+            p_ds[ci_name, t] <= status_st[ci_name, t] * max_limit
+        )
+    end
+    return
+end
+
+function PSI.add_constraints!(
+    container::PSI.OptimizationContainer,
+    T::Type{<:BatteryBalance},
+    devices::U,
+    ::PSI.DeviceModel{D, W},
+    ::Type{<:PM.AbstractPowerModel},
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
+    time_steps = PSI.get_time_steps(container)
+    resolution = PSI.get_resolution(container)
+    fraction_of_hour = Dates.value(Dates.Minute(resolution)) / PSI.MINUTES_IN_HOUR
+    names = [PSY.get_name(d) for d in devices]
+    energy_var = PSI.get_variable(container, BatteryStateOfCharge(), D)
+    charge_var = PSI.get_variable(container, BatteryCharge(), D)
+    discharge_var = PSI.get_variable(container, BatteryDischarge(), D)
+    con_soc = PSI.add_constraints_container!(container, T(), D, names, time_steps)
+
+    for device in devices
+        ci_name = PSY.get_name(device)
+        storage = PSY.get_storage(device)
+        ic = PSY.get_initial_energy(storage)
+        efficiency = PSY.get_efficiency(storage)
+        con_soc[ci_name, 1] = JuMP.@constraint(
+            container.JuMPmodel,
+            energy_var[ci_name, 1] ==
+            ic +
+            fraction_of_hour * (
+                charge_var[ci_name, 1] * efficiency.in -
+                (discharge_var[ci_name, 1] / efficiency.out)
+            )
+        )
+
+        for t in time_steps[2:end]
+            con_soc[ci_name, t] = JuMP.@constraint(
+                container.JuMPmodel,
+                energy_var[ci_name, t] ==
+                energy_var[ci_name, t - 1] +
+                fraction_of_hour * (
+                    charge_var[ci_name, t] * efficiency.in -
+                    (discharge_var[ci_name, t] / efficiency.out)
+                )
+            )
+        end
+    end
+    return
+end
+
+function PSI.add_constraints!(
+    container::PSI.OptimizationContainer,
+    T::Type{<:CyclingCharge},
+    devices::U,
+    model::PSI.DeviceModel{D, W},
+    ::Type{<:PM.AbstractPowerModel},
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
+    if PSI.get_attribute(model, "cycling")
+        time_steps = PSI.get_time_steps(container)
+        resolution = PSI.get_resolution(container)
+        fraction_of_hour = Dates.value(Dates.Minute(resolution)) / PSI.MINUTES_IN_HOUR
+        cycles_in_horizon =
+            CYCLES_PER_DAY * fraction_of_hour * length(time_steps) / HOURS_IN_DAY
+        names = [PSY.get_name(d) for d in devices]
+        charge_var = PSI.get_variable(container, BatteryCharge(), D)
+        con_cycling_ch = PSI.add_constraints_container!(container, T(), D, names)
+        for device in devices
+            ci_name = PSY.get_name(device)
+            storage = PSY.get_storage(device)
+            efficiency = PSY.get_efficiency(storage)
+            E_max = PSY.get_state_of_charge_limits(storage).max
+            con_cycling_ch[ci_name] = JuMP.@constraint(
+                container.JuMPmodel,
+                efficiency.in * fraction_of_hour * sum(charge_var[ci_name, :]) <=
+                cycles_in_horizon * E_max
+            )
+        end
+    end
+    return
+end
+
+function PSI.add_constraints!(
+    container::PSI.OptimizationContainer,
+    T::Type{<:CyclingDischarge},
+    devices::U,
+    model::PSI.DeviceModel{D, W},
+    ::Type{<:PM.AbstractPowerModel},
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
+    if PSI.get_attribute(model, "cycling")
+        time_steps = PSI.get_time_steps(container)
+        resolution = PSI.get_resolution(container)
+        fraction_of_hour = Dates.value(Dates.Minute(resolution)) / PSI.MINUTES_IN_HOUR
+        cycles_in_horizon =
+            CYCLES_PER_DAY * fraction_of_hour * length(time_steps) / HOURS_IN_DAY
+        names = [PSY.get_name(d) for d in devices]
+        discharge_var = PSI.get_variable(container, BatteryDischarge(), D)
+        con_cycling_ds = PSI.add_constraints_container!(container, T(), D, names)
+        for device in devices
+            ci_name = PSY.get_name(device)
+            storage = PSY.get_storage(device)
+            efficiency = PSY.get_efficiency(storage)
+            E_max = PSY.get_state_of_charge_limits(storage).max
+            con_cycling_ds[ci_name] = JuMP.@constraint(
+                container.JuMPmodel,
+                (1.0 / efficiency.out) *
+                fraction_of_hour *
+                sum(discharge_var[ci_name, :]) <= cycles_in_horizon * E_max
+            )
+        end
     end
     return
 end

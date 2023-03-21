@@ -100,14 +100,18 @@ function PSI.construct_device!(
     PSI.add_constraints!(container, ThermalOnVariableOn, _hybrids_with_thermal, model, S)
     PSI.add_constraints!(container, ThermalOnVariableOff, _hybrids_with_thermal, model, S)
 
-    #=
     # Storage
     PSI.add_constraints!(container, BatteryStatusChargeOn, _hybrids_with_storage, model, S)
-    PSI.add_constraints!(container, BatteryStatusChargeOff, _hybrids_with_storage, model, S)
+    PSI.add_constraints!(
+        container,
+        BatteryStatusDischargeOn,
+        _hybrids_with_storage,
+        model,
+        S,
+    )
     PSI.add_constraints!(container, BatteryBalance, _hybrids_with_storage, model, S)
     PSI.add_constraints!(container, CyclingCharge, _hybrids_with_storage, model, S)
     PSI.add_constraints!(container, CyclingDischarge, _hybrids_with_storage, model, S)
-    =#
 
     return
 end

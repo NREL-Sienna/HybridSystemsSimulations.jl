@@ -1,3 +1,5 @@
+using PowerSimulations
+
 function add_variable!(
     decision_model::DecisionModel{U},
     type::T,
@@ -133,7 +135,7 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridEnergyOnly}
     # Add PCC Variables
     add_variable!(decision_model, PSI.ActivePowerOutVariable(), T_rt, 0.0, P_max_pcc)
     add_variable!(decision_model, PSI.ActivePowerInVariable(), T_rt, 0.0, P_max_pcc)
-    add_binary_variable!(decision_model, ReservationVariable(), T_rt)
+    add_binary_variable!(decision_model, PSI.ReservationVariable(), T_rt)
 
     # Add Thermal Vars: No Thermal For now
     add_variable!(decision_model, ThermalPower(), T_rt, 0.0, P_max_th)
@@ -264,13 +266,13 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridEnergyOnly}
         constraint_eb_in[t] = JuMP.@constraint(model, eb_rt_in[t] == p_in[t])
         # Status Bids
         constraint_status_bid_in[t] =
-            JuMP.@constraint(model, (1.0 - status[t]) * P_max_pcc == p_in[t])
+            JuMP.@constraint(model, (1.0 - status[t]) * P_max_pcc .>= p_in[t])
         constraint_status_bid_out[t] =
             JuMP.@constraint(model, status[t] * P_max_pcc .>= p_out[t])
         # Power Balance
         constraint_balance[t] = JuMP.@constraint(
             model,
-            p_re[t] + p_ds[t] - p_ch[t] - P_ld[t] - p_out[t] + p_in[t] == 0.0
+            p_th[t] + p_re[t] + p_ds[t] - p_ch[t] - P_ld[t] - p_out[t] + p_in[t] == 0.0
         )
         # Thermal Status
         constraint_thermal_on[t] =
@@ -896,7 +898,7 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridCooptimized
         # Power Balance
         constraint_balance[t] = JuMP.@constraint(
             model,
-            p_re[t] + p_ds[t] - p_ch[t] - P_ld[t] - p_out[t] + p_in[t] == 0.0
+            p_th[t] + p_re[t] + p_ds[t] - p_ch[t] - P_ld[t] - p_out[t] + p_in[t] == 0.0
         )
         # Thermal Status
         constraint_thermal_on[t] =

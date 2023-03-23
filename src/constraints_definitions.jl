@@ -1,6 +1,3 @@
-using PowerSimulations
-const PSI = PowerSimulations
-
 ### Define Constraints using PSI.ConstraintType ###
 
 ###################

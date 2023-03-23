@@ -76,7 +76,15 @@ PSI.get_min_max_limits(
     ::Type{<:AbstractHybridFormulation},
 ) = PSY.get_output_active_power_limits(device)
 
-#### Asset Variables ###
+############## PSI.Reservation Variables, HybridSystem ####################
+
+PSI.get_variable_binary(
+    ::PSI.ReservationVariable,
+    ::Type{PSY.HybridSystem},
+    ::AbstractHybridFormulation,
+) = true
+
+############### Asset Variables, HybridSystem #####################
 # Upper Bound
 PSI.get_variable_upper_bound(
     ::ThermalPower,
@@ -305,6 +313,8 @@ end
 ####################### Constraints ###############################
 ###################################################################
 
+############ Total Power Constraints, HybridSystem ################
+
 function PSI.add_constraints!(
     container::PSI.OptimizationContainer,
     T::Type{<:PSI.PowerVariableLimitsConstraint},
@@ -316,6 +326,108 @@ function PSI.add_constraints!(
     PSI.add_range_constraints!(container, T, U, devices, model, X)
     return
 end
+
+############ Output/Input Constraints, HybridSystem ################
+
+function PSI.add_constraints!(
+    container::PSI.OptimizationContainer,
+    T::Type{<:StatusOutOn},
+    devices::U,
+    ::PSI.DeviceModel{D, W},
+    ::Type{<:PM.AbstractPowerModel},
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
+    time_steps = PSI.get_time_steps(container)
+    names = [PSY.get_name(d) for d in devices]
+    varon = PSI.get_variable(container, PSI.ReservationVariable(), D)
+    p_out = PSI.get_variable(container, ActivePowerOutVariable(), D)
+    con_ub = PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="ub")
+
+    for device in devices, t in time_steps
+        ci_name = PSY.get_name(device)
+        max_limit = PSI.get_variable_upper_bound(PSI.ActivePowerOutVariable(), device, W())
+        @assert max_limit !== nothing ci_name
+        con_ub[ci_name, t] = JuMP.@constraint(
+            container.JuMPmodel,
+            p_out[ci_name, t] <= max_limit * varon[ci_name, t]
+        )
+    end
+    return
+end
+
+function PSI.add_constraints!(
+    container::PSI.OptimizationContainer,
+    T::Type{<:StatusInOn},
+    devices::U,
+    ::PSI.DeviceModel{D, W},
+    ::Type{<:PM.AbstractPowerModel},
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
+    time_steps = PSI.get_time_steps(container)
+    names = [PSY.get_name(d) for d in devices]
+    varon = PSI.get_variable(container, PSI.ReservationVariable(), D)
+    p_in = PSI.get_variable(container, ActivePowerInVariable(), D)
+    con_ub = PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="ub")
+
+    for device in devices, t in time_steps
+        ci_name = PSY.get_name(device)
+        max_limit = PSI.get_variable_upper_bound(PSI.ActivePowerInVariable(), device, W())
+        @assert max_limit !== nothing ci_name
+        con_ub[ci_name, t] = JuMP.@constraint(
+            container.JuMPmodel,
+            p_in[ci_name, t] <= max_limit * (1.0 - varon[ci_name, t])
+        )
+    end
+    return
+end
+
+############ Asset Balance Constraints, HybridSystem ###############
+
+#=
+# We should do this using Expression?
+function PSI.add_constraints!(
+    container::PSI.OptimizationContainer,
+    T::Type{<:EnergyAssetBalance},
+    devices::U,
+    ::PSI.DeviceModel{D, W},
+    ::Type{<:PM.AbstractPowerModel},
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
+    time_steps = PSI.get_time_steps(container)
+    names = [PSY.get_name(d) for d in devices]
+    p_out = PSI.get_variable(container, PSI.ActivePowerOutVariable(), D)
+    p_in = PSI.get_variable(container, PSI.ActivePowerInVariable(), D)
+    p_th = PSI.get_variable(container, ThermalPower(), D)
+    p_re = PSI.get_variable(container, RenewablePower(), D)
+    p_ch = PSI.get_variable(container, BatteryCharge(), D)
+    p_ds = PSI.get_variable(container, BatteryDischarge(), D)
+    con_bal = PSI.add_constraints_container!(container, T(), D, names, time_steps)
+
+    for device in devices
+        ci_name = PSY.get_name(device)
+        for t in time_steps
+            # Need an efficient way to do this
+            aux_p_th = isnothing(PSY.get_thermal_unit(device)) ? 0.0 : p_th[name, t]
+            aux_p_re = isnothing(PSY.get_renewable_unit(device)) ? 0.0 : p_re[name, t]
+            aux_p_ch = isnothing(PSY.get_storage(device)) ? 0.0 : p_ch[name, t]
+            aux_p_ds = isnothing(PSY.get_storage(device)) ? 0.0 : p_ds[name, t]
+            # Obtain P_load
+            Pl = 0.0
+            con_bal[ci_name, t] = JuMP.@constraint(
+                container.JuMPmodel,
+                aux_p_th + aux_p_re + aux_p_ds - aux_p_ch - Pl - p_out[ci_name, t] + p_in[ci_name, t] == 0.0
+            )
+        end
+    end
+    return
+end
+=#
 
 ############## Thermal Constraints, HybridSystem ###################
 

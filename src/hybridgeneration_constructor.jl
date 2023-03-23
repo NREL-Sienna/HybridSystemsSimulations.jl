@@ -9,6 +9,7 @@ function PSI.construct_device!(
     # Add Common Variables
     PSI.add_variables!(container, PSI.ActivePowerOutVariable, devices, D())
     PSI.add_variables!(container, PSI.ActivePowerInVariable, devices, D())
+    PSI.add_variables!(container, PSI.ReservationVariable, devices, D())
 
     PSI.add_to_expression!(
         container,
@@ -87,6 +88,11 @@ function PSI.construct_device!(
         model,
         S,
     )
+
+    # Binary Hybrid Output or Input
+    PSI.add_constraints!(container, StatusOutOn, devices, model, S)
+
+    PSI.add_constraints!(container, StatusInOn, devices, model, S)
 
     # Energy Asset Balance
     # PSI.add_constraints!(container, EnergyAssetBalance, devices, model, S)

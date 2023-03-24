@@ -21,6 +21,18 @@ PSI.get_initial_conditions_device_model(
     ::PSI.DeviceModel{T, <:AbstractHybridFormulation},
 ) where {T <: PSY.HybridSystem} = PSI.DeviceModel(T, HybridEnergyOnlyDispatch)
 
+PSI.get_multiplier_value(
+    ::RenewablePowerTimeSeries,
+    device::PSY.HybridSystem,
+    ::AbstractHybridFormulation,
+) = PSY.get_max_active_power(PSY.get_renewable_unit(device))
+
+PSI.get_multiplier_value(
+    ::ElectricLoadTimeSeries,
+    device::PSY.HybridSystem,
+    ::AbstractHybridFormulation,
+) = PSY.get_max_active_power(PSY.get_renewable_unit(device))
+
 ############## PSI.ActivePowerInVariable, HybridSystem ####################
 
 PSI.get_variable_binary(
@@ -263,50 +275,17 @@ end
 ######################## Parameters ###############################
 ###################################################################
 
-#function PSI.get_default_time_series_names(
-#    ::Type{<:PSY.HybridSystem},
-#    ::Type{<:Union{PSI.FixedOutput, HybridEnergyOnlyDispatch}},
-#)
-#    return Dict{Type{<:TimeSeriesParameter}, String}(
-#        RenewablePowerTimeSeries => "RenewableDispatch__max_active_power",
-#        ElectricLoadTimeSeries => "PowerLoad__max_active_power",
-#    )
-#end
-
-function PSI.add_parameters!(
+function add_parameters!(
     container::PSI.OptimizationContainer,
-    ::Type{T},
+    param::Type{T},
     devices::U,
     model::PSI.DeviceModel{D, W},
 ) where {
-    T <: RenewablePowerTimeSeries,
+    T <: Union{RenewablePowerTimeSeries, ElectricLoadTimeSeries},
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     W <: AbstractHybridFormulation,
 } where {D <: PSY.HybridSystem}
-    if get_rebuild_model(get_settings(container)) && has_container_key(container, T, D)
-        return
-    end
-    _devices = [d for d in devices if PSY.get_renewable_unit(d) !== nothing]
-    add_parameters!(container, T(), _devices, model)
-    return
-end
-
-function PSI.add_parameters!(
-    container::PSI.OptimizationContainer,
-    ::Type{T},
-    devices::U,
-    model::PSI.DeviceModel{D, W},
-) where {
-    T <: ElectricLoadTimeSeries,
-    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
-    W <: AbstractHybridFormulation,
-} where {D <: PSY.HybridSystem}
-    if get_rebuild_model(get_settings(container)) && has_container_key(container, T, D)
-        return
-    end
-    _devices = [d for d in devices if PSY.get_electric_load(d) !== nothing]
-    add_parameters!(container, T(), _devices, model)
-    return
+    return PSI._add_time_series_parameters!(container, param, devices, model)
 end
 
 ###################################################################
@@ -387,8 +366,6 @@ end
 
 ############ Asset Balance Constraints, HybridSystem ###############
 
-#=
-# We should do this using Expression?
 function PSI.add_constraints!(
     container::PSI.OptimizationContainer,
     T::Type{<:EnergyAssetBalance},
@@ -408,26 +385,38 @@ function PSI.add_constraints!(
     p_ch = PSI.get_variable(container, BatteryCharge(), D)
     p_ds = PSI.get_variable(container, BatteryDischarge(), D)
     con_bal = PSI.add_constraints_container!(container, T(), D, names, time_steps)
+    P = ElectricLoadTimeSeries
+    param_container = PSI.get_parameter(container, P(), D)
+    parameter_values = PSI.get_parameter_values(param_container)
+    multiplier = PSI.get_parameter_multiplier_array(container, P(), D)
 
     for device in devices
         ci_name = PSY.get_name(device)
         for t in time_steps
-            # Need an efficient way to do this
-            aux_p_th = isnothing(PSY.get_thermal_unit(device)) ? 0.0 : p_th[name, t]
-            aux_p_re = isnothing(PSY.get_renewable_unit(device)) ? 0.0 : p_re[name, t]
-            aux_p_ch = isnothing(PSY.get_storage(device)) ? 0.0 : p_ch[name, t]
-            aux_p_ds = isnothing(PSY.get_storage(device)) ? 0.0 : p_ds[name, t]
-            # Obtain P_load
-            Pl = 0.0
+            total_power = JuMP.AffExpr()
+            if !isnothing(PSY.get_thermal_unit(device))
+                JuMP.add_to_expression!(total_power, p_th[ci_name, t])
+            end
+            if !isnothing(PSY.get_renewable_unit(device))
+                JuMP.add_to_expression!(total_power, p_re[ci_name, t])
+            end
+            if !isnothing(PSY.get_storage(device))
+                JuMP.add_to_expression!(total_power, p_ds[ci_name, t] - p_ch[ci_name, t])
+            end
+            if !isnothing(PSY.get_electric_load(device))
+                JuMP.add_to_expression!(
+                    total_power,
+                    -parameter_values[ci_name, t] * multiplier[ci_name, t],
+                )
+            end
             con_bal[ci_name, t] = JuMP.@constraint(
                 container.JuMPmodel,
-                aux_p_th + aux_p_re + aux_p_ds - aux_p_ch - Pl - p_out[ci_name, t] + p_in[ci_name, t] == 0.0
+                total_power == p_out[ci_name, t] - p_in[ci_name, t]
             )
         end
     end
     return
 end
-=#
 
 ############## Thermal Constraints, HybridSystem ###################
 
@@ -659,4 +648,34 @@ function PSI.add_constraints!(
         end
     end
     return
+end
+
+############## Renewable Constraints, HybridSystem ###################
+
+function PSI.add_constraints!(
+    container::PSI.OptimizationContainer,
+    T::Type{<:RenewableActivePowerLimitConstraint},
+    devices::U,
+    model::PSI.DeviceModel{D, W},
+    ::Type{<:PM.AbstractPowerModel},
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
+    time_steps = PSI.get_time_steps(container)
+    P = RenewablePowerTimeSeries
+    p_re = PSI.get_variable(container, RenewablePower(), D)
+    names = [PSY.get_name(d) for d in devices]
+    con_ub_re =
+        PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="ub")
+    param_container = PSI.get_parameter(container, P(), D)
+    parameter_values = PSI.get_parameter_values(param_container)
+    multiplier = PSI.get_parameter_multiplier_array(container, P(), D)
+    for device in devices, t in time_steps
+        ci_name = PSY.get_name(device)
+        con_ub_re[ci_name, t] = JuMP.@constraint(
+            container.JuMPmodel,
+            p_re[ci_name, t] <= multiplier[ci_name, t] * parameter_values[ci_name, t]
+        )
+    end
 end

@@ -40,6 +40,7 @@ function PSI.construct_device!(
     _hybrids_with_thermal = [d for d in devices if PSY.get_thermal_unit(d) !== nothing]
     _hybrids_with_renewable = [d for d in devices if PSY.get_renewable_unit(d) !== nothing]
     _hybrids_with_storage = [d for d in devices if PSY.get_storage(d) !== nothing]
+    _hybrids_with_loads = [d for d in devices if PSY.get_electric_load(d) !== nothing]
 
     # Thermal
     PSI.add_variables!(container, ThermalPower, _hybrids_with_thermal, D())
@@ -55,6 +56,8 @@ function PSI.construct_device!(
     PSI.add_variables!(container, BatteryStatus, _hybrids_with_storage, D())
 
     ### Add Parameters ###
+    PSI.add_parameters!(container, RenewablePowerTimeSeries, _hybrids_with_renewable, model)
+    PSI.add_parameters!(container, ElectricLoadTimeSeries, _hybrids_with_loads, model)
     return
 end
 
@@ -95,11 +98,11 @@ function PSI.construct_device!(
     PSI.add_constraints!(container, StatusInOn, devices, model, S)
 
     # Energy Asset Balance
-    # PSI.add_constraints!(container, EnergyAssetBalance, devices, model, S)
+    PSI.add_constraints!(container, EnergyAssetBalance, devices, model, S)
 
     ### Add Component Constraints ###
     _hybrids_with_thermal = [d for d in devices if PSY.get_thermal_unit(d) !== nothing]
-    # _hybrids_with_renewable = [d for d in devices if PSY.get_renewable_unit(d) !== nothing]
+    _hybrids_with_renewable = [d for d in devices if PSY.get_renewable_unit(d) !== nothing]
     _hybrids_with_storage = [d for d in devices if PSY.get_storage(d) !== nothing]
 
     # Thermal
@@ -118,6 +121,15 @@ function PSI.construct_device!(
     PSI.add_constraints!(container, BatteryBalance, _hybrids_with_storage, model, S)
     PSI.add_constraints!(container, CyclingCharge, _hybrids_with_storage, model, S)
     PSI.add_constraints!(container, CyclingDischarge, _hybrids_with_storage, model, S)
+
+    # Renewable
+    PSI.add_constraints!(
+        container,
+        RenewableActivePowerLimitConstraint,
+        _hybrids_with_renewable,
+        model,
+        S,
+    )
 
     return
 end

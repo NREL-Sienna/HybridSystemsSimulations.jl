@@ -1,3 +1,5 @@
+############## TimeSeries, HybridSystems ##########################
+
 function PSI.get_default_time_series_names(
     ::Type{PSY.HybridSystem},
     ::Type{<:Union{PSI.FixedOutput, AbstractHybridFormulation}},
@@ -208,7 +210,222 @@ PSI.get_variable_binary(
     ::AbstractHybridFormulation,
 ) = true
 
-# Warm Start TODO
+###################################################################
+################### Objective Function ############################
+###################################################################
+
+############### Storage costs, HybridSystem #######################
+PSI.objective_function_multiplier(
+    ::Union{BatteryCharge, BatteryDischarge},
+    ::AbstractHybridFormulation,
+) = PSI.OBJECTIVE_FUNCTION_POSITIVE
+PSI.proportional_cost(
+    cost::PSY.OperationalCost,
+    S::Union{BatteryCharge, BatteryDischarge},
+    ::PSY.HybridSystem,
+    U::AbstractHybridFormulation,
+) = PSY.get_variable(cost).cost
+
+function PSI.add_proportional_cost!(
+    container::PSI.OptimizationContainer,
+    ::T,
+    devices::U,
+    ::W,
+) where {
+    T <: Union{BatteryCharge, BatteryDischarge},
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
+    multiplier = PSI.objective_function_multiplier(T(), W())
+    for d in devices
+        op_cost_data = PSY.get_operation_cost(PSY.get_storage(d))
+        isnothing(op_cost_data) && continue
+        cost_term = PSI.proportional_cost(op_cost_data, T(), d, W())
+        iszero(cost_term) && continue
+        for t in PSI.get_time_steps(container)
+            PSI._add_proportional_term!(container, T(), d, cost_term * multiplier, t)
+        end
+    end
+    return
+end
+
+############### Thermal costs, HybridSystem #######################
+PSI.objective_function_multiplier(
+    ::Union{ThermalPower, ThermalStatus},
+    ::AbstractHybridFormulation,
+) = PSI.OBJECTIVE_FUNCTION_POSITIVE
+PSI.proportional_cost(
+    cost::PSY.OperationalCost,
+    S::ThermalStatus,
+    ::PSY.HybridSystem,
+    U::AbstractHybridFormulation,
+) = PSY.get_fixed(cost)
+PSI.variable_cost(
+    cost::PSY.OperationalCost,
+    S::ThermalPower,
+    ::PSY.HybridSystem,
+    U::AbstractHybridFormulation,
+) = PSY.get_variable(cost)
+PSI.uses_compact_power(::PSY.HybridSystem, ::AbstractHybridFormulation) = false
+PSI.sos_status(::PSY.HybridSystem, ::AbstractHybridFormulation) =
+    PSI.SOSStatusVariable.VARIABLE
+function PSI.add_proportional_cost!(
+    container::PSI.OptimizationContainer,
+    ::T,
+    devices::U,
+    ::W,
+) where {
+    T <: ThermalStatus,
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
+    multiplier = PSI.objective_function_multiplier(T(), W())
+    for d in devices
+        op_cost_data = PSY.get_operation_cost(PSY.get_storage(d))
+        isnothing(op_cost_data) && continue
+        cost_term = PSI.proportional_cost(op_cost_data, T(), d, W())
+        iszero(cost_term) && continue
+        for t in PSI.get_time_steps(container)
+            PSI._add_proportional_term!(container, T(), d, cost_term * multiplier, t)
+        end
+    end
+    return
+end
+
+function PSI._check_pwl_compact_data(
+    d::PSY.HybridSystem,
+    data::Vector{Tuple{Float64, Float64}},
+    base_power::Float64,
+)
+    thermal = PSY.get_thermal_unit(d)
+    min = PSY.get_active_power_limits(thermal).min
+    max = PSY.get_active_power_limits(thermal).max
+    return PSI._check_pwl_compact_data(min, max, data, base_power)
+end
+
+function PSI._add_pwl_constraint!(
+    container::PSI.OptimizationContainer,
+    component::T,
+    ::U,
+    break_points::Vector{Float64},
+    sos_status::PSI.SOSStatusVariable,
+    period::Int,
+) where {T <: PSY.HybridSystem, U <: PSI.VariableType}
+    variables = PSI.get_variable(container, U(), T)
+    const_container = PSI.lazy_container_addition!(
+        container,
+        PSI.PieceWiseLinearCostConstraint(),
+        T,
+        axes(variables)...,
+    )
+    len_cost_data = length(break_points)
+    jump_model = PSI.get_jump_model(container)
+    pwl_vars = PSI.get_variable(container, PSI.PieceWiseLinearCostVariable(), T)
+    name = PSY.get_name(component)
+    const_container[name, period] = JuMP.@constraint(
+        jump_model,
+        variables[name, period] ==
+        sum(pwl_vars[name, ix, period] * break_points[ix] for ix in 1:len_cost_data)
+    )
+
+    if sos_status == PSI.SOSStatusVariable.NO_VARIABLE
+        bin = 1.0
+        @debug "Using Piecewise Linear cost function but no variable/parameter ref for ON status is passed. Default status will be set to online (1.0)" _group =
+            LOG_GROUP_COST_FUNCTIONS
+
+    elseif sos_status == PSI.SOSStatusVariable.PARAMETER
+        bin = PSI.get_parameter(container, OnStatusParameter(), T).parameter_array[
+            name,
+            period,
+        ]
+        @debug "Using Piecewise Linear cost function with parameter OnStatusParameter, $T" _group =
+            PSI.LOG_GROUP_COST_FUNCTIONS
+    elseif sos_status == PSI.SOSStatusVariable.VARIABLE
+        bin = PSI.get_variable(container, ThermalStatus(), T)[name, period] # Only Change
+        @debug "Using Piecewise Linear cost function with variable OnVariable $T" _group =
+            PSI.LOG_GROUP_COST_FUNCTIONS
+    else
+        @assert false
+    end
+
+    JuMP.@constraint(
+        jump_model,
+        sum(pwl_vars[name, i, period] for i in 1:len_cost_data) == bin
+    )
+    return
+end
+
+function PSI._add_variable_cost_to_objective!(
+    container::PSI.OptimizationContainer,
+    ::T,
+    device::PSY.HybridSystem,
+    cost_component::PSY.OperationalCost,
+    ::W,
+) where {T <: ThermalPower, W <: AbstractHybridFormulation}
+    multiplier = PSI.objective_function_multiplier(T(), W())
+    base_power = PSI.get_base_power(container)
+    cost_data = PSY.get_cost(cost_component)
+    resolution = PSI.get_resolution(container)
+    dt = Dates.value(Dates.Second(resolution)) / PSI.SECONDS_IN_HOUR
+    for time_period in PSI.get_time_steps(container)
+        linear_cost = PSI._add_proportional_term!(
+            container,
+            T(),
+            component,
+            cost_data * multiplier * base_power * dt,
+            time_period,
+        )
+        add_to_expression!(
+            container,
+            ProductionCostExpression,
+            linear_cost,
+            component,
+            time_period,
+        )
+    end
+    return
+end
+
+function PSI.add_variable_cost!(
+    container::PSI.OptimizationContainer,
+    ::T,
+    devices::U,
+    ::W,
+) where {
+    T <: ThermalPower,
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
+    for d in devices
+        op_cost_data = PSY.get_operation_cost(PSY.get_thermal_unit(d))
+        variable_cost_data = PSI.variable_cost(op_cost_data, T(), d, W())
+        PSI._add_variable_cost_to_objective!(container, T(), d, variable_cost_data, W())
+    end
+    return
+end
+
+############### Objective Function, HybridSystem #######################
+
+function PSI.objective_function!(
+    container::PSI.OptimizationContainer,
+    devices::U,
+    model::PSI.DeviceModel{D, W},
+    ::Type{<:PM.AbstractPowerModel},
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
+    # Filter Devices
+    _hybrids_with_thermal = [d for d in devices if PSY.get_thermal_unit(d) !== nothing]
+    _hybrids_with_storage = [d for d in devices if PSY.get_storage(d) !== nothing]
+
+    # Add Storage Cost
+    PSI.add_proportional_cost!(container, BatteryCharge(), _hybrids_with_storage, W())
+    PSI.add_proportional_cost!(container, BatteryDischarge(), _hybrids_with_storage, W())
+    # Add Thermal Cost
+    PSI.add_variable_cost!(container, ThermalPower(), _hybrids_with_thermal, W())
+    PSI.add_proportional_cost!(container, ThermalStatus(), _hybrids_with_thermal, W())
+end
 
 ###################################################################
 ######################### Variables ###############################

@@ -58,6 +58,9 @@ function PSI.construct_device!(
     ### Add Parameters ###
     PSI.add_parameters!(container, RenewablePowerTimeSeries, _hybrids_with_renewable, model)
     PSI.add_parameters!(container, ElectricLoadTimeSeries, _hybrids_with_loads, model)
+
+    ### Objective Function ###
+    PSI.objective_function!(container, devices, model, S)
     return
 end
 

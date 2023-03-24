@@ -31,7 +31,7 @@ PSI.get_multiplier_value(
     ::ElectricLoadTimeSeries,
     device::PSY.HybridSystem,
     ::AbstractHybridFormulation,
-) = PSY.get_max_active_power(PSY.get_renewable_unit(device))
+) = PSY.get_max_active_power(PSY.get_electric_load(device))
 
 ############## PSI.ActivePowerInVariable, HybridSystem ####################
 

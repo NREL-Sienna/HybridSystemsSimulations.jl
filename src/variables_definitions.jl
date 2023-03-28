@@ -54,7 +54,6 @@ struct ThermalStatus <: HybridAssetVariableType end
 struct RenewablePower <: HybridAssetVariableType end
 struct BatteryCharge <: HybridAssetVariableType end
 struct BatteryDischarge <: HybridAssetVariableType end
-struct BatteryStateOfCharge <: HybridAssetVariableType end
 struct BatteryStatus <: HybridAssetVariableType end
 
 # implement below

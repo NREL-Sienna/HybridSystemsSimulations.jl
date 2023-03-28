@@ -3,7 +3,7 @@ function PSI.construct_device!(
     sys::PSY.System,
     ::PSI.ArgumentConstructStage,
     model::PSI.DeviceModel{T, D},
-    ::Type{S},
+    network_model::PSI.NetworkModel{S},
 ) where {T <: PSY.HybridSystem, D <: HybridEnergyOnlyDispatch, S <: PM.AbstractPowerModel}
     devices = PSI.get_available_components(T, sys)
     # Add Common Variables
@@ -17,7 +17,7 @@ function PSI.construct_device!(
         PSI.ActivePowerInVariable,
         devices,
         model,
-        S,
+        network_model,
     )
 
     PSI.add_to_expression!(
@@ -26,7 +26,7 @@ function PSI.construct_device!(
         PSI.ActivePowerOutVariable,
         devices,
         model,
-        S,
+        network_model,
     )
 
     PSI.add_feedforward_arguments!(container, model, devices)
@@ -77,7 +77,7 @@ function PSI.construct_device!(
     end
 
     ### Objective Function ###
-    PSI.objective_function!(container, devices, model, S)
+    PSI.objective_function!(container, devices, model, network_model)
     return
 end
 
@@ -86,7 +86,7 @@ function PSI.construct_device!(
     sys::PSY.System,
     ::PSI.ModelConstructStage,
     model::PSI.DeviceModel{T, D},
-    ::Type{S},
+    network_model::PSI.NetworkModel{S},
 ) where {
     T <: PSY.HybridSystem,
     D <: HybridEnergyOnlyDispatch,
@@ -101,7 +101,7 @@ function PSI.construct_device!(
         PSI.ActivePowerInVariable,
         devices,
         model,
-        S,
+        network_model,
     )
     PSI.add_constraints!(
         container,
@@ -109,16 +109,16 @@ function PSI.construct_device!(
         PSI.ActivePowerOutVariable,
         devices,
         model,
-        S,
+        network_model,
     )
 
     # Binary Hybrid Output or Input
-    PSI.add_constraints!(container, StatusOutOn, devices, model, S)
+    PSI.add_constraints!(container, StatusOutOn, devices, model, network_model)
 
-    PSI.add_constraints!(container, StatusInOn, devices, model, S)
+    PSI.add_constraints!(container, StatusInOn, devices, model, network_model)
 
     # Energy Asset Balance
-    PSI.add_constraints!(container, EnergyAssetBalance, devices, model, S)
+    PSI.add_constraints!(container, EnergyAssetBalance, devices, model, network_model)
 
     ### Add Component Constraints ###
     _hybrids_with_thermal = [d for d in devices if PSY.get_thermal_unit(d) !== nothing]
@@ -132,14 +132,14 @@ function PSI.construct_device!(
             ThermalOnVariableOn,
             _hybrids_with_thermal,
             model,
-            S,
+            network_model,
         )
         PSI.add_constraints!(
             container,
             ThermalOnVariableOff,
             _hybrids_with_thermal,
             model,
-            S,
+            network_model,
         )
     end
 
@@ -150,18 +150,18 @@ function PSI.construct_device!(
             BatteryStatusChargeOn,
             _hybrids_with_storage,
             model,
-            S,
+            network_model,
         )
         PSI.add_constraints!(
             container,
             BatteryStatusDischargeOn,
             _hybrids_with_storage,
             model,
-            S,
+            network_model,
         )
-        PSI.add_constraints!(container, BatteryBalance, _hybrids_with_storage, model, S)
-        PSI.add_constraints!(container, CyclingCharge, _hybrids_with_storage, model, S)
-        PSI.add_constraints!(container, CyclingDischarge, _hybrids_with_storage, model, S)
+        PSI.add_constraints!(container, BatteryBalance, _hybrids_with_storage, model, network_model)
+        PSI.add_constraints!(container, CyclingCharge, _hybrids_with_storage, model, network_model)
+        PSI.add_constraints!(container, CyclingDischarge, _hybrids_with_storage, model, network_model)
     end
 
     # Renewable
@@ -171,7 +171,7 @@ function PSI.construct_device!(
             RenewableActivePowerLimitConstraint,
             _hybrids_with_renewable,
             model,
-            S,
+            network_model,
         )
     end
 

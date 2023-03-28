@@ -334,7 +334,7 @@ function PSI.objective_function!(
     container::PSI.OptimizationContainer,
     devices::U,
     model::PSI.DeviceModel{D, W},
-    ::Type{<:PM.AbstractPowerModel},
+    network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
 ) where {
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     W <: AbstractHybridFormulation,
@@ -463,8 +463,8 @@ function PSI.add_constraints!(
     U::Type{<:Union{PSI.ActivePowerInVariable, PSI.ActivePowerOutVariable}},
     devices::IS.FlattenIteratorWrapper{V},
     model::PSI.DeviceModel{V, W},
-    X::Type{<:PM.AbstractPowerModel},
-) where {V <: PSY.HybridSystem, W <: AbstractHybridFormulation}
+    network_model::PSI.NetworkModel{X},
+) where {V <: PSY.HybridSystem, W <: AbstractHybridFormulation, X <:PM.AbstractPowerModel}
     PSI.add_range_constraints!(container, T, U, devices, model, X)
     return
 end
@@ -476,7 +476,7 @@ function PSI.add_constraints!(
     T::Type{<:StatusOutOn},
     devices::U,
     ::PSI.DeviceModel{D, W},
-    ::Type{<:PM.AbstractPowerModel},
+    network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
 ) where {
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     W <: AbstractHybridFormulation,
@@ -504,7 +504,7 @@ function PSI.add_constraints!(
     T::Type{<:StatusInOn},
     devices::U,
     ::PSI.DeviceModel{D, W},
-    ::Type{<:PM.AbstractPowerModel},
+    network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
 ) where {
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     W <: AbstractHybridFormulation,
@@ -534,7 +534,7 @@ function PSI.add_constraints!(
     T::Type{<:EnergyAssetBalance},
     devices::U,
     ::PSI.DeviceModel{D, W},
-    ::Type{<:PM.AbstractPowerModel},
+    network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
 ) where {
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     W <: AbstractHybridFormulation,
@@ -592,7 +592,7 @@ function PSI.add_constraints!(
     T::Type{<:ThermalOnVariableOn},
     devices::U,
     ::PSI.DeviceModel{D, W},
-    ::Type{<:PM.AbstractPowerModel},
+    network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
 ) where {
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     W <: AbstractHybridFormulation,
@@ -619,7 +619,7 @@ function PSI.add_constraints!(
     T::Type{<:ThermalOnVariableOff},
     devices::U,
     ::PSI.DeviceModel{D, W},
-    ::Type{<:PM.AbstractPowerModel},
+    network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
 ) where {
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     W <: AbstractHybridFormulation,
@@ -648,7 +648,7 @@ function PSI.add_constraints!(
     T::Type{<:BatteryStatusChargeOn},
     devices::U,
     ::PSI.DeviceModel{D, W},
-    ::Type{<:PM.AbstractPowerModel},
+    network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
 ) where {
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     W <: AbstractHybridFormulation,
@@ -676,7 +676,7 @@ function PSI.add_constraints!(
     T::Type{<:BatteryStatusDischargeOn},
     devices::U,
     ::PSI.DeviceModel{D, W},
-    ::Type{<:PM.AbstractPowerModel},
+    network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
 ) where {
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     W <: AbstractHybridFormulation,
@@ -704,7 +704,7 @@ function PSI.add_constraints!(
     T::Type{<:BatteryBalance},
     devices::U,
     ::PSI.DeviceModel{D, W},
-    ::Type{<:PM.AbstractPowerModel},
+    network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
 ) where {
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     W <: AbstractHybridFormulation,
@@ -754,7 +754,7 @@ function PSI.add_constraints!(
     T::Type{<:CyclingCharge},
     devices::U,
     model::PSI.DeviceModel{D, W},
-    ::Type{<:PM.AbstractPowerModel},
+    network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
 ) where {
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     W <: AbstractHybridFormulation,
@@ -788,7 +788,7 @@ function PSI.add_constraints!(
     T::Type{<:CyclingDischarge},
     devices::U,
     model::PSI.DeviceModel{D, W},
-    ::Type{<:PM.AbstractPowerModel},
+    network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
 ) where {
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     W <: AbstractHybridFormulation,
@@ -825,7 +825,7 @@ function PSI.add_constraints!(
     T::Type{<:RenewableActivePowerLimitConstraint},
     devices::U,
     model::PSI.DeviceModel{D, W},
-    ::Type{<:PM.AbstractPowerModel},
+    network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
 ) where {
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     W <: AbstractHybridFormulation,

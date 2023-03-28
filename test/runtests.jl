@@ -2,6 +2,7 @@ using Revise
 using PowerSystems
 using PowerSimulations
 using PowerSystemCaseBuilder
+using PowerNetworkMatrices
 using HybridSystemsSimulations
 using InfrastructureSystems
 using Test
@@ -26,6 +27,7 @@ const PSI = PowerSimulations
 const PSB = PowerSystemCaseBuilder
 const IS = InfrastructureSystems
 const PM = PSI.PM
+const PNM = PowerNetworkMatrices
 
 # Test Utils
 using JuMP

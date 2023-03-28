@@ -70,7 +70,7 @@ plot(p_out, label="p_out")
 plot!(p_re, label="p_re")
 plot!(p_ds, label="p_ds")
 
-plot(-p_in, label="- p_in")
+plot(-p_in / 100.0, label="- p_in")
 plot!(-p_ch, label="- p_ch")
 plot!(-Pl, label="- P_load")
 
@@ -80,7 +80,7 @@ plot!(p_out, label="p_out")
 plot(-p_ch, label="p_ch - Pl")
 plot!(-p_in, label="p_in")
 
-plot(p_out, label="p_out")
+plot(p_out / 100.0, label="p_out")
 plot!(energy_rt_out, label="eb_rt_out")
 
 plot(-p_in, label="-p_in")

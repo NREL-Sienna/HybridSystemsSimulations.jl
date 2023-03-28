@@ -1,12 +1,17 @@
+using Revise
+using PowerSystems
+using PowerSimulations
+using PowerSystemCaseBuilder
+using PowerNetworkMatrices
+using HybridSystemsSimulations
+using InfrastructureSystems
 using Test
-import Logging
+using Logging
 
 import Aqua
-Aqua.test_unbound_args(SIIP - PACKAGE)
-Aqua.test_undefined_exports(SIIP - PACKAGE)
-Aqua.test_ambiguities(SIIP - PACKAGE)
-Aqua.test_stale_deps(SIIP - PACKAGE)
-Aqua.test_deps_compat(SIIP - PACKAGE)
+Aqua.test_unbound_args(HybridSystemsSimulations)
+Aqua.test_undefined_exports(HybridSystemsSimulations)
+Aqua.test_ambiguities(HybridSystemsSimulations)
 
 LOG_FILE = "power-systems.log"
 LOG_LEVELS = Dict(
@@ -16,6 +21,31 @@ LOG_LEVELS = Dict(
     "Error" => Logging.Error,
 )
 
+# Constants
+const PSY = PowerSystems
+const PSI = PowerSimulations
+const PSB = PowerSystemCaseBuilder
+const IS = InfrastructureSystems
+const PM = PSI.PM
+const PNM = PowerNetworkMatrices
+
+# Test Utils
+using JuMP
+using HiGHS
+
+HiGHS_optimizer = JuMP.optimizer_with_attributes(
+    HiGHS.Optimizer,
+    "time_limit" => 300.0,
+    "log_to_console" => false,
+    "mip_abs_gap" => 1e-6,
+    "mip_rel_gap" => 1e-5,
+)
+
+# Load
+PSI_DIR = string(dirname(dirname(pathof(PowerSimulations))))
+include(joinpath(PSI_DIR, "test/test_utils/mock_operation_models.jl"))
+include(joinpath(PSI_DIR, "test/test_utils/operations_problem_templates.jl"))
+include(joinpath(PSI_DIR, "test/test_utils/model_checks.jl"))
 """
 Copied @includetests from https://github.com/ssfrr/TestSetExtensions.jl.
 Ideally, we could import and use TestSetExtensions.  Its functionality was broken by changes

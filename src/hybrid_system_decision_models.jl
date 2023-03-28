@@ -1,3 +1,5 @@
+using PowerSimulations
+
 function add_variable!(
     decision_model::DecisionModel{U},
     type::T,
@@ -133,7 +135,7 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridEnergyOnly}
     # Add PCC Variables
     add_variable!(decision_model, PSI.ActivePowerOutVariable(), T_rt, 0.0, P_max_pcc)
     add_variable!(decision_model, PSI.ActivePowerInVariable(), T_rt, 0.0, P_max_pcc)
-    add_binary_variable!(decision_model, ReservationVariable(), T_rt)
+    add_binary_variable!(decision_model, PSI.ReservationVariable(), T_rt)
 
     # Add Thermal Vars: No Thermal For now
     add_variable!(decision_model, ThermalPower(), T_rt, 0.0, P_max_th)
@@ -145,7 +147,7 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridEnergyOnly}
     # Add Battery Variables
     add_variable!(decision_model, BatteryCharge(), T_rt, 0.0, P_ch_max)
     add_variable!(decision_model, BatteryDischarge(), T_rt, 0.0, P_ds_max)
-    add_variable!(decision_model, BatteryStateOfCharge(), T_rt, E_min, E_max)
+    add_variable!(decision_model, PSI.EnergyVariable(), T_rt, E_min, E_max)
     add_binary_variable!(decision_model, BatteryStatus(), T_rt)
 
     ###############################
@@ -176,7 +178,7 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridEnergyOnly}
     p_re = PSI.get_variable(container, RenewablePower(), PSY.HybridSystem)
     p_ch = PSI.get_variable(container, BatteryCharge(), PSY.HybridSystem)
     p_ds = PSI.get_variable(container, BatteryDischarge(), PSY.HybridSystem)
-    e_st = PSI.get_variable(container, BatteryStateOfCharge(), PSY.HybridSystem)
+    e_st = PSI.get_variable(container, PSI.EnergyVariable(), PSY.HybridSystem)
     status_st = PSI.get_variable(container, BatteryStatus(), PSY.HybridSystem)
 
     for t in T_rt
@@ -221,11 +223,19 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridEnergyOnly}
     )
 
     # Thermal
-    constraint_thermal_on =
-        PSI.add_constraints_container!(container, OnVariableOn(), PSY.HybridSystem, T_rt)
+    constraint_thermal_on = PSI.add_constraints_container!(
+        container,
+        ThermalOnVariableOn(),
+        PSY.HybridSystem,
+        T_rt,
+    )
 
-    constraint_thermal_off =
-        PSI.add_constraints_container!(container, OnVariableOff(), PSY.HybridSystem, T_rt)
+    constraint_thermal_off = PSI.add_constraints_container!(
+        container,
+        ThermalOnVariableOff(),
+        PSY.HybridSystem,
+        T_rt,
+    )
     # Battery Charging
     constraint_battery_charging = PSI.add_constraints_container!(
         container,
@@ -256,13 +266,13 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridEnergyOnly}
         constraint_eb_in[t] = JuMP.@constraint(model, eb_rt_in[t] == p_in[t])
         # Status Bids
         constraint_status_bid_in[t] =
-            JuMP.@constraint(model, (1.0 - status[t]) * P_max_pcc == p_in[t])
+            JuMP.@constraint(model, (1.0 - status[t]) * P_max_pcc .>= p_in[t])
         constraint_status_bid_out[t] =
             JuMP.@constraint(model, status[t] * P_max_pcc .>= p_out[t])
         # Power Balance
         constraint_balance[t] = JuMP.@constraint(
             model,
-            p_re[t] + p_ds[t] - p_ch[t] - P_ld[t] - p_out[t] + p_in[t] == 0.0
+            p_th[t] + p_re[t] + p_ds[t] - p_ch[t] - P_ld[t] - p_out[t] + p_in[t] == 0.0
         )
         # Thermal Status
         constraint_thermal_on[t] =
@@ -305,7 +315,7 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridCooptimized
     s = PSI.get_system(decision_model)
     PSI.init_optimization_container!(container, CopperPlatePowerModel, s)
     PSI.init_model_store_params!(decision_model)
-    ext = get_ext(s)
+    ext = PSY.get_ext(s)
     ###############################
     ######## Create Sets ##########
     ###############################
@@ -431,7 +441,7 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridCooptimized
     # Add Battery Variables
     add_variable!(decision_model, BatteryCharge(), T_rt, 0.0, P_ch_max)
     add_variable!(decision_model, BatteryDischarge(), T_rt, 0.0, P_ds_max)
-    add_variable!(decision_model, BatteryStateOfCharge(), T_rt, E_min, E_max)
+    add_variable!(decision_model, PSI.EnergyVariable(), T_rt, E_min, E_max)
     add_binary_variable!(decision_model, BatteryStatus(), T_rt)
 
     ###############################
@@ -474,7 +484,7 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridCooptimized
     p_re = PSI.get_variable(container, RenewablePower(), PSY.HybridSystem)
     p_ch = PSI.get_variable(container, BatteryCharge(), PSY.HybridSystem)
     p_ds = PSI.get_variable(container, BatteryDischarge(), PSY.HybridSystem)
-    e_st = PSI.get_variable(container, BatteryStateOfCharge(), PSY.HybridSystem)
+    e_st = PSI.get_variable(container, PSI.EnergyVariable(), PSY.HybridSystem)
     status_st = PSI.get_variable(container, BatteryStatus(), PSY.HybridSystem)
 
     for t in T_rt
@@ -718,10 +728,18 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridCooptimized
     )
 
     # Thermal
-    constraint_thermal_on =
-        PSI.add_constraints_container!(container, OnVariableOn(), PSY.HybridSystem, T_rt)
-    constraint_thermal_off =
-        PSI.add_constraints_container!(container, OnVariableOff(), PSY.HybridSystem, T_rt)
+    constraint_thermal_on = PSI.add_constraints_container!(
+        container,
+        ThermalOnVariableOn(),
+        PSY.HybridSystem,
+        T_rt,
+    )
+    constraint_thermal_off = PSI.add_constraints_container!(
+        container,
+        ThermalOnVariableOff(),
+        PSY.HybridSystem,
+        T_rt,
+    )
 
     # Battery
     constraint_battery_charging = PSI.add_constraints_container!(
@@ -880,7 +898,7 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridCooptimized
         # Power Balance
         constraint_balance[t] = JuMP.@constraint(
             model,
-            p_re[t] + p_ds[t] - p_ch[t] - P_ld[t] - p_out[t] + p_in[t] == 0.0
+            p_th[t] + p_re[t] + p_ds[t] - p_ch[t] - P_ld[t] - p_out[t] + p_in[t] == 0.0
         )
         # Thermal Status
         constraint_thermal_on[t] =

@@ -48,12 +48,13 @@ struct RegDownBatteryDischargeBid <: PSI.VariableType end
 struct SpinBatteryDischargeBid <: PSI.VariableType end
 
 # Component Variables
-struct ThermalPower <: PSI.VariableType end
-struct RenewablePower <: PSI.VariableType end
-struct BatteryCharge <: PSI.VariableType end
-struct BatteryDischarge <: PSI.VariableType end
-struct BatteryStateOfCharge <: PSI.VariableType end
-struct BatteryStatus <: PSI.VariableType end
+abstract type HybridAssetVariableType <: PSI.VariableType end
+struct ThermalPower <: HybridAssetVariableType end
+struct ThermalStatus <: HybridAssetVariableType end
+struct RenewablePower <: HybridAssetVariableType end
+struct BatteryCharge <: HybridAssetVariableType end
+struct BatteryDischarge <: HybridAssetVariableType end
+struct BatteryStatus <: HybridAssetVariableType end
 
 # implement below
 # convert_result_to_natural_units(::Type{<:VariableType}) = false

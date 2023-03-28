@@ -1,4 +1,3 @@
 ########################### Hybrid Generation Formulations ################################
-abstract type AbstractHybridFormulation end
+abstract type AbstractHybridFormulation <: PSI.AbstractDeviceFormulation end
 struct HybridEnergyOnlyDispatch <: AbstractHybridFormulation end
-struct HybridDispatch <: AbstractHybridFormulation end

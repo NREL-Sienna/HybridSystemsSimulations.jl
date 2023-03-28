@@ -22,7 +22,6 @@ const PSI = PowerSimulations
 const PSY = PowerSystems
 const PM = PSI.PM
 const IS = PSI.IS
-const PNM = PSI.PNM
 
 using DocStringExtensions
 @template (FUNCTIONS, METHODS) = """

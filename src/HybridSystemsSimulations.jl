@@ -2,7 +2,6 @@ module HybridSystemsSimulations
 
 # Device Formulations
 export HybridEnergyOnlyDispatch
-export HybridDispatch
 
 # Decision Models
 export MerchantHybridEnergyOnly

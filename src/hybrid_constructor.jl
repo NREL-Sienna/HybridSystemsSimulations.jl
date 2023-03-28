@@ -52,8 +52,10 @@ function PSI.construct_device!(
     # Storage
     PSI.add_variables!(container, BatteryCharge, _hybrids_with_storage, D())
     PSI.add_variables!(container, BatteryDischarge, _hybrids_with_storage, D())
-    PSI.add_variables!(container, BatteryStateOfCharge, _hybrids_with_storage, D())
+    PSI.add_variables!(container, PSI.EnergyVariable, _hybrids_with_storage, D())
     PSI.add_variables!(container, BatteryStatus, _hybrids_with_storage, D())
+
+    PSI.initial_conditions!(container, _hybrids_with_storage, D())
 
     ### Add Parameters ###
     PSI.add_parameters!(container, RenewablePowerTimeSeries, _hybrids_with_renewable, model)

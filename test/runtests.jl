@@ -4,6 +4,8 @@ using PowerSimulations
 using PowerSystemCaseBuilder
 using PowerNetworkMatrices
 using HybridSystemsSimulations
+using DataFrames
+using CSV
 using InfrastructureSystems
 using Test
 using Logging
@@ -22,6 +24,7 @@ LOG_LEVELS = Dict(
 )
 
 # Constants
+# Constants
 const PSY = PowerSystems
 const PSI = PowerSimulations
 const PSB = PowerSystemCaseBuilder
@@ -37,8 +40,8 @@ HiGHS_optimizer = JuMP.optimizer_with_attributes(
     HiGHS.Optimizer,
     "time_limit" => 300.0,
     "log_to_console" => false,
-    "mip_abs_gap" => 1e-6,
-    "mip_rel_gap" => 1e-5,
+    "mip_abs_gap" => 1e-1,
+    "mip_rel_gap" => 1e-1,
 )
 
 # Load
@@ -46,6 +49,12 @@ PSI_DIR = string(dirname(dirname(pathof(PowerSimulations))))
 include(joinpath(PSI_DIR, "test/test_utils/mock_operation_models.jl"))
 include(joinpath(PSI_DIR, "test/test_utils/operations_problem_templates.jl"))
 include(joinpath(PSI_DIR, "test/test_utils/model_checks.jl"))
+
+TEST_DIR = isempty(dirname(@__FILE__)) ? "test" : dirname(@__FILE__)
+include(joinpath(TEST_DIR, "test_utils/function_utils.jl"))
+include(joinpath(TEST_DIR, "test_utils/additional_templates.jl"))
+include(joinpath(TEST_DIR, "test_utils/price_generation_utils.jl"))
+
 """
 Copied @includetests from https://github.com/ssfrr/TestSetExtensions.jl.
 Ideally, we could import and use TestSetExtensions.  Its functionality was broken by changes

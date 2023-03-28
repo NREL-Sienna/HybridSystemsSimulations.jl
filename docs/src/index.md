@@ -1,15 +1,13 @@
 # PowerSystems.jl
 
 ```@meta
-CurrentModule = SIIP_PACKAGE
+CurrentModule = HybridSystemsSimulations
 ```
 
 ## Overview
 
-`PHybridSystemsSimulations .jl` is a [`Julia`](http://www.julialang.org) package that provides blah blah
+`HybridSystemsSimulations.jl` is a [`Julia`](http://www.julialang.org) package that provides blah blah
 
 * * *
 
-HybridSystemsSimulations  has been developed as part of the Scalable Integrated Infrastructure Planning
-(SIIP) initiative at the U.S. Department of Energy's National Renewable Energy
-Laboratory ([NREL](https://www.nrel.gov/)).
+HybridSystemsSimulations has been developed as part of the FlexPower Project at the U.S. Department of Energy's National Renewable Energy Laboratory ([NREL](https://www.nrel.gov/))

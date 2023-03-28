@@ -1,4 +1,5 @@
-using Documenter, SIIP - PACKAGE
+using Documenter, HybridSystemsSimulations
+import DataStructures: OrderedDict
 
 pages = OrderedDict(
     "Welcome Page" => "index.md",
@@ -10,9 +11,11 @@ pages = OrderedDict(
 
 makedocs(
     modules=[HybridSystemsSimulations],
-    format=Documenter.HTML(prettyurls=haskey(ENV, "GITHUB_ACTIONS")),
+    format = Documenter.HTML(;
+        mathengine = Documenter.MathJax(),
+        prettyurls = haskey(ENV, "GITHUB_ACTIONS")),
     sitename="HybridSystemsSimulations.jl",
-    authors="Freddy Mercury, Nikola Tesla, Leonard Bernestein",
+    authors="Jose Daniel Lara, Rodrigo Henriquez-Auba",
     pages=Any[p for p in pages],
 )
 
@@ -20,7 +23,7 @@ deploydocs(
     repo="github.com/NREL-SIIP/HybridSystemsSimulations.git",
     target="build",
     branch="gh-pages",
-    devbranch="master",
+    devbranch="main",
     devurl="dev",
     push_preview=true,
     versions=["stable" => "v^", "v#.#"],

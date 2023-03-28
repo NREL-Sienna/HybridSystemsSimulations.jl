@@ -100,7 +100,8 @@ PSI.get_variable_binary(
 
 ############### Asset Variables, HybridSystem #####################
 # General Variables use Thermals
-PSY.get_active_power_limits(device::PSY.HybridSystem) = PSY.get_active_power_limits(PSY.get_thermal_unit(device))
+PSY.get_active_power_limits(device::PSY.HybridSystem) =
+    PSY.get_active_power_limits(PSY.get_thermal_unit(device))
 
 PSI.get_default_on_variable(::PSY.HybridSystem) = ThermalStatus()
 
@@ -215,8 +216,16 @@ PSI.get_variable_binary(
     ::AbstractHybridFormulation,
 ) = true
 
-PSI.initial_condition_default(::PSI.InitialEnergyLevel, d::PSY.HybridSystem, ::AbstractHybridFormulation) = PSY.get_initial_energy(PSY.get_storage(d))
-PSI.initial_condition_variable(::PSI.InitialEnergyLevel, d::PSY.HybridSystem, ::AbstractHybridFormulation) = PSI.EnergyVariable()
+PSI.initial_condition_default(
+    ::PSI.InitialEnergyLevel,
+    d::PSY.HybridSystem,
+    ::AbstractHybridFormulation,
+) = PSY.get_initial_energy(PSY.get_storage(d))
+PSI.initial_condition_variable(
+    ::PSI.InitialEnergyLevel,
+    d::PSY.HybridSystem,
+    ::AbstractHybridFormulation,
+) = PSI.EnergyVariable()
 
 ###################################################################
 ################### Objective Function ############################
@@ -419,8 +428,6 @@ function add_parameters!(
 } where {D <: PSY.HybridSystem}
     return PSI._add_time_series_parameters!(container, param, devices, model)
 end
-
-
 
 ###################################################################
 ######################## Initial Conditions #######################

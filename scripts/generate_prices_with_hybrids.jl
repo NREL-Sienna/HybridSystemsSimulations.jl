@@ -79,7 +79,6 @@ mipgap = 0.002
 num_steps = 3
 starttime = DateTime("2020-10-03T00:00:00")
 
-
 ###############################
 ##### Run DCP Simulation ######
 ###############################
@@ -142,19 +141,18 @@ soc_ed = read_realized_variable(results_ed_dcp, "EnergyVariable__HybridSystem")[
 
 using PlotlyJS
 PlotlyJS.plot([
-    PlotlyJS.scatter(x=dates_uc, y = DA_prices[!, bus_name], name = "λ_DA", line_shape = "hv"),
-    PlotlyJS.scatter(x=dates_ed, y = RT_prices[!, bus_name], name = "λ_RT", line_shape = "hv"),
+    PlotlyJS.scatter(x=dates_uc, y=DA_prices[!, bus_name], name="λ_DA", line_shape="hv"),
+    PlotlyJS.scatter(x=dates_ed, y=RT_prices[!, bus_name], name="λ_RT", line_shape="hv"),
 ])
 
 plot([
-    scatter(x=dates_uc, y = p_ds_uc, name = "p_ds", line_shape = "hv"),
-    scatter(x=dates_uc, y = -p_ch_uc, name = "p_ch", line_shape = "hv"),
-    scatter(x=dates_uc, y = soc_uc, name = "soc", line_shape = "hv"),]
-    )
-
+    scatter(x=dates_uc, y=p_ds_uc, name="p_ds", line_shape="hv"),
+    scatter(x=dates_uc, y=-p_ch_uc, name="p_ch", line_shape="hv"),
+    scatter(x=dates_uc, y=soc_uc, name="soc", line_shape="hv"),
+])
 
 plot([
-        scatter(x=dates_ed, y = p_ds_ed, name = "p_ds", line_shape = "hv"),
-        scatter(x=dates_ed, y = -p_ch_ed, name = "p_ch", line_shape = "hv"),
-        scatter(x=dates_ed, y = soc_ed ./ 100.0, name = "soc", line_shape = "hv"),]
-        )
+    scatter(x=dates_ed, y=p_ds_ed, name="p_ds", line_shape="hv"),
+    scatter(x=dates_ed, y=-p_ch_ed, name="p_ch", line_shape="hv"),
+    scatter(x=dates_ed, y=soc_ed ./ 100.0, name="soc", line_shape="hv"),
+])

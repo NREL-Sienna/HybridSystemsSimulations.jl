@@ -147,7 +147,7 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridEnergyOnly}
     # Add Battery Variables
     add_variable!(decision_model, BatteryCharge(), T_rt, 0.0, P_ch_max)
     add_variable!(decision_model, BatteryDischarge(), T_rt, 0.0, P_ds_max)
-    add_variable!(decision_model, BatteryStateOfCharge(), T_rt, E_min, E_max)
+    add_variable!(decision_model, PSI.EnergyVariable(), T_rt, E_min, E_max)
     add_binary_variable!(decision_model, BatteryStatus(), T_rt)
 
     ###############################
@@ -178,7 +178,7 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridEnergyOnly}
     p_re = PSI.get_variable(container, RenewablePower(), PSY.HybridSystem)
     p_ch = PSI.get_variable(container, BatteryCharge(), PSY.HybridSystem)
     p_ds = PSI.get_variable(container, BatteryDischarge(), PSY.HybridSystem)
-    e_st = PSI.get_variable(container, BatteryStateOfCharge(), PSY.HybridSystem)
+    e_st = PSI.get_variable(container, PSI.EnergyVariable(), PSY.HybridSystem)
     status_st = PSI.get_variable(container, BatteryStatus(), PSY.HybridSystem)
 
     for t in T_rt
@@ -441,7 +441,7 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridCooptimized
     # Add Battery Variables
     add_variable!(decision_model, BatteryCharge(), T_rt, 0.0, P_ch_max)
     add_variable!(decision_model, BatteryDischarge(), T_rt, 0.0, P_ds_max)
-    add_variable!(decision_model, BatteryStateOfCharge(), T_rt, E_min, E_max)
+    add_variable!(decision_model, PSI.EnergyVariable(), T_rt, E_min, E_max)
     add_binary_variable!(decision_model, BatteryStatus(), T_rt)
 
     ###############################
@@ -484,7 +484,7 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridCooptimized
     p_re = PSI.get_variable(container, RenewablePower(), PSY.HybridSystem)
     p_ch = PSI.get_variable(container, BatteryCharge(), PSY.HybridSystem)
     p_ds = PSI.get_variable(container, BatteryDischarge(), PSY.HybridSystem)
-    e_st = PSI.get_variable(container, BatteryStateOfCharge(), PSY.HybridSystem)
+    e_st = PSI.get_variable(container, PSI.EnergyVariable(), PSY.HybridSystem)
     status_st = PSI.get_variable(container, BatteryStatus(), PSY.HybridSystem)
 
     for t in T_rt

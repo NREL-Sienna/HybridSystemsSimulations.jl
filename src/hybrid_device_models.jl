@@ -99,6 +99,11 @@ PSI.get_variable_binary(
 ) = true
 
 ############### Asset Variables, HybridSystem #####################
+# General Variables use Thermals
+PSY.get_active_power_limits(device::PSY.HybridSystem) = PSY.get_active_power_limits(PSY.get_thermal_unit(device))
+
+PSI.get_default_on_variable(::PSY.HybridSystem) = ThermalStatus()
+
 # Upper Bound
 PSI.get_variable_upper_bound(
     ::ThermalPower,
@@ -121,7 +126,7 @@ PSI.get_variable_upper_bound(
     ::AbstractHybridFormulation,
 ) = PSY.get_output_active_power_limits(PSY.get_storage(d)).max
 PSI.get_variable_upper_bound(
-    ::BatteryStateOfCharge,
+    ::PSI.EnergyVariable,
     d::PSY.HybridSystem,
     ::AbstractHybridFormulation,
 ) = PSY.get_state_of_charge_limits(PSY.get_storage(d)).max
@@ -158,7 +163,7 @@ PSI.get_variable_lower_bound(
     ::AbstractHybridFormulation,
 ) = 0.0
 PSI.get_variable_lower_bound(
-    ::BatteryStateOfCharge,
+    ::PSI.EnergyVariable,
     d::PSY.HybridSystem,
     ::AbstractHybridFormulation,
 ) = PSY.get_state_of_charge_limits(PSY.get_storage(d)).min
@@ -200,7 +205,7 @@ PSI.get_variable_binary(
     ::AbstractHybridFormulation,
 ) = false
 PSI.get_variable_binary(
-    ::BatteryStateOfCharge,
+    ::PSI.EnergyVariable,
     ::Type{PSY.HybridSystem},
     ::AbstractHybridFormulation,
 ) = false
@@ -209,6 +214,9 @@ PSI.get_variable_binary(
     ::Type{PSY.HybridSystem},
     ::AbstractHybridFormulation,
 ) = true
+
+PSI.initial_condition_default(::PSI.InitialEnergyLevel, d::PSY.HybridSystem, ::AbstractHybridFormulation) = PSY.get_initial_energy(PSY.get_storage(d))
+PSI.initial_condition_variable(::PSI.InitialEnergyLevel, d::PSY.HybridSystem, ::AbstractHybridFormulation) = PSI.EnergyVariable()
 
 ###################################################################
 ################### Objective Function ############################
@@ -256,19 +264,20 @@ PSI.objective_function_multiplier(
 ) = PSI.OBJECTIVE_FUNCTION_POSITIVE
 PSI.proportional_cost(
     cost::PSY.OperationalCost,
-    S::ThermalStatus,
+    ::ThermalStatus,
     ::PSY.HybridSystem,
     U::AbstractHybridFormulation,
 ) = PSY.get_fixed(cost)
 PSI.variable_cost(
     cost::PSY.OperationalCost,
-    S::ThermalPower,
+    ::ThermalPower,
     ::PSY.HybridSystem,
     U::AbstractHybridFormulation,
 ) = PSY.get_variable(cost)
 PSI.uses_compact_power(::PSY.HybridSystem, ::AbstractHybridFormulation) = false
 PSI.sos_status(::PSY.HybridSystem, ::AbstractHybridFormulation) =
     PSI.SOSStatusVariable.VARIABLE
+
 function PSI.add_proportional_cost!(
     container::PSI.OptimizationContainer,
     ::T,
@@ -288,100 +297,6 @@ function PSI.add_proportional_cost!(
         for t in PSI.get_time_steps(container)
             PSI._add_proportional_term!(container, T(), d, cost_term * multiplier, t)
         end
-    end
-    return
-end
-
-function PSI._check_pwl_compact_data(
-    d::PSY.HybridSystem,
-    data::Vector{Tuple{Float64, Float64}},
-    base_power::Float64,
-)
-    thermal = PSY.get_thermal_unit(d)
-    min = PSY.get_active_power_limits(thermal).min
-    max = PSY.get_active_power_limits(thermal).max
-    return PSI._check_pwl_compact_data(min, max, data, base_power)
-end
-
-function PSI._add_pwl_constraint!(
-    container::PSI.OptimizationContainer,
-    component::T,
-    ::U,
-    break_points::Vector{Float64},
-    sos_status::PSI.SOSStatusVariable,
-    period::Int,
-) where {T <: PSY.HybridSystem, U <: PSI.VariableType}
-    variables = PSI.get_variable(container, U(), T)
-    const_container = PSI.lazy_container_addition!(
-        container,
-        PSI.PieceWiseLinearCostConstraint(),
-        T,
-        axes(variables)...,
-    )
-    len_cost_data = length(break_points)
-    jump_model = PSI.get_jump_model(container)
-    pwl_vars = PSI.get_variable(container, PSI.PieceWiseLinearCostVariable(), T)
-    name = PSY.get_name(component)
-    const_container[name, period] = JuMP.@constraint(
-        jump_model,
-        variables[name, period] ==
-        sum(pwl_vars[name, ix, period] * break_points[ix] for ix in 1:len_cost_data)
-    )
-
-    if sos_status == PSI.SOSStatusVariable.NO_VARIABLE
-        bin = 1.0
-        @debug "Using Piecewise Linear cost function but no variable/parameter ref for ON status is passed. Default status will be set to online (1.0)" _group =
-            LOG_GROUP_COST_FUNCTIONS
-
-    elseif sos_status == PSI.SOSStatusVariable.PARAMETER
-        bin = PSI.get_parameter(container, OnStatusParameter(), T).parameter_array[
-            name,
-            period,
-        ]
-        @debug "Using Piecewise Linear cost function with parameter OnStatusParameter, $T" _group =
-            PSI.LOG_GROUP_COST_FUNCTIONS
-    elseif sos_status == PSI.SOSStatusVariable.VARIABLE
-        bin = PSI.get_variable(container, ThermalStatus(), T)[name, period] # Only Change
-        @debug "Using Piecewise Linear cost function with variable OnVariable $T" _group =
-            PSI.LOG_GROUP_COST_FUNCTIONS
-    else
-        @assert false
-    end
-
-    JuMP.@constraint(
-        jump_model,
-        sum(pwl_vars[name, i, period] for i in 1:len_cost_data) == bin
-    )
-    return
-end
-
-function PSI._add_variable_cost_to_objective!(
-    container::PSI.OptimizationContainer,
-    ::T,
-    device::PSY.HybridSystem,
-    cost_component::PSY.OperationalCost,
-    ::W,
-) where {T <: ThermalPower, W <: AbstractHybridFormulation}
-    multiplier = PSI.objective_function_multiplier(T(), W())
-    base_power = PSI.get_base_power(container)
-    cost_data = PSY.get_cost(cost_component)
-    resolution = PSI.get_resolution(container)
-    dt = Dates.value(Dates.Second(resolution)) / PSI.SECONDS_IN_HOUR
-    for time_period in PSI.get_time_steps(container)
-        linear_cost = PSI._add_proportional_term!(
-            container,
-            T(),
-            component,
-            cost_data * multiplier * base_power * dt,
-            time_period,
-        )
-        add_to_expression!(
-            container,
-            ProductionCostExpression,
-            linear_cost,
-            component,
-            time_period,
-        )
     end
     return
 end
@@ -439,7 +354,7 @@ function _add_variable!(
     devices::U,
     formulation::AbstractHybridFormulation,
 ) where {
-    T <: HybridAssetVariableType,
+    T <: Union{HybridAssetVariableType, PSI.EnergyVariable},
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
 } where {D <: PSY.HybridSystem}
     @assert !isempty(devices)
@@ -481,7 +396,7 @@ function add_variables!(
     devices::Union{Vector{U}, IS.FlattenIteratorWrapper{U}},
     formulation::AbstractHybridFormulation,
 ) where {
-    T <: HybridAssetVariableType,
+    T <: Union{HybridAssetVariableType, PSI.EnergyVariable},
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
 } where {D <: PSY.HybridSystem}
     _add_variable!(container, T(), devices, formulation)
@@ -503,6 +418,21 @@ function add_parameters!(
     W <: AbstractHybridFormulation,
 } where {D <: PSY.HybridSystem}
     return PSI._add_time_series_parameters!(container, param, devices, model)
+end
+
+
+
+###################################################################
+######################## Initial Conditions #######################
+###################################################################
+
+function PSI.initial_conditions!(
+    container::PSI.OptimizationContainer,
+    devices::Vector{D},
+    formulation::AbstractHybridFormulation,
+) where {D <: PSY.HybridSystem}
+    PSI.add_initial_condition!(container, devices, formulation, PSI.InitialEnergyLevel())
+    return
 end
 
 ###################################################################
@@ -763,20 +693,21 @@ function PSI.add_constraints!(
     resolution = PSI.get_resolution(container)
     fraction_of_hour = Dates.value(Dates.Minute(resolution)) / PSI.MINUTES_IN_HOUR
     names = [PSY.get_name(d) for d in devices]
-    energy_var = PSI.get_variable(container, BatteryStateOfCharge(), D)
+    energy_var = PSI.get_variable(container, PSI.EnergyVariable(), D)
     charge_var = PSI.get_variable(container, BatteryCharge(), D)
     discharge_var = PSI.get_variable(container, BatteryDischarge(), D)
     con_soc = PSI.add_constraints_container!(container, T(), D, names, time_steps)
+    initial_conditions = PSI.get_initial_condition(container, PSI.InitialEnergyLevel(), D)
 
-    for device in devices
+    for ic in initial_conditions
+        device = PSI.get_component(ic)
         ci_name = PSY.get_name(device)
         storage = PSY.get_storage(device)
-        ic = PSY.get_initial_energy(storage)
         efficiency = PSY.get_efficiency(storage)
         con_soc[ci_name, 1] = JuMP.@constraint(
             container.JuMPmodel,
             energy_var[ci_name, 1] ==
-            ic +
+            PSI.get_value(ic) +
             fraction_of_hour * (
                 charge_var[ci_name, 1] * efficiency.in -
                 (discharge_var[ci_name, 1] / efficiency.out)

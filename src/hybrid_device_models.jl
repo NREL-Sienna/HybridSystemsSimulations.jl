@@ -344,11 +344,20 @@ function PSI.objective_function!(
     _hybrids_with_storage = [d for d in devices if PSY.get_storage(d) !== nothing]
 
     # Add Storage Cost
-    PSI.add_proportional_cost!(container, BatteryCharge(), _hybrids_with_storage, W())
-    PSI.add_proportional_cost!(container, BatteryDischarge(), _hybrids_with_storage, W())
+    if !isempty(_hybrids_with_storage)
+        PSI.add_proportional_cost!(container, BatteryCharge(), _hybrids_with_storage, W())
+        PSI.add_proportional_cost!(
+            container,
+            BatteryDischarge(),
+            _hybrids_with_storage,
+            W(),
+        )
+    end
     # Add Thermal Cost
-    PSI.add_variable_cost!(container, ThermalPower(), _hybrids_with_thermal, W())
-    PSI.add_proportional_cost!(container, ThermalStatus(), _hybrids_with_thermal, W())
+    if !isempty(_hybrids_with_thermal)
+        PSI.add_variable_cost!(container, ThermalPower(), _hybrids_with_thermal, W())
+        PSI.add_proportional_cost!(container, ThermalStatus(), _hybrids_with_thermal, W())
+    end
 end
 
 ###################################################################
@@ -534,39 +543,43 @@ function PSI.add_constraints!(
     names = [PSY.get_name(d) for d in devices]
     p_out = PSI.get_variable(container, PSI.ActivePowerOutVariable(), D)
     p_in = PSI.get_variable(container, PSI.ActivePowerInVariable(), D)
-    p_th = PSI.get_variable(container, ThermalPower(), D)
-    p_re = PSI.get_variable(container, RenewablePower(), D)
-    p_ch = PSI.get_variable(container, BatteryCharge(), D)
-    p_ds = PSI.get_variable(container, BatteryDischarge(), D)
     con_bal = PSI.add_constraints_container!(container, T(), D, names, time_steps)
-    P = ElectricLoadTimeSeries
-    param_container = PSI.get_parameter(container, P(), D)
-    parameter_values = PSI.get_parameter_values(param_container)
-    multiplier = PSI.get_parameter_multiplier_array(container, P(), D)
 
     for device in devices
         ci_name = PSY.get_name(device)
+        vars_pos = Set()
+        vars_neg = Set()
+        if !isnothing(PSY.get_thermal_unit(device))
+            p_th = PSI.get_variable(container, ThermalPower(), D)
+            push!(vars_pos, p_th[ci_name, :])
+        end
+        if !isnothing(PSY.get_renewable_unit(device))
+            p_re = PSI.get_variable(container, RenewablePower(), D)
+            push!(vars_pos, p_re[ci_name, :])
+        end
+        if !isnothing(PSY.get_storage(device))
+            p_ch = PSI.get_variable(container, BatteryCharge(), D)
+            p_ds = PSI.get_variable(container, BatteryDischarge(), D)
+            push!(vars_pos, p_ds[ci_name, :])
+            push!(vars_neg, p_ch[ci_name, :])
+        end
+        if !isnothing(PSY.get_electric_load(device))
+            P = ElectricLoadTimeSeries
+            param_container = PSI.get_parameter(container, P(), D)
+            parameter_values = PSI.get_parameter_values(param_container)
+            multiplier = PSI.get_parameter_multiplier_array(container, P(), D)
+            push!(vars_neg, parameter_values[ci_name, :] .* multiplier[ci_name, :])
+        end
+
         for t in time_steps
-            total_power = JuMP.AffExpr()
-            if !isnothing(PSY.get_thermal_unit(device))
-                JuMP.add_to_expression!(total_power, p_th[ci_name, t])
+            total_power = -p_out[ci_name, t] + p_in[ci_name, t]
+            for vp in vars_pos
+                JuMP.add_to_expression!(total_power, vp[t])
             end
-            if !isnothing(PSY.get_renewable_unit(device))
-                JuMP.add_to_expression!(total_power, p_re[ci_name, t])
+            for vn in vars_neg
+                JuMP.add_to_expression!(total_power, -vn[t])
             end
-            if !isnothing(PSY.get_storage(device))
-                JuMP.add_to_expression!(total_power, p_ds[ci_name, t] - p_ch[ci_name, t])
-            end
-            if !isnothing(PSY.get_electric_load(device))
-                JuMP.add_to_expression!(
-                    total_power,
-                    -parameter_values[ci_name, t] * multiplier[ci_name, t],
-                )
-            end
-            con_bal[ci_name, t] = JuMP.@constraint(
-                container.JuMPmodel,
-                total_power == p_out[ci_name, t] - p_in[ci_name, t]
-            )
+            con_bal[ci_name, t] = JuMP.@constraint(container.JuMPmodel, total_power == 0.0)
         end
     end
     return

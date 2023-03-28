@@ -2,7 +2,7 @@
 
 [![Main - CI](https://github.com/NREL-SIIP/HybridSystemsSimulations.jl/actions/workflows/main-tests.yml/badge.svg)](https://github.com/NREL-SIIP/HybridSystemsSimulations.jl/actions/workflows/main-tests.yml)
 [![codecov](https://codecov.io/gh/NREL-SIIP/HybridSystemsSimulations.jl/branch/main/graph/badge.svg?token=4TAeajF0h6)](https://codecov.io/gh/NREL-SIIP/HybridSystemsSimulations.jl)
-[![Documentation Build](https://github.com/NREL-SIIP/HybridSystemsSimulations.jl/actions/workflows/docs.yml/badge.svg)](https://github.com/NREL-SIIP/HybridSystemsSimulations.jl/actions/workflows/docs.yml)
+[![Documentation Build](https://github.com/NREL-SIIP/HybridSystemsSimulations.jl/actions/workflows/docs.yml/badge.svg)](https://nrel-siip.github.io/HybridSystemsSimulations.jl/dev/)
 [<img src="https://img.shields.io/badge/slack-@SIIP/HybridSystemsSimulations-blue.svg?logo=slack">](https://join.slack.com/t/nrel-siip/shared_invite/zt-glam9vdu-o8A9TwZTZqqNTKHa7q3BpQ)
 
 ## Development

@@ -11,9 +11,10 @@ pages = OrderedDict(
 
 makedocs(
     modules=[HybridSystemsSimulations],
-    format = Documenter.HTML(;
-        mathengine = Documenter.MathJax(),
-        prettyurls = haskey(ENV, "GITHUB_ACTIONS")),
+    format=Documenter.HTML(;
+        mathengine=Documenter.MathJax(),
+        prettyurls=haskey(ENV, "GITHUB_ACTIONS"),
+    ),
     sitename="HybridSystemsSimulations.jl",
     authors="Jose Daniel Lara, Rodrigo Henriquez-Auba",
     pages=Any[p for p in pages],

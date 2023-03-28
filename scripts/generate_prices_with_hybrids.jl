@@ -155,4 +155,10 @@ plot([
     scatter(x=dates_ed, y=p_ds_ed, name="p_ds", line_shape="hv"),
     scatter(x=dates_ed, y=-p_ch_ed, name="p_ch", line_shape="hv"),
     scatter(x=dates_ed, y=soc_ed ./ 100.0, name="soc", line_shape="hv"),
+    PlotlyJS.scatter(
+        x=dates_ed,
+        y=RT_prices[!, bus_name] / 10,
+        name="λ_RT",
+        line_shape="hv",
+    ),
 ])

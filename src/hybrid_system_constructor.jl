@@ -159,9 +159,27 @@ function PSI.construct_device!(
             model,
             network_model,
         )
-        PSI.add_constraints!(container, BatteryBalance, _hybrids_with_storage, model, network_model)
-        PSI.add_constraints!(container, CyclingCharge, _hybrids_with_storage, model, network_model)
-        PSI.add_constraints!(container, CyclingDischarge, _hybrids_with_storage, model, network_model)
+        PSI.add_constraints!(
+            container,
+            BatteryBalance,
+            _hybrids_with_storage,
+            model,
+            network_model,
+        )
+        PSI.add_constraints!(
+            container,
+            CyclingCharge,
+            _hybrids_with_storage,
+            model,
+            network_model,
+        )
+        PSI.add_constraints!(
+            container,
+            CyclingDischarge,
+            _hybrids_with_storage,
+            model,
+            network_model,
+        )
     end
 
     # Renewable

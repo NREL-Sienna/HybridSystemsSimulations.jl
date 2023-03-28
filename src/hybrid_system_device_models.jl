@@ -464,7 +464,7 @@ function PSI.add_constraints!(
     devices::IS.FlattenIteratorWrapper{V},
     model::PSI.DeviceModel{V, W},
     network_model::PSI.NetworkModel{X},
-) where {V <: PSY.HybridSystem, W <: AbstractHybridFormulation, X <:PM.AbstractPowerModel}
+) where {V <: PSY.HybridSystem, W <: AbstractHybridFormulation, X <: PM.AbstractPowerModel}
     PSI.add_range_constraints!(container, T, U, devices, model, X)
     return
 end

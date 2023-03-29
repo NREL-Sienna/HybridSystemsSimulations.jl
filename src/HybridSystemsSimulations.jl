@@ -10,6 +10,8 @@ export MerchantHybridCooptimized
 # Variables
 export EnergyDABidOut
 export EnergyDABidIn
+export EnergyRTBidOut
+export EnergyRTBidIn
 
 import MathOptInterface
 import PowerSimulations

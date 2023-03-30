@@ -344,6 +344,37 @@ function PSI.add_variable_cost!(
     return
 end
 
+############### Renewable costs, HybridSystem #######################
+
+PSI.objective_function_multiplier(
+    ::RenewablePower,
+    ::AbstractHybridFormulation,
+) = PSI.OBJECTIVE_FUNCTION_NEGATIVE
+PSI.variable_cost(
+    cost::PSY.OperationalCost,
+    ::RenewablePower,
+    ::PSY.HybridSystem,
+    U::AbstractHybridFormulation,
+) = PSY.get_variable(cost)
+
+function PSI.add_variable_cost!(
+    container::PSI.OptimizationContainer,
+    ::T,
+    devices::U,
+    ::W,
+) where {
+    T <: RenewablePower,
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
+    for d in devices
+        op_cost_data = PSY.get_operation_cost(PSY.get_renewable_unit(d))
+        variable_cost_data = PSI.variable_cost(op_cost_data, T(), d, W())
+        PSI._add_variable_cost_to_objective!(container, T(), d, variable_cost_data, W())
+    end
+    return
+end
+
 ############### Objective Function, HybridSystem #######################
 
 function PSI.objective_function!(

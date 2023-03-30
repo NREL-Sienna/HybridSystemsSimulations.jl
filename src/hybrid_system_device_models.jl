@@ -369,8 +369,7 @@ function PSI.add_variable_cost!(
 } where {D <: PSY.HybridSystem}
     for d in devices
         op_cost_data = PSY.get_operation_cost(PSY.get_renewable_unit(d))
-        variable_cost_data = PSI.variable_cost(op_cost_data, T(), d, W())
-        PSI._add_variable_cost_to_objective!(container, T(), d, variable_cost_data, W())
+        PSI._add_variable_cost_to_objective!(container, T(), d, op_cost_data, W())
     end
     return
 end
@@ -389,6 +388,7 @@ function PSI.objective_function!(
     # Filter Devices
     _hybrids_with_thermal = [d for d in devices if PSY.get_thermal_unit(d) !== nothing]
     _hybrids_with_storage = [d for d in devices if PSY.get_storage(d) !== nothing]
+    _hybrids_with_renewable = [d for d in devices if PSY.get_renewable_unit(d) !== nothing]
 
     # Add Storage Cost
     if !isempty(_hybrids_with_storage)
@@ -405,6 +405,10 @@ function PSI.objective_function!(
         PSI.add_variable_cost!(container, ThermalPower(), _hybrids_with_thermal, W())
         PSI.add_proportional_cost!(container, ThermalStatus(), _hybrids_with_thermal, W())
     end
+
+    # Add Renewable Cost
+    if !isempty(_hybrids_with_renewable)
+        PSI.add_variable_cost!(container, RenewablePower(), _hybrids_with_renewable, W())
     return
 end
 

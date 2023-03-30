@@ -279,19 +279,23 @@ PSI.objective_function_multiplier(
     ::Union{ThermalPower, ThermalStatus},
     ::AbstractHybridFormulation,
 ) = PSI.OBJECTIVE_FUNCTION_POSITIVE
+
 PSI.proportional_cost(
     cost::PSY.OperationalCost,
     ::ThermalStatus,
     ::PSY.HybridSystem,
     U::AbstractHybridFormulation,
 ) = PSY.get_fixed(cost)
+
 PSI.variable_cost(
     cost::PSY.OperationalCost,
     ::ThermalPower,
     ::PSY.HybridSystem,
     U::AbstractHybridFormulation,
 ) = PSY.get_variable(cost)
+
 PSI.uses_compact_power(::PSY.HybridSystem, ::AbstractHybridFormulation) = false
+
 PSI.sos_status(::PSY.HybridSystem, ::AbstractHybridFormulation) =
     PSI.SOSStatusVariable.VARIABLE
 
@@ -341,8 +345,8 @@ end
 function PSI.objective_function!(
     container::PSI.OptimizationContainer,
     devices::U,
-    model::PSI.DeviceModel{D, W},
-    network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
+    ::PSI.DeviceModel{D, W},
+    ::PSI.NetworkModel{<:PM.AbstractPowerModel},
 ) where {
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     W <: AbstractHybridFormulation,

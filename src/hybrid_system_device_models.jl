@@ -346,10 +346,8 @@ end
 
 ############### Renewable costs, HybridSystem #######################
 
-PSI.objective_function_multiplier(
-    ::RenewablePower,
-    ::AbstractHybridFormulation,
-) = PSI.OBJECTIVE_FUNCTION_NEGATIVE
+PSI.objective_function_multiplier(::RenewablePower, ::AbstractHybridFormulation) =
+    PSI.OBJECTIVE_FUNCTION_NEGATIVE
 PSI.variable_cost(
     cost::PSY.OperationalCost,
     ::RenewablePower,
@@ -373,7 +371,6 @@ function PSI.add_variable_cost!(
     end
     return
 end
-
 ############### Objective Function, HybridSystem #######################
 
 function PSI.objective_function!(
@@ -409,6 +406,7 @@ function PSI.objective_function!(
     # Add Renewable Cost
     if !isempty(_hybrids_with_renewable)
         PSI.add_variable_cost!(container, RenewablePower(), _hybrids_with_renewable, W())
+    end
     return
 end
 
@@ -514,7 +512,12 @@ function PSI.add_constraints!(
 end
 
 ############ Asset Balance Constraints, HybridSystem ###############
-const JUMP_SET_TYPE = JuMP.Containers.DenseAxisArray{JuMP.VariableRef, 1, Tuple{UnitRange{Int64}}, Tuple{JuMP.Containers._AxisLookup{Tuple{Int64, Int64}}}}
+const JUMP_SET_TYPE = JuMP.Containers.DenseAxisArray{
+    JuMP.VariableRef,
+    1,
+    Tuple{UnitRange{Int64}},
+    Tuple{JuMP.Containers._AxisLookup{Tuple{Int64, Int64}}},
+}
 function PSI.add_constraints!(
     container::PSI.OptimizationContainer,
     T::Type{<:EnergyAssetBalance},

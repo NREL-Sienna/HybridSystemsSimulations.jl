@@ -5,7 +5,6 @@ function PSI.get_default_time_series_names(
     ::Type{<:Union{PSI.FixedOutput, AbstractHybridFormulation}},
 )
     return Dict{Type{<:PSI.TimeSeriesParameter}, String}(
-        ActivePowerTimeSeriesParameter => "max_active_power",
         RenewablePowerTimeSeries => "RenewableDispatch__max_active_power",
         ElectricLoadTimeSeries => "PowerLoad__max_active_power",
     )
@@ -99,10 +98,6 @@ PSI.get_variable_binary(
 ) = true
 
 ############### Asset Variables, HybridSystem #####################
-# General Variables use Thermals
-PSY.get_active_power_limits(device::PSY.HybridSystem) =
-    PSY.get_active_power_limits(PSY.get_thermal_unit(device))
-
 PSI.get_default_on_variable(::PSY.HybridSystem) = ThermalStatus()
 
 # Upper Bound
@@ -111,31 +106,37 @@ PSI.get_variable_upper_bound(
     d::PSY.HybridSystem,
     ::AbstractHybridFormulation,
 ) = PSY.get_active_power_limits(PSY.get_thermal_unit(d)).max
+
 PSI.get_variable_upper_bound(
     ::RenewablePower,
     d::PSY.HybridSystem,
     ::AbstractHybridFormulation,
 ) = PSY.get_max_active_power(PSY.get_renewable_unit(d))
+
 PSI.get_variable_upper_bound(
     ::BatteryCharge,
     d::PSY.HybridSystem,
     ::AbstractHybridFormulation,
 ) = PSY.get_input_active_power_limits(PSY.get_storage(d)).max
+
 PSI.get_variable_upper_bound(
     ::BatteryDischarge,
     d::PSY.HybridSystem,
     ::AbstractHybridFormulation,
 ) = PSY.get_output_active_power_limits(PSY.get_storage(d)).max
+
 PSI.get_variable_upper_bound(
     ::PSI.EnergyVariable,
     d::PSY.HybridSystem,
     ::AbstractHybridFormulation,
 ) = PSY.get_state_of_charge_limits(PSY.get_storage(d)).max
+
 PSI.get_variable_upper_bound(
     ::ThermalStatus,
     d::PSY.HybridSystem,
     ::AbstractHybridFormulation,
 ) = nothing
+
 PSI.get_variable_upper_bound(
     ::BatteryStatus,
     d::PSY.HybridSystem,
@@ -148,31 +149,37 @@ PSI.get_variable_lower_bound(
     d::PSY.HybridSystem,
     ::AbstractHybridFormulation,
 ) = 0.0
+
 PSI.get_variable_lower_bound(
     ::RenewablePower,
     d::PSY.HybridSystem,
     ::AbstractHybridFormulation,
 ) = 0.0
+
 PSI.get_variable_lower_bound(
     ::BatteryCharge,
     d::PSY.HybridSystem,
     ::AbstractHybridFormulation,
 ) = 0.0
+
 PSI.get_variable_lower_bound(
     ::BatteryDischarge,
     d::PSY.HybridSystem,
     ::AbstractHybridFormulation,
 ) = 0.0
+
 PSI.get_variable_lower_bound(
     ::PSI.EnergyVariable,
     d::PSY.HybridSystem,
     ::AbstractHybridFormulation,
 ) = PSY.get_state_of_charge_limits(PSY.get_storage(d)).min
+
 PSI.get_variable_lower_bound(
     ::ThermalStatus,
     d::PSY.HybridSystem,
     ::AbstractHybridFormulation,
 ) = nothing
+
 PSI.get_variable_lower_bound(
     ::BatteryStatus,
     d::PSY.HybridSystem,
@@ -236,9 +243,10 @@ PSI.objective_function_multiplier(
     ::Union{BatteryCharge, BatteryDischarge},
     ::AbstractHybridFormulation,
 ) = PSI.OBJECTIVE_FUNCTION_POSITIVE
+
 PSI.proportional_cost(
     cost::PSY.OperationalCost,
-    S::Union{BatteryCharge, BatteryDischarge},
+    ::Union{BatteryCharge, BatteryDischarge},
     ::PSY.HybridSystem,
     U::AbstractHybridFormulation,
 ) = PSY.get_variable(cost).cost
@@ -358,6 +366,7 @@ function PSI.objective_function!(
         PSI.add_variable_cost!(container, ThermalPower(), _hybrids_with_thermal, W())
         PSI.add_proportional_cost!(container, ThermalStatus(), _hybrids_with_thermal, W())
     end
+    return
 end
 
 ###################################################################
@@ -370,18 +379,7 @@ end
 ######################## Parameters ###############################
 ###################################################################
 
-function add_parameters!(
-    container::PSI.OptimizationContainer,
-    param::Type{T},
-    devices::U,
-    model::PSI.DeviceModel{D, W},
-) where {
-    T <: Union{RenewablePowerTimeSeries, ElectricLoadTimeSeries},
-    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
-    W <: AbstractHybridFormulation,
-} where {D <: PSY.HybridSystem}
-    return PSI._add_time_series_parameters!(container, param, devices, model)
-end
+# Uses PSI calls
 
 ###################################################################
 ######################## Initial Conditions #######################

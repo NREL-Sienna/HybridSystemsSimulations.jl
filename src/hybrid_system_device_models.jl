@@ -279,6 +279,9 @@ function PSI.add_proportional_cost!(
 end
 
 ############### Thermal costs, HybridSystem #######################
+PSY.get_active_power_limits(device::PSY.HybridSystem) =
+    PSY.get_active_power_limits(PSY.get_thermal_unit(device))
+
 PSI.objective_function_multiplier(
     ::Union{ThermalPower, ThermalStatus},
     ::AbstractHybridFormulation,
@@ -538,6 +541,7 @@ function PSI.add_constraints!(
         ci_name = PSY.get_name(device)
         vars_pos = Set{JUMP_SET_TYPE}()
         vars_neg = Set{JUMP_SET_TYPE}()
+        load_set = Set()
 
         if !isnothing(PSY.get_thermal_unit(device))
             p_th = PSI.get_variable(container, ThermalPower(), D)
@@ -556,9 +560,9 @@ function PSI.add_constraints!(
         if !isnothing(PSY.get_electric_load(device))
             P = ElectricLoadTimeSeries
             param_container = PSI.get_parameter(container, P(), D)
-            param = PSI.get_parameter_column_refs(param_container, ci_name)
+            param = PSI.get_parameter_column_refs(param_container, ci_name).data
             multiplier = PSY.get_max_active_power(PSY.get_electric_load(device))
-            push!(vars_neg, param * multiplier)
+            push!(load_set, param * multiplier)
         end
         for t in time_steps
             total_power = -p_out[ci_name, t] + p_in[ci_name, t]
@@ -567,6 +571,9 @@ function PSI.add_constraints!(
             end
             for vn in vars_neg
                 JuMP.add_to_expression!(total_power, -vn[t])
+            end
+            for load in load_set
+                JuMP.add_to_expression!(total_power, -load[t])
             end
             con_bal[ci_name, t] =
                 JuMP.@constraint(PSI.get_jump_model(container), total_power == 0.0)
@@ -830,11 +837,11 @@ function PSI.add_constraints!(
     for device in devices
         ci_name = PSY.get_name(device)
         multiplier = PSY.get_max_active_power(device.renewable_unit)
+        param = PSI.get_parameter_column_refs(param_container, ci_name)
         for t in time_steps
-            param = PSI.get_parameter_column_refs(param_container, ci_name)[t]
             con_ub_re[ci_name, t] = JuMP.@constraint(
                 container.JuMPmodel,
-                p_re[ci_name, t] <= multiplier * param
+                p_re[ci_name, t] <= multiplier * param[t]
             )
         end
     end

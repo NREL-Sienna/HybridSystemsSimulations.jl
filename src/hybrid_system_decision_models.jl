@@ -66,7 +66,7 @@ end
 function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridEnergyOnly})
     container = PSI.get_optimization_container(decision_model)
     #settings = PSI.get_settings(container)
-    model = container.JuMPmodel
+    model = PSI.get_jump_model(container)
     s = PSI.get_system(decision_model)
     PSI.init_optimization_container!(container, CopperPlatePowerModel, s)
     PSI.init_model_store_params!(decision_model)
@@ -311,7 +311,7 @@ end
 function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridCooptimized})
     container = PSI.get_optimization_container(decision_model)
     #settings = PSI.get_settings(container)
-    model = container.JuMPmodel
+    model = PSI.get_jump_model(container)
     s = PSI.get_system(decision_model)
     PSI.init_optimization_container!(container, CopperPlatePowerModel, s)
     PSI.init_model_store_params!(decision_model)

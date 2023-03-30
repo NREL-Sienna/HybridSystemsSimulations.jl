@@ -443,7 +443,7 @@ function PSI.add_constraints!(
         max_limit = PSI.get_variable_upper_bound(PSI.ActivePowerOutVariable(), device, W())
         @assert max_limit !== nothing ci_name
         con_ub[ci_name, t] = JuMP.@constraint(
-            container.JuMPmodel,
+            PSI.get_jump_model(container),
             p_out[ci_name, t] <= max_limit * varon[ci_name, t]
         )
     end
@@ -471,7 +471,7 @@ function PSI.add_constraints!(
         max_limit = PSI.get_variable_upper_bound(PSI.ActivePowerInVariable(), device, W())
         @assert max_limit !== nothing ci_name
         con_ub[ci_name, t] = JuMP.@constraint(
-            container.JuMPmodel,
+            PSI.get_jump_model(container),
             p_in[ci_name, t] <= max_limit * (1.0 - varon[ci_name, t])
         )
     end
@@ -479,7 +479,7 @@ function PSI.add_constraints!(
 end
 
 ############ Asset Balance Constraints, HybridSystem ###############
-
+const JUMP_SET_TYPE = JuMP.Containers.DenseAxisArray{JuMP.VariableRef, 1, Tuple{UnitRange{Int64}}, Tuple{JuMP.Containers._AxisLookup{Tuple{Int64, Int64}}}}
 function PSI.add_constraints!(
     container::PSI.OptimizationContainer,
     T::Type{<:EnergyAssetBalance},
@@ -498,8 +498,9 @@ function PSI.add_constraints!(
 
     for device in devices
         ci_name = PSY.get_name(device)
-        vars_pos = Set()
-        vars_neg = Set()
+        vars_pos = Set{JUMP_SET_TYPE}()
+        vars_neg = Set{JUMP_SET_TYPE}()
+
         if !isnothing(PSY.get_thermal_unit(device))
             p_th = PSI.get_variable(container, ThermalPower(), D)
             push!(vars_pos, p_th[ci_name, :])
@@ -530,7 +531,8 @@ function PSI.add_constraints!(
             for vn in vars_neg
                 JuMP.add_to_expression!(total_power, -vn[t])
             end
-            con_bal[ci_name, t] = JuMP.@constraint(container.JuMPmodel, total_power == 0.0)
+            con_bal[ci_name, t] =
+                JuMP.@constraint(PSI.get_jump_model(container), total_power == 0.0)
         end
     end
     return
@@ -558,7 +560,7 @@ function PSI.add_constraints!(
         ci_name = PSY.get_name(device)
         max_limit = PSY.get_active_power_limits(PSY.get_thermal_unit(device)).max
         con_ub[ci_name, t] = JuMP.@constraint(
-            container.JuMPmodel,
+            PSI.get_jump_model(container),
             p_th[ci_name, t] <= max_limit * varon[ci_name, t]
         )
     end
@@ -585,7 +587,7 @@ function PSI.add_constraints!(
         ci_name = PSY.get_name(device)
         min_limit = PSY.get_active_power_limits(PSY.get_thermal_unit(device)).min
         con_lb[ci_name, t] = JuMP.@constraint(
-            container.JuMPmodel,
+            PSI.get_jump_model(container),
             min_limit * varon[ci_name, t] <= p_th[ci_name, t]
         )
     end
@@ -615,7 +617,7 @@ function PSI.add_constraints!(
         ci_name = PSY.get_name(device)
         max_limit = PSY.get_input_active_power_limits(PSY.get_storage(device)).max
         con_ub_ch[ci_name, t] = JuMP.@constraint(
-            container.JuMPmodel,
+            PSI.get_jump_model(container),
             p_ch[ci_name, t] <= (1.0 - status_st[ci_name, t]) * max_limit
         )
     end
@@ -643,7 +645,7 @@ function PSI.add_constraints!(
         ci_name = PSY.get_name(device)
         max_limit = PSY.get_output_active_power_limits(PSY.get_storage(device)).max
         con_ub_ds[ci_name, t] = JuMP.@constraint(
-            container.JuMPmodel,
+            PSI.get_jump_model(container),
             p_ds[ci_name, t] <= status_st[ci_name, t] * max_limit
         )
     end
@@ -676,7 +678,7 @@ function PSI.add_constraints!(
         storage = PSY.get_storage(device)
         efficiency = PSY.get_efficiency(storage)
         con_soc[ci_name, 1] = JuMP.@constraint(
-            container.JuMPmodel,
+            PSI.get_jump_model(container),
             energy_var[ci_name, 1] ==
             PSI.get_value(ic) +
             fraction_of_hour * (
@@ -687,7 +689,7 @@ function PSI.add_constraints!(
 
         for t in time_steps[2:end]
             con_soc[ci_name, t] = JuMP.@constraint(
-                container.JuMPmodel,
+                PSI.get_jump_model(container),
                 energy_var[ci_name, t] ==
                 energy_var[ci_name, t - 1] +
                 fraction_of_hour * (
@@ -725,7 +727,7 @@ function PSI.add_constraints!(
             efficiency = PSY.get_efficiency(storage)
             E_max = PSY.get_state_of_charge_limits(storage).max
             con_cycling_ch[ci_name] = JuMP.@constraint(
-                container.JuMPmodel,
+                PSI.get_jump_model(container),
                 efficiency.in * fraction_of_hour * sum(charge_var[ci_name, :]) <=
                 cycles_in_horizon * E_max
             )
@@ -759,7 +761,7 @@ function PSI.add_constraints!(
             efficiency = PSY.get_efficiency(storage)
             E_max = PSY.get_state_of_charge_limits(storage).max
             con_cycling_ds[ci_name] = JuMP.@constraint(
-                container.JuMPmodel,
+                PSI.get_jump_model(container),
                 (1.0 / efficiency.out) *
                 fraction_of_hour *
                 sum(discharge_var[ci_name, :]) <= cycles_in_horizon * E_max
@@ -793,7 +795,7 @@ function PSI.add_constraints!(
     for device in devices, t in time_steps
         ci_name = PSY.get_name(device)
         con_ub_re[ci_name, t] = JuMP.@constraint(
-            container.JuMPmodel,
+            PSI.get_jump_model(container),
             p_re[ci_name, t] <= multiplier[ci_name, t] * parameter_values[ci_name, t]
         )
     end

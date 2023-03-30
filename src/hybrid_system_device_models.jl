@@ -364,62 +364,7 @@ end
 ######################### Variables ###############################
 ###################################################################
 
-############### Asset Variables, HybridSystem #####################
-
-function _add_variable!(
-    container::PSI.OptimizationContainer,
-    ::T,
-    devices::U,
-    formulation::AbstractHybridFormulation,
-) where {
-    T <: Union{HybridAssetVariableType, PSI.EnergyVariable},
-    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
-} where {D <: PSY.HybridSystem}
-    @assert !isempty(devices)
-    time_steps = get_time_steps(container)
-    settings = get_settings(container)
-    binary = get_variable_binary(T(), D, formulation)
-
-    for d in devices
-        for t in time_steps
-            name = PSY.get_name(d)
-            variable[(name, t)] = JuMP.@variable(
-                get_jump_model(container),
-                base_name = "$(T)_$(D)_{$(name), $(t)}",
-                binary = binary
-            )
-
-            ub = get_variable_upper_bound(T(), d, formulation)
-            ub !== nothing && JuMP.set_upper_bound(variable[name, subcomp_key, t], ub)
-
-            lb = get_variable_lower_bound(T(), d, formulation)
-            lb !== nothing &&
-                !binary &&
-                JuMP.set_lower_bound(variable[name, subcomp_key, t], lb)
-
-            if get_warm_start(settings)
-                init = get_variable_warm_start_value(T(), d, formulation)
-                init !== nothing &&
-                    JuMP.set_start_value(variable[name, subcomp_key, t], init)
-            end
-        end
-    end
-
-    return
-end
-
-function add_variables!(
-    container::PSI.OptimizationContainer,
-    ::Type{T},
-    devices::Union{Vector{U}, IS.FlattenIteratorWrapper{U}},
-    formulation::AbstractHybridFormulation,
-) where {
-    T <: Union{HybridAssetVariableType, PSI.EnergyVariable},
-    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
-} where {D <: PSY.HybridSystem}
-    _add_variable!(container, T(), devices, formulation)
-    return
-end
+# Uses PSI calls
 
 ###################################################################
 ######################## Parameters ###############################

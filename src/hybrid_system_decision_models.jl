@@ -931,6 +931,6 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridCooptimized
 
     # Fix Thermal Variable
     JuMP.fix.(on_th, 0, force=true)
-    PSI.serialize_metadata!(container, pwd())
+    PSI.serialize_metadata!(container, mktempdir(cleanup=true))
     return
 end

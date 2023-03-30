@@ -68,21 +68,25 @@ PSI.get_variable_binary(
     ::Type{PSY.HybridSystem},
     ::AbstractHybridFormulation,
 ) = false
+
 PSI.get_variable_upper_bound(
     ::PSI.ActivePowerOutVariable,
     d::PSY.HybridSystem,
     ::AbstractHybridFormulation,
 ) = PSY.get_output_active_power_limits(d).max
+
 PSI.get_variable_lower_bound(
     ::PSI.ActivePowerOutVariable,
     d::PSY.HybridSystem,
     ::AbstractHybridFormulation,
 ) = PSY.get_output_active_power_limits(d).min
+
 PSI.get_variable_multiplier(
     ::PSI.ActivePowerOutVariable,
     ::Type{<:PSY.HybridSystem},
     ::AbstractHybridFormulation,
 ) = 1.0
+
 PSI.get_min_max_limits(
     device::PSY.HybridSystem,
     ::Type{PSI.OutputActivePowerVariableLimitsConstraint},

@@ -553,11 +553,10 @@ function PSI.add_constraints!(
         if !isnothing(PSY.get_electric_load(device))
             P = ElectricLoadTimeSeries
             param_container = PSI.get_parameter(container, P(), D)
-            parameter_values = PSI.get_parameter_values(param_container)
-            multiplier = PSI.get_parameter_multiplier_array(container, P(), D)
-            push!(vars_neg, parameter_values[ci_name, :] .* multiplier[ci_name, :])
+            param = PSI.get_parameter_column_refs(param_container, ci_name)
+            multiplier = PSY.get_max_active_power(PSY.get_electric_load(device))
+            push!(vars_neg, param * multiplier)
         end
-
         for t in time_steps
             total_power = -p_out[ci_name, t] + p_in[ci_name, t]
             for vp in vars_pos
@@ -825,13 +824,15 @@ function PSI.add_constraints!(
     con_ub_re =
         PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="ub")
     param_container = PSI.get_parameter(container, P(), D)
-    parameter_values = PSI.get_parameter_values(param_container)
-    multiplier = PSI.get_parameter_multiplier_array(container, P(), D)
-    for device in devices, t in time_steps
+    for device in devices
         ci_name = PSY.get_name(device)
-        con_ub_re[ci_name, t] = JuMP.@constraint(
-            PSI.get_jump_model(container),
-            p_re[ci_name, t] <= multiplier[ci_name, t] * parameter_values[ci_name, t]
-        )
+        multiplier = PSY.get_max_active_power(device.renewable_unit)
+        for t in time_steps
+            param = PSI.get_parameter_column_refs(param_container, ci_name)[t]
+            con_ub_re[ci_name, t] = JuMP.@constraint(
+                container.JuMPmodel,
+                p_re[ci_name, t] <= multiplier * param
+            )
+        end
     end
 end

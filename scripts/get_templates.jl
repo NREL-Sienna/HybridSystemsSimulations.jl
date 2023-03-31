@@ -6,7 +6,8 @@
 
 function set_uc_models!(template_uc)
     #set_device_model!(template_uc, ThermalMultiStart, ThermalStandardUnitCommitment)
-    set_device_model!(template_uc, ThermalStandard, ThermalStandardUnitCommitment)
+    #set_device_model!(template_uc, ThermalStandard, ThermalStandardUnitCommitment)
+    set_device_model!(template_uc, ThermalStandard, ThermalBasicUnitCommitment)
     set_device_model!(template_uc, RenewableDispatch, RenewableFullDispatch)
     set_device_model!(template_uc, RenewableFix, FixedOutput)
     set_device_model!(template_uc, PowerLoad, StaticPowerLoad)

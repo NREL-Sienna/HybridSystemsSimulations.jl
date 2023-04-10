@@ -5,7 +5,6 @@ function PSI.get_default_time_series_names(
     ::Type{<:Union{PSI.FixedOutput, AbstractHybridFormulation}},
 )
     return Dict{Type{<:PSI.TimeSeriesParameter}, String}(
-        ActivePowerTimeSeriesParameter => "max_active_power",
         RenewablePowerTimeSeries => "RenewableDispatch__max_active_power",
         ElectricLoadTimeSeries => "PowerLoad__max_active_power",
     )
@@ -69,21 +68,25 @@ PSI.get_variable_binary(
     ::Type{PSY.HybridSystem},
     ::AbstractHybridFormulation,
 ) = false
+
 PSI.get_variable_upper_bound(
     ::PSI.ActivePowerOutVariable,
     d::PSY.HybridSystem,
     ::AbstractHybridFormulation,
 ) = PSY.get_output_active_power_limits(d).max
+
 PSI.get_variable_lower_bound(
     ::PSI.ActivePowerOutVariable,
     d::PSY.HybridSystem,
     ::AbstractHybridFormulation,
 ) = PSY.get_output_active_power_limits(d).min
+
 PSI.get_variable_multiplier(
     ::PSI.ActivePowerOutVariable,
     ::Type{<:PSY.HybridSystem},
     ::AbstractHybridFormulation,
 ) = 1.0
+
 PSI.get_min_max_limits(
     device::PSY.HybridSystem,
     ::Type{PSI.OutputActivePowerVariableLimitsConstraint},
@@ -99,10 +102,6 @@ PSI.get_variable_binary(
 ) = true
 
 ############### Asset Variables, HybridSystem #####################
-# General Variables use Thermals
-PSY.get_active_power_limits(device::PSY.HybridSystem) =
-    PSY.get_active_power_limits(PSY.get_thermal_unit(device))
-
 PSI.get_default_on_variable(::PSY.HybridSystem) = ThermalStatus()
 
 # Upper Bound
@@ -111,31 +110,37 @@ PSI.get_variable_upper_bound(
     d::PSY.HybridSystem,
     ::AbstractHybridFormulation,
 ) = PSY.get_active_power_limits(PSY.get_thermal_unit(d)).max
+
 PSI.get_variable_upper_bound(
     ::RenewablePower,
     d::PSY.HybridSystem,
     ::AbstractHybridFormulation,
 ) = PSY.get_max_active_power(PSY.get_renewable_unit(d))
+
 PSI.get_variable_upper_bound(
     ::BatteryCharge,
     d::PSY.HybridSystem,
     ::AbstractHybridFormulation,
 ) = PSY.get_input_active_power_limits(PSY.get_storage(d)).max
+
 PSI.get_variable_upper_bound(
     ::BatteryDischarge,
     d::PSY.HybridSystem,
     ::AbstractHybridFormulation,
 ) = PSY.get_output_active_power_limits(PSY.get_storage(d)).max
+
 PSI.get_variable_upper_bound(
     ::PSI.EnergyVariable,
     d::PSY.HybridSystem,
     ::AbstractHybridFormulation,
 ) = PSY.get_state_of_charge_limits(PSY.get_storage(d)).max
+
 PSI.get_variable_upper_bound(
     ::ThermalStatus,
     d::PSY.HybridSystem,
     ::AbstractHybridFormulation,
 ) = nothing
+
 PSI.get_variable_upper_bound(
     ::BatteryStatus,
     d::PSY.HybridSystem,
@@ -148,31 +153,37 @@ PSI.get_variable_lower_bound(
     d::PSY.HybridSystem,
     ::AbstractHybridFormulation,
 ) = 0.0
+
 PSI.get_variable_lower_bound(
     ::RenewablePower,
     d::PSY.HybridSystem,
     ::AbstractHybridFormulation,
 ) = 0.0
+
 PSI.get_variable_lower_bound(
     ::BatteryCharge,
     d::PSY.HybridSystem,
     ::AbstractHybridFormulation,
 ) = 0.0
+
 PSI.get_variable_lower_bound(
     ::BatteryDischarge,
     d::PSY.HybridSystem,
     ::AbstractHybridFormulation,
 ) = 0.0
+
 PSI.get_variable_lower_bound(
     ::PSI.EnergyVariable,
     d::PSY.HybridSystem,
     ::AbstractHybridFormulation,
 ) = PSY.get_state_of_charge_limits(PSY.get_storage(d)).min
+
 PSI.get_variable_lower_bound(
     ::ThermalStatus,
     d::PSY.HybridSystem,
     ::AbstractHybridFormulation,
 ) = nothing
+
 PSI.get_variable_lower_bound(
     ::BatteryStatus,
     d::PSY.HybridSystem,
@@ -236,9 +247,10 @@ PSI.objective_function_multiplier(
     ::Union{BatteryCharge, BatteryDischarge},
     ::AbstractHybridFormulation,
 ) = PSI.OBJECTIVE_FUNCTION_POSITIVE
+
 PSI.proportional_cost(
     cost::PSY.OperationalCost,
-    S::Union{BatteryCharge, BatteryDischarge},
+    ::Union{BatteryCharge, BatteryDischarge},
     ::PSY.HybridSystem,
     U::AbstractHybridFormulation,
 ) = PSY.get_variable(cost).cost
@@ -267,23 +279,30 @@ function PSI.add_proportional_cost!(
 end
 
 ############### Thermal costs, HybridSystem #######################
+PSY.get_active_power_limits(device::PSY.HybridSystem) =
+    PSY.get_active_power_limits(PSY.get_thermal_unit(device))
+
 PSI.objective_function_multiplier(
     ::Union{ThermalPower, ThermalStatus},
     ::AbstractHybridFormulation,
 ) = PSI.OBJECTIVE_FUNCTION_POSITIVE
+
 PSI.proportional_cost(
     cost::PSY.OperationalCost,
     ::ThermalStatus,
     ::PSY.HybridSystem,
     U::AbstractHybridFormulation,
 ) = PSY.get_fixed(cost)
+
 PSI.variable_cost(
     cost::PSY.OperationalCost,
     ::ThermalPower,
     ::PSY.HybridSystem,
     U::AbstractHybridFormulation,
 ) = PSY.get_variable(cost)
+
 PSI.uses_compact_power(::PSY.HybridSystem, ::AbstractHybridFormulation) = false
+
 PSI.sos_status(::PSY.HybridSystem, ::AbstractHybridFormulation) =
     PSI.SOSStatusVariable.VARIABLE
 
@@ -328,13 +347,40 @@ function PSI.add_variable_cost!(
     return
 end
 
+############### Renewable costs, HybridSystem #######################
+
+PSI.objective_function_multiplier(::RenewablePower, ::AbstractHybridFormulation) =
+    PSI.OBJECTIVE_FUNCTION_NEGATIVE
+PSI.variable_cost(
+    cost::PSY.OperationalCost,
+    ::RenewablePower,
+    ::PSY.HybridSystem,
+    U::AbstractHybridFormulation,
+) = PSY.get_variable(cost)
+
+function PSI.add_variable_cost!(
+    container::PSI.OptimizationContainer,
+    ::T,
+    devices::U,
+    ::W,
+) where {
+    T <: RenewablePower,
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
+    for d in devices
+        op_cost_data = PSY.get_operation_cost(PSY.get_renewable_unit(d))
+        PSI._add_variable_cost_to_objective!(container, T(), d, op_cost_data, W())
+    end
+    return
+end
 ############### Objective Function, HybridSystem #######################
 
 function PSI.objective_function!(
     container::PSI.OptimizationContainer,
     devices::U,
-    model::PSI.DeviceModel{D, W},
-    network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
+    ::PSI.DeviceModel{D, W},
+    ::PSI.NetworkModel{<:PM.AbstractPowerModel},
 ) where {
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     W <: AbstractHybridFormulation,
@@ -342,6 +388,7 @@ function PSI.objective_function!(
     # Filter Devices
     _hybrids_with_thermal = [d for d in devices if PSY.get_thermal_unit(d) !== nothing]
     _hybrids_with_storage = [d for d in devices if PSY.get_storage(d) !== nothing]
+    _hybrids_with_renewable = [d for d in devices if PSY.get_renewable_unit(d) !== nothing]
 
     # Add Storage Cost
     if !isempty(_hybrids_with_storage)
@@ -358,85 +405,25 @@ function PSI.objective_function!(
         PSI.add_variable_cost!(container, ThermalPower(), _hybrids_with_thermal, W())
         PSI.add_proportional_cost!(container, ThermalStatus(), _hybrids_with_thermal, W())
     end
+
+    # Add Renewable Cost
+    if !isempty(_hybrids_with_renewable)
+        PSI.add_variable_cost!(container, RenewablePower(), _hybrids_with_renewable, W())
+    end
+    return
 end
 
 ###################################################################
 ######################### Variables ###############################
 ###################################################################
 
-############### Asset Variables, HybridSystem #####################
-
-function _add_variable!(
-    container::PSI.OptimizationContainer,
-    ::T,
-    devices::U,
-    formulation::AbstractHybridFormulation,
-) where {
-    T <: Union{HybridAssetVariableType, PSI.EnergyVariable},
-    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
-} where {D <: PSY.HybridSystem}
-    @assert !isempty(devices)
-    time_steps = get_time_steps(container)
-    settings = get_settings(container)
-    binary = get_variable_binary(T(), D, formulation)
-
-    for d in devices
-        for t in time_steps
-            name = PSY.get_name(d)
-            variable[(name, t)] = JuMP.@variable(
-                get_jump_model(container),
-                base_name = "$(T)_$(D)_{$(name), $(t)}",
-                binary = binary
-            )
-
-            ub = get_variable_upper_bound(T(), d, formulation)
-            ub !== nothing && JuMP.set_upper_bound(variable[name, subcomp_key, t], ub)
-
-            lb = get_variable_lower_bound(T(), d, formulation)
-            lb !== nothing &&
-                !binary &&
-                JuMP.set_lower_bound(variable[name, subcomp_key, t], lb)
-
-            if get_warm_start(settings)
-                init = get_variable_warm_start_value(T(), d, formulation)
-                init !== nothing &&
-                    JuMP.set_start_value(variable[name, subcomp_key, t], init)
-            end
-        end
-    end
-
-    return
-end
-
-function add_variables!(
-    container::PSI.OptimizationContainer,
-    ::Type{T},
-    devices::Union{Vector{U}, IS.FlattenIteratorWrapper{U}},
-    formulation::AbstractHybridFormulation,
-) where {
-    T <: Union{HybridAssetVariableType, PSI.EnergyVariable},
-    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
-} where {D <: PSY.HybridSystem}
-    _add_variable!(container, T(), devices, formulation)
-    return
-end
+# Uses PSI calls
 
 ###################################################################
 ######################## Parameters ###############################
 ###################################################################
 
-function add_parameters!(
-    container::PSI.OptimizationContainer,
-    param::Type{T},
-    devices::U,
-    model::PSI.DeviceModel{D, W},
-) where {
-    T <: Union{RenewablePowerTimeSeries, ElectricLoadTimeSeries},
-    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
-    W <: AbstractHybridFormulation,
-} where {D <: PSY.HybridSystem}
-    return PSI._add_time_series_parameters!(container, param, devices, model)
-end
+# Uses PSI calls
 
 ###################################################################
 ######################## Initial Conditions #######################
@@ -492,7 +479,7 @@ function PSI.add_constraints!(
         max_limit = PSI.get_variable_upper_bound(PSI.ActivePowerOutVariable(), device, W())
         @assert max_limit !== nothing ci_name
         con_ub[ci_name, t] = JuMP.@constraint(
-            container.JuMPmodel,
+            PSI.get_jump_model(container),
             p_out[ci_name, t] <= max_limit * varon[ci_name, t]
         )
     end
@@ -520,7 +507,7 @@ function PSI.add_constraints!(
         max_limit = PSI.get_variable_upper_bound(PSI.ActivePowerInVariable(), device, W())
         @assert max_limit !== nothing ci_name
         con_ub[ci_name, t] = JuMP.@constraint(
-            container.JuMPmodel,
+            PSI.get_jump_model(container),
             p_in[ci_name, t] <= max_limit * (1.0 - varon[ci_name, t])
         )
     end
@@ -528,7 +515,12 @@ function PSI.add_constraints!(
 end
 
 ############ Asset Balance Constraints, HybridSystem ###############
-
+const JUMP_SET_TYPE = JuMP.Containers.DenseAxisArray{
+    JuMP.VariableRef,
+    1,
+    Tuple{UnitRange{Int64}},
+    Tuple{JuMP.Containers._AxisLookup{Tuple{Int64, Int64}}},
+}
 function PSI.add_constraints!(
     container::PSI.OptimizationContainer,
     T::Type{<:EnergyAssetBalance},
@@ -547,8 +539,10 @@ function PSI.add_constraints!(
 
     for device in devices
         ci_name = PSY.get_name(device)
-        vars_pos = Set()
-        vars_neg = Set()
+        vars_pos = Set{JUMP_SET_TYPE}()
+        vars_neg = Set{JUMP_SET_TYPE}()
+        load_set = Set()
+
         if !isnothing(PSY.get_thermal_unit(device))
             p_th = PSI.get_variable(container, ThermalPower(), D)
             push!(vars_pos, p_th[ci_name, :])
@@ -566,11 +560,10 @@ function PSI.add_constraints!(
         if !isnothing(PSY.get_electric_load(device))
             P = ElectricLoadTimeSeries
             param_container = PSI.get_parameter(container, P(), D)
-            parameter_values = PSI.get_parameter_values(param_container)
-            multiplier = PSI.get_parameter_multiplier_array(container, P(), D)
-            push!(vars_neg, parameter_values[ci_name, :] .* multiplier[ci_name, :])
+            param = PSI.get_parameter_column_refs(param_container, ci_name).data
+            multiplier = PSY.get_max_active_power(PSY.get_electric_load(device))
+            push!(load_set, param * multiplier)
         end
-
         for t in time_steps
             total_power = -p_out[ci_name, t] + p_in[ci_name, t]
             for vp in vars_pos
@@ -579,7 +572,11 @@ function PSI.add_constraints!(
             for vn in vars_neg
                 JuMP.add_to_expression!(total_power, -vn[t])
             end
-            con_bal[ci_name, t] = JuMP.@constraint(container.JuMPmodel, total_power == 0.0)
+            for load in load_set
+                JuMP.add_to_expression!(total_power, -load[t])
+            end
+            con_bal[ci_name, t] =
+                JuMP.@constraint(PSI.get_jump_model(container), total_power == 0.0)
         end
     end
     return
@@ -607,7 +604,7 @@ function PSI.add_constraints!(
         ci_name = PSY.get_name(device)
         max_limit = PSY.get_active_power_limits(PSY.get_thermal_unit(device)).max
         con_ub[ci_name, t] = JuMP.@constraint(
-            container.JuMPmodel,
+            PSI.get_jump_model(container),
             p_th[ci_name, t] <= max_limit * varon[ci_name, t]
         )
     end
@@ -634,7 +631,7 @@ function PSI.add_constraints!(
         ci_name = PSY.get_name(device)
         min_limit = PSY.get_active_power_limits(PSY.get_thermal_unit(device)).min
         con_lb[ci_name, t] = JuMP.@constraint(
-            container.JuMPmodel,
+            PSI.get_jump_model(container),
             min_limit * varon[ci_name, t] <= p_th[ci_name, t]
         )
     end
@@ -664,7 +661,7 @@ function PSI.add_constraints!(
         ci_name = PSY.get_name(device)
         max_limit = PSY.get_input_active_power_limits(PSY.get_storage(device)).max
         con_ub_ch[ci_name, t] = JuMP.@constraint(
-            container.JuMPmodel,
+            PSI.get_jump_model(container),
             p_ch[ci_name, t] <= (1.0 - status_st[ci_name, t]) * max_limit
         )
     end
@@ -692,7 +689,7 @@ function PSI.add_constraints!(
         ci_name = PSY.get_name(device)
         max_limit = PSY.get_output_active_power_limits(PSY.get_storage(device)).max
         con_ub_ds[ci_name, t] = JuMP.@constraint(
-            container.JuMPmodel,
+            PSI.get_jump_model(container),
             p_ds[ci_name, t] <= status_st[ci_name, t] * max_limit
         )
     end
@@ -725,7 +722,7 @@ function PSI.add_constraints!(
         storage = PSY.get_storage(device)
         efficiency = PSY.get_efficiency(storage)
         con_soc[ci_name, 1] = JuMP.@constraint(
-            container.JuMPmodel,
+            PSI.get_jump_model(container),
             energy_var[ci_name, 1] ==
             PSI.get_value(ic) +
             fraction_of_hour * (
@@ -736,7 +733,7 @@ function PSI.add_constraints!(
 
         for t in time_steps[2:end]
             con_soc[ci_name, t] = JuMP.@constraint(
-                container.JuMPmodel,
+                PSI.get_jump_model(container),
                 energy_var[ci_name, t] ==
                 energy_var[ci_name, t - 1] +
                 fraction_of_hour * (
@@ -774,7 +771,7 @@ function PSI.add_constraints!(
             efficiency = PSY.get_efficiency(storage)
             E_max = PSY.get_state_of_charge_limits(storage).max
             con_cycling_ch[ci_name] = JuMP.@constraint(
-                container.JuMPmodel,
+                PSI.get_jump_model(container),
                 efficiency.in * fraction_of_hour * sum(charge_var[ci_name, :]) <=
                 cycles_in_horizon * E_max
             )
@@ -808,7 +805,7 @@ function PSI.add_constraints!(
             efficiency = PSY.get_efficiency(storage)
             E_max = PSY.get_state_of_charge_limits(storage).max
             con_cycling_ds[ci_name] = JuMP.@constraint(
-                container.JuMPmodel,
+                PSI.get_jump_model(container),
                 (1.0 / efficiency.out) *
                 fraction_of_hour *
                 sum(discharge_var[ci_name, :]) <= cycles_in_horizon * E_max
@@ -837,13 +834,15 @@ function PSI.add_constraints!(
     con_ub_re =
         PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="ub")
     param_container = PSI.get_parameter(container, P(), D)
-    parameter_values = PSI.get_parameter_values(param_container)
-    multiplier = PSI.get_parameter_multiplier_array(container, P(), D)
-    for device in devices, t in time_steps
+    for device in devices
         ci_name = PSY.get_name(device)
-        con_ub_re[ci_name, t] = JuMP.@constraint(
-            container.JuMPmodel,
-            p_re[ci_name, t] <= multiplier[ci_name, t] * parameter_values[ci_name, t]
-        )
+        multiplier = PSY.get_max_active_power(device.renewable_unit)
+        param = PSI.get_parameter_column_refs(param_container, ci_name)
+        for t in time_steps
+            con_ub_re[ci_name, t] = JuMP.@constraint(
+                container.JuMPmodel,
+                p_re[ci_name, t] <= multiplier * param[t]
+            )
+        end
     end
 end

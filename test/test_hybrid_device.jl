@@ -29,7 +29,7 @@
         store_variable_names=true,
     )
 
-    build_out = PSI.build!(m, output_dir=pwd())
+    build_out = PSI.build!(m, output_dir=mktempdir(cleanup=true))
     @test build_out == PSI.BuildStatus.BUILT
     solve_out = PSI.solve!(m)
     @test solve_out == PSI.RunStatus.SUCCESSFUL

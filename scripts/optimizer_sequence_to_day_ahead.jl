@@ -79,8 +79,10 @@ decision_optimizer = DecisionModel(
     optimizer=Xpress.Optimizer,
     calculate_conflict=true,
     store_variable_names=true,
+
 )
 
+#build!(decision_optimizer; output_dir = mktempdir(cleanup=true))
 
 mipgap = 0.01
 num_steps = 3
@@ -151,4 +153,4 @@ sim = Simulation(
 
 build!(sim)
 
-execute!(sim_optimizer; enable_progress_bar=true)
+execute!(sim; enable_progress_bar=true)

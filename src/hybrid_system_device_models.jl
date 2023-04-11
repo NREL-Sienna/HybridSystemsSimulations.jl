@@ -240,7 +240,11 @@ PSI.initial_condition_variable(
 
 ################### Parameters ############################
 
-PSI.get_parameter_multiplier(::PSI.FixValueParameter, ::PSY.HybridSystem, ::HybridEnergyOnlyFixedDA) = 1.0
+PSI.get_parameter_multiplier(
+    ::PSI.FixValueParameter,
+    ::PSY.HybridSystem,
+    ::HybridEnergyOnlyFixedDA,
+) = 1.0
 
 ###################################################################
 ################### Objective Function ############################

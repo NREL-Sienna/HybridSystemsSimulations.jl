@@ -80,7 +80,7 @@ decision_optimizer = DecisionModel(
     store_variable_names=true,
 )
 
-build!(decision_optimizer; output_dir=mktempdir(cleanup=true))
+build!(decision_optimizer; output_dir=pwd())
 solve!(decision_optimizer)
 
 mipgap = 0.01

@@ -56,6 +56,108 @@ PSI.get_variable_binary(
     ::MerchantModelEnergyOnly,
 ) = false
 
+PSI.get_variable_lower_bound(
+    ::EnergyDABidOut,
+    d::PSY.HybridSystem,
+    ::MerchantModelEnergyOnly,
+) = 0.0
+PSI.get_variable_upper_bound(
+    ::EnergyDABidOut,
+    d::PSY.HybridSystem,
+    ::MerchantModelEnergyOnly,
+) = PSY.get_output_active_power_limits(d).max
+
+PSI.get_variable_lower_bound(
+    ::EnergyDABidIn,
+    d::PSY.HybridSystem,
+    ::MerchantModelEnergyOnly,
+) = 0.0
+PSI.get_variable_upper_bound(
+    ::EnergyDABidIn,
+    d::PSY.HybridSystem,
+    ::MerchantModelEnergyOnly,
+) = PSY.get_output_active_power_limits(d).max
+
+PSI.get_variable_lower_bound(
+    ::EnergyRTBidOut,
+    d::PSY.HybridSystem,
+    ::MerchantModelEnergyOnly,
+) = 0.0
+PSI.get_variable_upper_bound(
+    ::EnergyRTBidOut,
+    d::PSY.HybridSystem,
+    ::MerchantModelEnergyOnly,
+) = PSY.get_output_active_power_limits(d).max
+
+PSI.get_variable_lower_bound(
+    ::EnergyRTBidIn,
+    d::PSY.HybridSystem,
+    ::MerchantModelEnergyOnly,
+) = 0.0
+PSI.get_variable_upper_bound(
+    ::EnergyRTBidIn,
+    d::PSY.HybridSystem,
+    ::MerchantModelEnergyOnly,
+) = PSY.get_output_active_power_limits(d).max
+
+function PSI.add_variables!(
+    container::PSI.OptimizationContainer,
+    ::Type{T},
+    devices::Vector{PSY.HybridSystem},
+    formulation::MerchantModelEnergyOnly,
+) where {T <: Union{EnergyDABidOut, EnergyDABidIn}}
+    @assert !isempty(devices)
+    time_steps = PSY.get_ext(first(devices))["T_da"]
+    variable = PSI.add_variable_container!(
+        container,
+        T(),
+        PSY.HybridSystem,
+        [PSY.get_name(d) for d in devices],
+        time_steps,
+    )
+
+    for t in time_steps, d in devices
+        name = PSY.get_name(d)
+        variable[name, t] = JuMP.@variable(
+            PSI.get_jump_model(container),
+            base_name = "$(T)_HybridSystem_{$(name), $(t)}",
+        )
+        ub = PSI.get_variable_upper_bound(T(), d, formulation)
+        ub !== nothing && JuMP.set_upper_bound(variable[name, t], ub)
+
+        lb = PSI.get_variable_lower_bound(T(), d, formulation)
+        lb !== nothing && JuMP.set_lower_bound(variable[name, t], lb)
+    end
+    return
+end
+
+function PSI.add_variables!(
+    container::PSI.OptimizationContainer,
+    ::Type{T},
+    devices::Vector{PSY.HybridSystem},
+    formulation::MerchantModelEnergyOnly,
+) where {T <: PSI.OnVariable}
+    @assert !isempty(devices)
+    time_steps = PSY.get_ext(first(devices))["T_da"]
+    variable = PSI.add_variable_container!(
+        container,
+        T(),
+        PSY.HybridSystem,
+        [PSY.get_name(d) for d in devices],
+        time_steps,
+    )
+
+    for t in time_steps, d in devices
+        name = PSY.get_name(d)
+        variable[name, t] = JuMP.@variable(
+            PSI.get_jump_model(container),
+            base_name = "$(T)_HybridSystem_{$(name), $(t)}",
+            binary = true
+        )
+    end
+    return
+end
+
 function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridEnergyCase})
     container = PSI.get_optimization_container(decision_model)
     model = container.JuMPmodel
@@ -80,6 +182,7 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridEnergyCase}
     ###############################
 
     h = PSY.get_component(PSY.HybridSystem, sys, "317_Hybrid")
+    PSY.get_ext(h)["T_da"] = T_da
     h_names = [PSY.get_name(h)]
     P_max_pcc = PSY.get_output_active_power_limits(h).max
     VOM = h.storage.operation_cost.variable.cost
@@ -139,7 +242,11 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridEnergyCase}
     λ_rt = ext["λ_rt_df"][!, Bus_name] * 100.0 # Multiply by 100 to transform to $/pu
 
     # Add Market variables
-    for v in [EnergyDABidOut, EnergyDABidIn, EnergyRTBidOut, EnergyRTBidIn]
+    for v in [EnergyDABidOut, EnergyDABidIn]
+        PSI.add_variables!(container, v, [h], MerchantModelEnergyOnly())
+    end
+
+    for v in [EnergyRTBidOut, EnergyRTBidIn]
         PSI.add_variables!(container, v, [h], MerchantModelEnergyOnly())
     end
 
@@ -985,7 +1092,7 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridCooptimized
 
     # Internal Energy Asset Bid variables
     add_variable!(decision_model, EnergyThermalBid(), T_rt, 0.0, P_max_th) #eb_rt_th
-    add_variable!(decision_model, EnergyRenewableBid(), T_rt, 0.0, P_re_star) #eb_rt_re
+    add_variable!(decision_model, EnergyRenewableBid(), T_rt, 0.0, e5) #eb_rt_re
     add_variable!(decision_model, EnergyBatteryChargeBid(), T_rt, 0.0, P_ch_max) #eb_rt_ch
     add_variable!(decision_model, EnergyBatteryDischargeBid(), T_rt, 0.0, P_ds_max) #eb_rt_ds
 

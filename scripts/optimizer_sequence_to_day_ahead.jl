@@ -38,21 +38,26 @@ include("utils.jl")
 
 ## Get Systems
 # Let's do three days of 24 hours each for Day Ahead given that we have prices for three days
+horizon_merchant_rt = 288
+horizon_merchant_da = 24
+sys_rts_merchant = PSB.build_RTS_GMLC_RT_sys(raw_data=PSB.RTS_DIR, horizon=horizon_merchant_rt, interval=Hour(24))
 sys_rts_da = PSB.build_RTS_GMLC_DA_sys(raw_data=PSB.RTS_DIR, horizon=24)
 
-sys_rts_rt = PSB.build_RTS_GMLC_RT_sys(raw_data=PSB.RTS_DIR, horizon=864, interval=Minute(1440))
+
+#sys_rts_rt = PSB.build_RTS_GMLC_RT_sys(raw_data=PSB.RTS_DIR, horizon=864, interval=Minute(5))
+
 
 
 # There is no Wind + Thermal in a Single Bus.
 # We will try to pick the Wind in 317 bus Chuhsi
 # It does not have thermal and load, so we will pick the adjacent bus 318: Clark
-for s in [sys_rts_da, sys_rts_rt]
+for s in [sys_rts_da, sys_rts_merchant]
     bus_to_add = "Chuhsi" # "Barton"
     modify_ren_curtailment_cost!(s)
     add_hybrid_to_chuhsi_bus!(s)
 end
 
-sys = sys_rts_rt
+sys = sys_rts_merchant
 sys.internal.ext = Dict{String, DataFrame}()
 dic = PSY.get_ext(sys)
 
@@ -62,6 +67,9 @@ dic["λ_da_df"] =
     CSV.read("scripts/simulation_pipeline/inputs/$(bus_name)_DA_prices.csv", DataFrame)
 dic["λ_rt_df"] =
     CSV.read("scripts/simulation_pipeline/inputs/$(bus_name)_RT_prices.csv", DataFrame)
+dic["horizon_RT"] = horizon_merchant_rt
+dic["horizon_DA"] = horizon_merchant_da
+
 
 # Set decision model for Optimizer
 decision_optimizer = DecisionModel(

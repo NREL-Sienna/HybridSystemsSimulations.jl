@@ -853,4 +853,5 @@ function PSI.add_constraints!(
             )
         end
     end
+    return
 end

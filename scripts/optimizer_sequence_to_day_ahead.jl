@@ -80,8 +80,8 @@ decision_optimizer = DecisionModel(
     store_variable_names=true,
 )
 
-build!(decision_optimizer; output_dir=pwd())
-solve!(decision_optimizer)
+# build!(decision_optimizer; output_dir=pwd())
+# solve!(decision_optimizer)
 
 mipgap = 0.01
 num_steps = 3

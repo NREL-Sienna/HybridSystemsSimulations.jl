@@ -158,6 +158,112 @@ function PSI.add_variables!(
     return
 end
 
+function add_time_series_parameters!(
+    container::PSI.OptimizationContainer,
+    param::RenewablePowerTimeSeries,
+    devices::Vector{PSY.HybridSystem},
+)
+    ts_name = "RenewableDispatch__max_active_power"
+    ts_type = PSI.get_default_time_series_type(container)
+    time_steps = PSI.get_time_steps(container)
+
+    device_names = String[]
+    initial_values = Dict{String, AbstractArray}()
+    for device in devices
+        push!(device_names, PSY.get_name(device))
+        ts_uuid = PSI.get_time_series_uuid(ts_type, device, ts_name)
+        if !(ts_uuid in keys(initial_values))
+            initial_values[ts_uuid] =
+                PSI.get_time_series_initial_values!(container, ts_type, device, ts_name)
+        end
+    end
+
+    param_container = PSI.add_param_container!(
+        container,
+        param,
+        PSY.HybridSystem,
+        ts_type,
+        ts_name,
+        collect(keys(initial_values)),
+        device_names,
+        time_steps,
+    )
+    jump_model = PSI.get_jump_model(container)
+
+    for (ts_uuid, ts_values) in initial_values
+        for step in time_steps
+            PSI.set_parameter!(param_container, jump_model, ts_values[step], ts_uuid, step)
+        end
+    end
+
+    for device in devices
+        name = PSY.get_name(device)
+        multiplier = PSY.get_max_active_power(device.renewable_unit)
+        for step in time_steps
+            PSI.set_multiplier!(param_container, multiplier, name, step)
+        end
+        PSI.add_component_name!(
+            PSI.get_attributes(param_container),
+            name,
+            PSI.get_time_series_uuid(ts_type, device, ts_name),
+        )
+    end
+    return
+end
+
+function add_time_series_parameters!(
+    container::PSI.OptimizationContainer,
+    param::ElectricLoadTimeSeries,
+    devices::Vector{PSY.HybridSystem},
+)
+    ts_name = "PowerLoad__max_active_power"
+    ts_type = PSI.get_default_time_series_type(container)
+    time_steps = PSI.get_time_steps(container)
+
+    device_names = String[]
+    initial_values = Dict{String, AbstractArray}()
+    for device in devices
+        push!(device_names, PSY.get_name(device))
+        ts_uuid = PSI.get_time_series_uuid(ts_type, device, ts_name)
+        if !(ts_uuid in keys(initial_values))
+            initial_values[ts_uuid] =
+                PSI.get_time_series_initial_values!(container, ts_type, device, ts_name)
+        end
+    end
+
+    param_container = PSI.add_param_container!(
+        container,
+        param,
+        PSY.HybridSystem,
+        ts_type,
+        ts_name,
+        collect(keys(initial_values)),
+        device_names,
+        time_steps,
+    )
+    jump_model = PSI.get_jump_model(container)
+
+    for (ts_uuid, ts_values) in initial_values
+        for step in time_steps
+            PSI.set_parameter!(param_container, jump_model, ts_values[step], ts_uuid, step)
+        end
+    end
+
+    for device in devices
+        name = PSY.get_name(device)
+        multiplier = PSY.get_max_active_power(device.electric_load)
+        for step in time_steps
+            PSI.set_multiplier!(param_container, multiplier, name, step)
+        end
+        PSI.add_component_name!(
+            PSI.get_attributes(param_container),
+            name,
+            PSI.get_time_series_uuid(ts_type, device, ts_name),
+        )
+    end
+    return
+end
+
 function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridEnergyCase})
     container = PSI.get_optimization_container(decision_model)
     model = container.JuMPmodel
@@ -187,7 +293,6 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridEnergyCase}
     P_max_pcc = PSY.get_output_active_power_limits(h).max
     VOM = h.storage.operation_cost.variable.cost
     Δt_DA = 1.0
-    starttime = Dates.DateTime("2020-10-03T00:00:00")
     Δt_RT = Dates.value(Dates.Minute(RT_resolution)) / PSI.MINUTES_IN_HOUR
     Cycles = CYCLES_PER_DAY * Δt_RT * length(T_rt) / HOURS_IN_DAY
     Bus_name = "Chuhsi"
@@ -212,30 +317,6 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridEnergyCase}
     inv_η_ds = 1.0 / η_ds
     E_min, E_max = PSY.get_state_of_charge_limits(storage)
     E0 = storage.initial_energy
-
-    # Renewable Forecast
-    ta_ren = PSY.get_time_series_array(
-        PSY.SingleTimeSeries,
-        h,
-        "RenewableDispatch__max_active_power",
-        start_time=starttime,
-        len=T_rt[end],
-    )
-    multiplier_ren = values(ta_ren) / PSY.get_max_active_power(h)
-    P_re_star = multiplier_ren * PSY.get_max_active_power(h.renewable_unit)
-
-    # Load Forecast
-    ta_load = PSY.get_time_series_array(
-        PSY.SingleTimeSeries,
-        h,
-        "PowerLoad__max_active_power",
-        start_time=starttime,
-        len=T_rt[end],
-    )
-    multiplier_load = values(ta_load) / PSY.get_max_active_power(h)
-
-    # Implement as parameter later
-    P_ld = multiplier_load * PSY.get_max_active_power(h.electric_load)
 
     # Forecast Prices
     λ_da = ext["λ_da_df"][!, Bus_name] * 100.0 # Multiply by 100 to transform to $/pu
@@ -270,21 +351,34 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridEnergyCase}
         PSI.add_variables!(container, v, [h], MerchantModelEnergyOnly())
     end
 
-    # These methods need the upper_bound, lower_bound etc. to be set correctly and check
-    #=
-    # Add Thermal Vars: No Thermal For now
-    add_variable!(decision_model, ThermalPower(), T_rt, 0.0, P_max_th)
-    add_binary_variable!(decision_model, OnVariable(), T_da)
+    ###############################
+    ####### Parameters ############
+    ###############################
+    _hybrids_with_loads = [d for d in [h] if PSY.get_electric_load(d) !== nothing]
+    _hybrids_with_renewable = [d for d in [h] if PSY.get_renewable_unit(d) !== nothing]
 
-    # Add Renewable Variables
-    add_variable!(decision_model, RenewablePower(), T_rt, 0.0, P_re_star)
+    if !isempty(_hybrids_with_renewable)
+        add_time_series_parameters!(
+            container,
+            RenewablePowerTimeSeries(),
+            _hybrids_with_renewable,
+        )
+    end
+    if !isempty(_hybrids_with_loads)
+        add_time_series_parameters!(
+            container,
+            ElectricLoadTimeSeries(),
+            _hybrids_with_loads,
+        )
+    end
 
-    # Add Battery Variables
-    add_variable!(decision_model, BatteryCharge(), T_rt, 0.0, P_ch_max)
-    add_variable!(decision_model, BatteryDischarge(), T_rt, 0.0, P_ds_max)
-    add_variable!(decision_model, PSI.EnergyVariable(), T_rt, E_min, E_max)
-    add_binary_variable!(decision_model, BatteryStatus(), T_rt)
-    =#
+    P_ld_container =
+        PSI.get_parameter(container, ElectricLoadTimeSeries(), PSY.HybridSystem)
+    P_ld_multiplier = PSI.get_parameter_multiplier_array(
+        container,
+        ElectricLoadTimeSeries(),
+        PSY.HybridSystem,
+    )
 
     ###############################
     ####### Obj. Function #########
@@ -436,6 +530,17 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridEnergyCase}
         h_names,
     )
 
+    renewable_upper_bound = PSI.add_constraints_container!(
+        container,
+        RenewableActivePowerLimitConstraint(),
+        PSY.HybridSystem,
+        h_names,
+        T_rt,
+        meta="ub",
+    )
+
+    re_param_container =
+        PSI.get_parameter(container, RenewablePowerTimeSeries(), PSY.HybridSystem)
     for t in T_rt, dev in [h]
         name = PSY.get_name(dev)
         # Market Constraint Bids in/out
@@ -449,10 +554,12 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridEnergyCase}
         constraint_status_bid_out[name, t] =
             JuMP.@constraint(model, status[name, t] * P_max_pcc .>= p_out[name, t])
         # Power Balance
+        P_ld_array = PSI.get_parameter_column_refs(P_ld_container, name)
         constraint_balance[name, t] = JuMP.@constraint(
             model,
-            p_th[name, t] + p_re[name, t] + p_ds[name, t] - p_ch[name, t] - P_ld[t] -
-            p_out[name, t] + p_in[name, t] == 0.0
+            p_th[name, t] + p_re[name, t] + p_ds[name, t] - p_ch[name, t] -
+            P_ld_array[t] * P_ld_multiplier[name, t] - p_out[name, t] + p_in[name, t] ==
+            0.0
         )
         # Thermal Status
         constraint_thermal_on[name, t] =
@@ -479,6 +586,13 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridEnergyCase}
                 e_st[name, t]
             )
         end
+
+        multiplier = PSY.get_max_active_power(h.renewable_unit)
+        param = PSI.get_parameter_column_refs(re_param_container, name)
+        renewable_upper_bound[name, t] = JuMP.@constraint(
+            PSI.get_jump_model(container),
+            p_re[name, t] <= multiplier * param[t]
+        )
     end
     # Cycling Constraints
     for name in h_names

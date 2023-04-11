@@ -74,8 +74,10 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridEnergyCase}
 
     dates_da = ext["λ_da_df"][!, "DateTime"]
     dates_rt = ext["λ_rt_df"][!, "DateTime"]
-    T_da = 1:length(dates_da)
-    T_rt = 1:length(dates_rt)
+    len_DA = get(ext, "horizon_DA", length(dates_da))
+    len_RT = get(ext, "horizon_RT", length(dates_rt))
+    T_da = 1:len_DA
+    T_rt = 1:len_RT
     container.time_steps = T_rt
 
     tmap = [div(k - 1, Int(length(T_rt) / length(T_da))) + 1 for k in T_rt]
@@ -333,8 +335,10 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridEnergyFixed
 
     dates_da = ext["λ_da_df"][!, "DateTime"]
     dates_rt = ext["λ_rt_df"][!, "DateTime"]
-    T_da = 1:length(dates_da)
-    T_rt = 1:length(dates_rt)
+    len_DA = get(ext, "horizon_DA", length(dates_da))
+    len_RT = get(ext, "horizon_RT", length(dates_rt))
+    T_da = 1:len_DA
+    T_rt = 1:len_RT
     container.time_steps = T_rt
 
     tmap = [div(k - 1, Int(length(T_rt) / length(T_da))) + 1 for k in T_rt]
@@ -601,8 +605,10 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridEnergyOnly}
 
     dates_da = ext["λ_da_df"][!, "DateTime"]
     dates_rt = ext["λ_rt_df"][!, "DateTime"]
-    T_da = 1:length(dates_da)
-    T_rt = 1:length(dates_rt)
+    len_DA = get(ext, "horizon_DA", length(dates_da))
+    len_RT = get(ext, "horizon_RT", length(dates_rt))
+    T_da = 1:len_DA
+    T_rt = 1:len_RT
     container.time_steps = T_rt
 
     tmap = [div(k - 1, Int(length(T_rt) / length(T_da))) + 1 for k in T_rt]
@@ -846,8 +852,10 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridCooptimized
 
     dates_da = ext["λ_da_df"][!, "DateTime"]
     dates_rt = ext["λ_rt_df"][!, "DateTime"]
-    T_da = 1:length(dates_da)
-    T_rt = 1:length(dates_rt)
+    len_DA = get(ext, "horizon_DA", length(dates_da))
+    len_RT = get(ext, "horizon_RT", length(dates_rt))
+    T_da = 1:len_DA
+    T_rt = 1:len_RT
     container.time_steps = T_rt
 
     tmap = [div(k - 1, Int(length(T_rt) / length(T_da))) + 1 for k in T_rt]

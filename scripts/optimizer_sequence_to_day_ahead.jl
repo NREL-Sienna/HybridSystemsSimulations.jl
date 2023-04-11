@@ -35,18 +35,18 @@ include("price_generation_utils.jl")
 include("build_simulation_cases_reserves.jl")
 include("utils.jl")
 
-
 ## Get Systems
 # Let's do three days of 24 hours each for Day Ahead given that we have prices for three days
 horizon_merchant_rt = 288
 horizon_merchant_da = 24
-sys_rts_merchant = PSB.build_RTS_GMLC_RT_sys(raw_data=PSB.RTS_DIR, horizon=horizon_merchant_rt, interval=Hour(24))
+sys_rts_merchant = PSB.build_RTS_GMLC_RT_sys(
+    raw_data=PSB.RTS_DIR,
+    horizon=horizon_merchant_rt,
+    interval=Hour(24),
+)
 sys_rts_da = PSB.build_RTS_GMLC_DA_sys(raw_data=PSB.RTS_DIR, horizon=24)
 
-
 #sys_rts_rt = PSB.build_RTS_GMLC_RT_sys(raw_data=PSB.RTS_DIR, horizon=864, interval=Minute(5))
-
-
 
 # There is no Wind + Thermal in a Single Bus.
 # We will try to pick the Wind in 317 bus Chuhsi
@@ -70,7 +70,6 @@ dic["λ_rt_df"] =
 dic["horizon_RT"] = horizon_merchant_rt
 dic["horizon_DA"] = horizon_merchant_da
 
-
 # Set decision model for Optimizer
 decision_optimizer = DecisionModel(
     MerchantHybridEnergyCase,
@@ -79,10 +78,10 @@ decision_optimizer = DecisionModel(
     optimizer=Xpress.Optimizer,
     calculate_conflict=true,
     store_variable_names=true,
-
 )
 
-#build!(decision_optimizer; output_dir = mktempdir(cleanup=true))
+build!(decision_optimizer; output_dir=mktempdir(cleanup=true))
+solve!(decision_optimizer)
 
 mipgap = 0.01
 num_steps = 3
@@ -107,10 +106,7 @@ models = SimulationModels(
             template_uc_copperplate,
             sys_rts_da;
             name="UC",
-            optimizer=optimizer_with_attributes(
-                Xpress.Optimizer,
-                "MIPRELSTOP" => mipgap,
-            ),
+            optimizer=optimizer_with_attributes(Xpress.Optimizer, "MIPRELSTOP" => mipgap),
             system_to_file=false,
             initialize_model=true,
             optimizer_solve_log_print=false,

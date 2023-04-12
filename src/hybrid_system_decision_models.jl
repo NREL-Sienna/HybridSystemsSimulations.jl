@@ -51,7 +51,7 @@ PSI.get_variable_binary(
     ::MerchantModelEnergyOnly,
 ) = false
 PSI.get_variable_binary(
-    ::EnergyVariable,
+    ::PSI.EnergyVariable,
     t::Type{PSY.HybridSystem},
     ::MerchantModelEnergyOnly,
 ) = false
@@ -264,12 +264,12 @@ function add_time_series_parameters!(
     return
 end
 
-function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridEnergyCase})
+function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyCase})
     container = PSI.get_optimization_container(decision_model)
     model = container.JuMPmodel
     sys = PSI.get_system(decision_model)
     RT_resolution = PSY.get_time_series_resolution(sys)
-    PSI.init_optimization_container!(container, CopperPlatePowerModel, sys)
+    PSI.init_optimization_container!(container, PSI.CopperPlatePowerModel, sys)
     PSI.init_model_store_params!(decision_model)
     ext = PSY.get_ext(sys)
 
@@ -341,7 +341,7 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridEnergyCase}
 
     for v in [
         ThermalPower,
-        OnVariable,
+        PSI.OnVariable,
         RenewablePower,
         BatteryCharge,
         BatteryDischarge,
@@ -387,7 +387,7 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridEnergyCase}
     # DA costs
     eb_da_out = PSI.get_variable(container, EnergyDABidOut(), PSY.HybridSystem)
     eb_da_in = PSI.get_variable(container, EnergyDABidIn(), PSY.HybridSystem)
-    on_th = PSI.get_variable(container, OnVariable(), PSY.HybridSystem)
+    on_th = PSI.get_variable(container, PSI.OnVariable(), PSY.HybridSystem)
 
     for t in T_da, dev in [h]
         name = PSY.get_name(dev)
@@ -404,7 +404,7 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridEnergyCase}
     eb_rt_in = PSI.get_variable(container, EnergyRTBidIn(), PSY.HybridSystem)
     p_out = PSI.get_variable(container, PSI.ActivePowerOutVariable(), PSY.HybridSystem)
     p_in = PSI.get_variable(container, PSI.ActivePowerInVariable(), PSY.HybridSystem)
-    status = PSI.get_variable(container, ReservationVariable(), PSY.HybridSystem)
+    status = PSI.get_variable(container, PSI.ReservationVariable(), PSY.HybridSystem)
     p_th = PSI.get_variable(container, ThermalPower(), PSY.HybridSystem)
     p_re = PSI.get_variable(container, RenewablePower(), PSY.HybridSystem)
     p_ch = PSI.get_variable(container, BatteryCharge(), PSY.HybridSystem)

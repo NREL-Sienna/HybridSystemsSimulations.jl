@@ -479,7 +479,7 @@ function PSI.add_constraints!(
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     varon = PSI.get_variable(container, PSI.ReservationVariable(), D)
-    p_out = PSI.get_variable(container, ActivePowerOutVariable(), D)
+    p_out = PSI.get_variable(container, PSI.ActivePowerOutVariable(), D)
     con_ub = PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="ub")
 
     for device in devices, t in time_steps
@@ -507,7 +507,7 @@ function PSI.add_constraints!(
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     varon = PSI.get_variable(container, PSI.ReservationVariable(), D)
-    p_in = PSI.get_variable(container, ActivePowerInVariable(), D)
+    p_in = PSI.get_variable(container, PSI.ActivePowerInVariable(), D)
     con_ub = PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="ub")
 
     for device in devices, t in time_steps

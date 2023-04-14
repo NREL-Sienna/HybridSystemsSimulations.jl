@@ -70,6 +70,9 @@ dic["λ_rt_df"] =
 dic["horizon_RT"] = horizon_merchant_rt
 dic["horizon_DA"] = horizon_merchant_da
 
+hy_sys = first(get_components(HybridSystem, sys))
+PSY.set_ext!(hy_sys, deepcopy(dic))
+
 # Set decision model for Optimizer
 decision_optimizer = DecisionModel(
     MerchantHybridEnergyCase,

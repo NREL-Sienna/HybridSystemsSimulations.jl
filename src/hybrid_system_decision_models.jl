@@ -100,6 +100,10 @@ PSI.get_variable_upper_bound(
     ::MerchantModelEnergyOnly,
 ) = PSY.get_output_active_power_limits(d).max
 
+function _get_row_val(df, row_name)
+    return df[only(findall(==(row_name), df.ParamName)), :]["Value"]
+end
+
 function PSI.add_variables!(
     container::PSI.OptimizationContainer,
     ::Type{T},
@@ -681,8 +685,8 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
     return
 end
 
-#=
-function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridEnergyFixedDA})
+
+function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyFixedDA})
     container = PSI.get_optimization_container(decision_model)
     model = container.JuMPmodel
     sys = PSI.get_system(decision_model)
@@ -949,12 +953,12 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridEnergyFixed
     return
 end
 
-function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridEnergyOnly})
+function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyOnly})
     container = PSI.get_optimization_container(decision_model)
     #settings = PSI.get_settings(container)
     model = PSI.get_jump_model(container)
     s = PSI.get_system(decision_model)
-    PSI.init_optimization_container!(container, CopperPlatePowerModel, s)
+    PSI.init_optimization_container!(container, PSI.CopperPlatePowerModel, s)
     PSI.init_model_store_params!(decision_model)
     ext = PSY.get_ext(s)
     ###############################
@@ -1196,12 +1200,12 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridEnergyOnly}
     return
 end
 
-function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridCooptimized})
+function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptimized})
     container = PSI.get_optimization_container(decision_model)
     #settings = PSI.get_settings(container)
     model = PSI.get_jump_model(container)
     s = PSI.get_system(decision_model)
-    PSI.init_optimization_container!(container, CopperPlatePowerModel, s)
+    PSI.init_optimization_container!(container, PSI.CopperPlatePowerModel, s)
     PSI.init_model_store_params!(decision_model)
     ext = PSY.get_ext(s)
     ###############################
@@ -1824,4 +1828,4 @@ function PSI.build_impl!(decision_model::DecisionModel{MerchantHybridCooptimized
     PSI.serialize_metadata!(container, mktempdir(cleanup=true))
     return
 end
-=#
+

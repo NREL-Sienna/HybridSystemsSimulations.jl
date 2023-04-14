@@ -430,7 +430,6 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
         MerchantModelEnergyOnly()
     )
 
-
     # DA costs
     eb_da_out = PSI.get_variable(container, EnergyDABidOut(), PSY.HybridSystem)
     eb_da_in = PSI.get_variable(container, EnergyDABidIn(), PSY.HybridSystem)
@@ -440,8 +439,8 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
         name = PSY.get_name(dev)
         lin_cost_da_out = Δt_DA * λ_da[t] * eb_da_out[name, t]
         lin_cost_da_in = -Δt_DA * λ_da[t] * eb_da_in[name, t]
-        PSI.add_to_objective_invariant_expression!(container, lin_cost_da_out)
-        PSI.add_to_objective_invariant_expression!(container, lin_cost_da_in)
+        PSI.add_to_objective_variant_expression!(container, lin_cost_da_out)
+        PSI.add_to_objective_variant_expression!(container, lin_cost_da_in)
         if !isnothing(dev.thermal_unit)
             t_gen = dev.thermal_unit
             three_cost = PSY.get_operation_cost(t_gen)

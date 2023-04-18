@@ -80,7 +80,7 @@ decision_optimizer = DecisionModel(
     sys,
     optimizer=Xpress.Optimizer,
     calculate_conflict=true,
-    store_variable_names=true,
+    store_variable_names=true
 )
 
 # build!(decision_optimizer; output_dir=pwd())
@@ -153,3 +153,20 @@ sim = Simulation(
 build!(sim)
 
 execute!(sim; enable_progress_bar=true)
+
+results = SimulationResults(sim)
+result_opt = get_decision_problem_results(results, "MerchantHybridEnergyCase")
+
+da_bid_out = read_variable(result_opt, "EnergyDABidOut__HybridSystem")
+da_bid_in = read_variable(result_opt, "EnergyDABidIn__HybridSystem")
+
+full_horizon = 72
+da_bid_out_realized = zeros(full_horizon)
+da_horizon = 24
+i = 0
+for (k, bid) in da_bid_out
+    da_bid_out_realized[(da_horizon*i + 1):(i+1)*da_horizon] = bid[!, 1]
+    i = i+1
+end
+
+plot(da_bid_out_realized)

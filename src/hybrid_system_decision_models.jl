@@ -350,6 +350,7 @@ function _update_parameter_values!(
     model::PSI.DecisionModel{T},
     key::PSI.ParameterKey{U, PSY.HybridSystem},
     price_key::String,
+    horizon_key::String
 ) where {T <: HybridDecisionProblem, U}
     initial_forecast_time = PSI.get_current_time(model)
     container = PSI.get_optimization_container(model)
@@ -359,16 +360,34 @@ function _update_parameter_values!(
     components = PSI.get_available_components(PSY.HybridSystem, PSI.get_system(model))
     for component in components
         ext = PSY.get_ext(component)
+        horizon = ext[horizon_key]
         bus_name = PSY.get_name(PSY.get_bus(component))
-        # Missing logic using initial_forecast_time
-        # HERE IS THE HACK!!!!!
-        λ = ext[price_key][!, bus_name][1:size(parameter_array, 1)]
+        ix = PSI.find_timestamp_index(ext[price_key][!, "DateTime"], initial_forecast_time)
+        λ = ext[price_key][!, bus_name][ix:(ix + horizon - 1)]
         name = PSY.get_name(component)
         for (t, value) in enumerate(λ)
             PSI._set_param_value!(parameter_array, value, name, t)
             PSI.update_variable_cost!(container, parameter_array, attributes, component, t)
         end
     end
+    return
+end
+
+function _update_parameter_values!(
+    model::PSI.DecisionModel{T},
+    key::PSI.ParameterKey{DayAheadPrice, PSY.HybridSystem},
+    price_key::String,
+) where {T <: HybridDecisionProblem}
+    _update_parameter_values!(model, key, price_key, "horizon_DA")
+    return
+end
+
+function _update_parameter_values!(
+    model::PSI.DecisionModel{T},
+    key::PSI.ParameterKey{RealTimePrice, PSY.HybridSystem},
+    price_key::String,
+) where {T <: HybridDecisionProblem}
+    _update_parameter_values!(model, key, price_key, "horizon_RT")
     return
 end
 
@@ -407,8 +426,6 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
         PSY.get_ext(h)["T_da"] = T_da
     end
     #P_max_pcc = PSY.get_output_active_power_limits(h).max
-
-    Bus_name = "Chuhsi"
 
     # Thermal Params
     #t_gen = h.thermal_unit
@@ -504,14 +521,16 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
     ####### Obj. Function #########
     ###############################
 
-    λ_da =
-        PSI.add_parameters!(container, DayAheadPrice(), hybrids, MerchantModelEnergyOnly())
+    # This function add the parameters for both variables DABidOut and DABidIn
+    PSI.add_parameters!(container, DayAheadPrice(), hybrids, MerchantModelEnergyOnly())
+
     λ_da_pos = PSI.get_parameter_array(
         container,
         DayAheadPrice(),
         PSY.HybridSystem,
         "EnergyDABidOut",
     )
+
     λ_da_neg = PSI.get_parameter_array(
         container,
         DayAheadPrice(),
@@ -519,8 +538,8 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
         "EnergyDABidIn",
     )
 
-    λ_rt =
-        PSI.add_parameters!(container, RealTimePrice(), hybrids, MerchantModelEnergyOnly())
+    # This function add the parameters for both variables RTBidOut and RTBidIn
+    PSI.add_parameters!(container, RealTimePrice(), hybrids, MerchantModelEnergyOnly())
 
     λ_rt_pos = PSI.get_parameter_array(
         container,
@@ -528,6 +547,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
         PSY.HybridSystem,
         "EnergyRTBidOut",
     )
+
     λ_rt_neg = PSI.get_parameter_array(
         container,
         RealTimePrice(),

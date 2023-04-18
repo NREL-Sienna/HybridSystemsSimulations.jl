@@ -216,14 +216,16 @@ function _add_time_series_parameters(
 end
 
 # Use correct PSI function
-_get_multiplier(::Type{EnergyDABidOut}) = 1.0
-_get_multiplier(::Type{EnergyDABidIn}) = -1.0
-_get_multiplier(::Type{EnergyRTBidOut}) = 1.0
-_get_multiplier(::Type{EnergyRTBidIn}) = -1.0
+_get_multiplier(::Type{EnergyDABidOut}, _) = 1.0
+_get_multiplier(::Type{EnergyDABidIn}, _) = -1.0
+_get_multiplier(::Type{EnergyRTBidOut}, ::RealTimePrice) = 1.0
+_get_multiplier(::Type{EnergyRTBidIn}, ::RealTimePrice) = -1.0
+_get_multiplier(::Type{EnergyDABidOut}, ::RealTimePrice) = -1.0
+_get_multiplier(::Type{EnergyDABidIn}, ::RealTimePrice) = 1.0
 
 function _add_price_time_series_parameters(
     container::PSI.OptimizationContainer,
-    param,
+    param::Union{RealTimePrice, DayAheadPrice},
     ts_key::String,
     devices::Vector{PSY.HybridSystem},
     time_step_string::String,
@@ -260,7 +262,12 @@ function _add_price_time_series_parameters(
                     name,
                     step,
                 )
-                PSI.set_multiplier!(param_container, _get_multiplier(var), name, step)
+                PSI.set_multiplier!(
+                    param_container,
+                    _get_multiplier(var, param),
+                    name,
+                    step,
+                )
             end
         end
     end
@@ -312,7 +319,7 @@ function add_time_series_parameters!(
     devices::Vector{PSY.HybridSystem},
 )
     ts_key = "λ_rt_df"
-    vars = [EnergyRTBidOut, EnergyRTBidIn]
+    vars = [EnergyDABidOut, EnergyDABidIn, EnergyRTBidOut, EnergyRTBidIn]
     _add_price_time_series_parameters(container, param, ts_key, devices, "horizon_RT", vars)
     return
 end
@@ -326,70 +333,108 @@ function _cost_function_unsynch(container::PSI.OptimizationContainer)
     return
 end
 
-function _update_parameter_values!(
-    model::PSI.DecisionModel{T},
-    ::PSI.ParameterKey{RealTimePrice, PSY.HybridSystem},
-    price_key::String,
-) where {T <: HybridDecisionProblem}
-    price_key = "λ_rt_df"
-    _update_parameter_values!(model, key, price_key)
-    return
-end
-
 function PSI.update_parameter_values!(
     model::PSI.DecisionModel{T},
-    key::PSI.ParameterKey{DayAheadPrice, PSY.HybridSystem},
-    decision_states::PSI.DatasetContainer{PSI.DataFrameDataset},
-) where {T <: HybridDecisionProblem}
-    price_key = "λ_da_df"
-    _update_parameter_values!(model, key, price_key)
+    key::PSI.ParameterKey{U, PSY.HybridSystem},
+    ::PSI.DatasetContainer{PSI.DataFrameDataset},
+) where {T <: HybridDecisionProblem, U <: Union{DayAheadPrice, RealTimePrice}}
+    container = PSI.get_optimization_container(model)
+    _cost_function_unsynch(container)
+    _update_parameter_values!(model, key)
     return
 end
 
 function _update_parameter_values!(
     model::PSI.DecisionModel{T},
-    key::PSI.ParameterKey{U, PSY.HybridSystem},
-    price_key::String,
-    horizon_key::String
-) where {T <: HybridDecisionProblem, U}
+    key::PSI.ParameterKey{DayAheadPrice, PSY.HybridSystem},
+) where {T <: HybridDecisionProblem}
     initial_forecast_time = PSI.get_current_time(model)
     container = PSI.get_optimization_container(model)
     parameter_array = PSI.get_parameter_array(container, key)
+    parameter_multiplier = PSI.get_parameter_multiplier_array(container, key)
     attributes = PSI.get_parameter_attributes(container, key)
-    _cost_function_unsynch(container)
     components = PSI.get_available_components(PSY.HybridSystem, PSI.get_system(model))
     for component in components
         ext = PSY.get_ext(component)
-        horizon = ext[horizon_key]
+        horizon = ext["horizon_DA"]
         bus_name = PSY.get_name(PSY.get_bus(component))
-        ix = PSI.find_timestamp_index(ext[price_key][!, "DateTime"], initial_forecast_time)
-        λ = ext[price_key][!, bus_name][ix:(ix + horizon - 1)]
+        ix = PSI.find_timestamp_index(ext["λ_da_df"][!, "DateTime"], initial_forecast_time)
+        λ = ext["λ_da_df"][!, bus_name][ix:(ix + horizon - 1)]
         name = PSY.get_name(component)
         for (t, value) in enumerate(λ)
             PSI._set_param_value!(parameter_array, value, name, t)
-            PSI.update_variable_cost!(container, parameter_array, attributes, component, t)
+            PSI.update_variable_cost!(
+                container,
+                parameter_array,
+                parameter_multiplier,
+                attributes,
+                component,
+                t,
+            )
         end
     end
     return
 end
 
-function _update_parameter_values!(
-    model::PSI.DecisionModel{T},
-    key::PSI.ParameterKey{DayAheadPrice, PSY.HybridSystem},
-    price_key::String,
-) where {T <: HybridDecisionProblem}
-    _update_parameter_values!(model, key, price_key, "horizon_DA")
-    return
-end
-
+# The definition of these two methods is required because of the two resolutions used
+# in the model. Updating the real-time price requires using the mapping. Normally we don't
+# want to expose this level of detail to users wanting to make extensions
 function _update_parameter_values!(
     model::PSI.DecisionModel{T},
     key::PSI.ParameterKey{RealTimePrice, PSY.HybridSystem},
-    price_key::String,
 ) where {T <: HybridDecisionProblem}
-    _update_parameter_values!(model, key, price_key, "horizon_RT")
+    initial_forecast_time = PSI.get_current_time(model)
+    container = PSI.get_optimization_container(model)
+    resolution = PSI.get_resolution(container)
+    dt = Dates.value(Dates.Second(resolution)) / PSI.SECONDS_IN_HOUR
+    parameter_array = PSI.get_parameter_array(container, key)
+    attributes = PSI.get_parameter_attributes(container, key)
+    components = PSI.get_available_components(PSY.HybridSystem, PSI.get_system(model))
+    variable =
+        PSI.get_variable(container, PSI.get_variable_type(attributes)(), PSY.HybridSystem)
+    for component in components
+        ext = PSY.get_ext(component)
+        tmap = ext["tmap"]
+        horizon = ext["horizon_RT"]
+        bus_name = PSY.get_name(PSY.get_bus(component))
+        ix = PSI.find_timestamp_index(ext["λ_rt_df"][!, "DateTime"], initial_forecast_time)
+        λ = ext["λ_rt_df"][!, bus_name][ix:(ix + horizon - 1)]
+        name = PSY.get_name(component)
+        for (t, value) in enumerate(λ)
+            PSI._set_param_value!(parameter_array, value, name, t)
+            if tmap[end] < horizon
+                hy_cost = variable[name, tmap[t]] * parameter_array[name, t] * dt
+            else
+                hy_cost = variable[name, t] * parameter_array[name, t] * dt
+            end
+            PSI.add_to_objective_variant_expression!(container, hy_cost)
+            PSI.set_expression!(
+                container,
+                PSI.ProductionCostExpression,
+                hy_cost,
+                component,
+                t,
+            )
+        end
+    end
     return
 end
+
+#=
+resolution = get_resolution(container)
+    dt = Dates.value(Dates.Second(resolution)) / SECONDS_IN_HOUR
+    base_power = get_base_power(container)
+    component_name = PSY.get_name(component)
+    cost_data = parameter_array[component_name, time_period]
+    if iszero(cost_data)
+        return
+    end
+    mult_ = parameter_multiplier[component_name, time_period]
+    variable = get_variable(container, get_variable_type(attributes)(), T)
+    gen_cost = variable[component_name, time_period] * mult_ * cost_data * base_power * dt
+    add_to_objective_variant_expression!(container, gen_cost)
+    set_expression!(container, ProductionCostExpression, gen_cost, component, time_period)
+=#
 
 function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyCase})
     container = PSI.get_optimization_container(decision_model)
@@ -424,6 +469,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
     h_names = PSY.get_name.(hybrids)
     for h in hybrids
         PSY.get_ext(h)["T_da"] = T_da
+        PSY.get_ext(h)["tmap"] = tmap
     end
     #P_max_pcc = PSY.get_output_active_power_limits(h).max
 
@@ -555,6 +601,20 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
         "EnergyRTBidIn",
     )
 
+    λ_dart_pos = PSI.get_parameter_array(
+        container,
+        RealTimePrice(),
+        PSY.HybridSystem,
+        "EnergyDABidOut",
+    )
+
+    λ_dart_neg = PSI.get_parameter_array(
+        container,
+        RealTimePrice(),
+        PSY.HybridSystem,
+        "EnergyDABidIn",
+    )
+
     # DA costs
     eb_da_out = PSI.get_variable(container, EnergyDABidOut(), PSY.HybridSystem)
     eb_da_in = PSI.get_variable(container, EnergyDABidIn(), PSY.HybridSystem)
@@ -592,8 +652,8 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
         name = PSY.get_name(dev)
         lin_cost_rt_out = Δt_RT * λ_rt_pos[name, t] * eb_rt_out[name, t]
         lin_cost_rt_in = -Δt_RT * λ_rt_neg[name, t] * eb_rt_in[name, t]
-        lin_cost_dart_out = -Δt_RT * λ_rt_neg[name, t] * eb_da_out[name, tmap[t]]
-        lin_cost_dart_in = Δt_RT * λ_rt_pos[name, t] * eb_da_in[name, tmap[t]]
+        lin_cost_dart_out = -Δt_RT * λ_dart_neg[name, t] * eb_da_out[name, tmap[t]]
+        lin_cost_dart_in = Δt_RT * λ_dart_pos[name, t] * eb_da_in[name, tmap[t]]
         PSI.add_to_objective_variant_expression!(container, lin_cost_rt_out)
         PSI.add_to_objective_variant_expression!(container, lin_cost_rt_in)
         PSI.add_to_objective_variant_expression!(container, lin_cost_dart_out)

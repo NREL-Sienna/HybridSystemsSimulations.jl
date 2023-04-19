@@ -340,7 +340,6 @@ function _update_parameter_values!(
     model::PSI.DecisionModel{T},
     key::PSI.ParameterKey{DayAheadPrice, PSY.HybridSystem},
 ) where {T <: HybridDecisionProblem}
-
     initial_forecast_time = PSI.get_current_time(model)
     container = PSI.get_optimization_container(model)
     parameter_array = PSI.get_parameter_array(container, key)
@@ -358,7 +357,7 @@ function _update_parameter_values!(
         name = PSY.get_name(component)
         for (t, value) in enumerate(λ)
             # Since the DA variables are hourly, this will revert the dt multiplication
-            PSI._set_param_value!(parameter_array, value/dt, name, t)
+            PSI._set_param_value!(parameter_array, value / dt, name, t)
             PSI.update_variable_cost!(
                 container,
                 parameter_array,

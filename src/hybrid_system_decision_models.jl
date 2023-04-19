@@ -253,7 +253,7 @@ function _add_price_time_series_parameters(
         for device in devices
             λ = PSY.get_ext(device)[ts_key]
             Bus_name = PSY.get_name(PSY.get_bus(device))
-            price_value = λ[!, Bus_name] * 100.0 # Multiply by 100 to transform to $/pu
+            price_value = λ[!, Bus_name]
             name = PSY.get_name(device)
             for step in time_steps
                 PSI.set_parameter!(

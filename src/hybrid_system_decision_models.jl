@@ -215,13 +215,14 @@ function _add_time_series_parameters(
     return
 end
 
-# Use correct PSI function
-_get_multiplier(::Type{EnergyDABidOut}, _) = 1.0
-_get_multiplier(::Type{EnergyDABidIn}, _) = -1.0
-_get_multiplier(::Type{EnergyRTBidOut}, ::RealTimePrice) = 1.0
-_get_multiplier(::Type{EnergyRTBidIn}, ::RealTimePrice) = -1.0
-_get_multiplier(::Type{EnergyDABidOut}, ::RealTimePrice) = -1.0
-_get_multiplier(::Type{EnergyDABidIn}, ::RealTimePrice) = 1.0
+# Multipliers consider that the objective function is a Maximization problem
+# But the default direction in PSI is Min.
+_get_multiplier(::Type{EnergyDABidOut}, ::DayAheadPrice) = -1.0
+_get_multiplier(::Type{EnergyDABidIn}, ::DayAheadPrice) = 1.0
+_get_multiplier(::Type{EnergyRTBidOut}, ::RealTimePrice) = -1.0
+_get_multiplier(::Type{EnergyRTBidIn}, ::RealTimePrice) = 1.0
+_get_multiplier(::Type{EnergyDABidOut}, ::RealTimePrice) = 1.0
+_get_multiplier(::Type{EnergyDABidIn}, ::RealTimePrice) = -1.0
 
 function _add_price_time_series_parameters(
     container::PSI.OptimizationContainer,
@@ -324,22 +325,13 @@ function add_time_series_parameters!(
     return
 end
 
-function _cost_function_unsynch(container::PSI.OptimizationContainer)
-    if PSI.is_synchronized(container)
-        obj_func = PSI.get_objective_function(container)
-        PSI.set_synchronized_status(obj_func, false)
-        PSI.reset_variant_terms(obj_func)
-    end
-    return
-end
-
 function PSI.update_parameter_values!(
     model::PSI.DecisionModel{T},
     key::PSI.ParameterKey{U, PSY.HybridSystem},
     ::PSI.DatasetContainer{PSI.DataFrameDataset},
 ) where {T <: HybridDecisionProblem, U <: Union{DayAheadPrice, RealTimePrice}}
     container = PSI.get_optimization_container(model)
-    _cost_function_unsynch(container)
+    @assert !PSI.is_synchronized(container)
     _update_parameter_values!(model, key)
     return
 end
@@ -348,12 +340,15 @@ function _update_parameter_values!(
     model::PSI.DecisionModel{T},
     key::PSI.ParameterKey{DayAheadPrice, PSY.HybridSystem},
 ) where {T <: HybridDecisionProblem}
+
     initial_forecast_time = PSI.get_current_time(model)
     container = PSI.get_optimization_container(model)
     parameter_array = PSI.get_parameter_array(container, key)
     parameter_multiplier = PSI.get_parameter_multiplier_array(container, key)
     attributes = PSI.get_parameter_attributes(container, key)
     components = PSI.get_available_components(PSY.HybridSystem, PSI.get_system(model))
+    resolution = PSI.get_resolution(container)
+    dt = Dates.value(Dates.Second(resolution)) / PSI.SECONDS_IN_HOUR
     for component in components
         ext = PSY.get_ext(component)
         horizon = ext["horizon_DA"]
@@ -362,7 +357,8 @@ function _update_parameter_values!(
         λ = ext["λ_da_df"][!, bus_name][ix:(ix + horizon - 1)]
         name = PSY.get_name(component)
         for (t, value) in enumerate(λ)
-            PSI._set_param_value!(parameter_array, value, name, t)
+            # Since the DA variables are hourly, this will revert the dt multiplication
+            PSI._set_param_value!(parameter_array, value/dt, name, t)
             PSI.update_variable_cost!(
                 container,
                 parameter_array,
@@ -392,6 +388,7 @@ function _update_parameter_values!(
     components = PSI.get_available_components(PSY.HybridSystem, PSI.get_system(model))
     variable =
         PSI.get_variable(container, PSI.get_variable_type(attributes)(), PSY.HybridSystem)
+    parameter_multiplier = PSI.get_parameter_multiplier_array(container, key)
     for component in components
         ext = PSY.get_ext(component)
         tmap = ext["tmap"]
@@ -401,11 +398,12 @@ function _update_parameter_values!(
         λ = ext["λ_rt_df"][!, bus_name][ix:(ix + horizon - 1)]
         name = PSY.get_name(component)
         for (t, value) in enumerate(λ)
+            mul_ = parameter_multiplier[name, t] * 100.0
             PSI._set_param_value!(parameter_array, value, name, t)
-            if tmap[end] < horizon
-                hy_cost = variable[name, tmap[t]] * parameter_array[name, t] * dt
+            if PSI.get_variable_type(attributes) ∈ (EnergyDABidOut, EnergyDABidIn)
+                hy_cost = variable[name, tmap[t]] * value * dt * mul_
             else
-                hy_cost = variable[name, t] * parameter_array[name, t] * dt
+                hy_cost = variable[name, t] * value * dt * mul_
             end
             PSI.add_to_objective_variant_expression!(container, hy_cost)
             PSI.set_expression!(
@@ -419,22 +417,6 @@ function _update_parameter_values!(
     end
     return
 end
-
-#=
-resolution = get_resolution(container)
-    dt = Dates.value(Dates.Second(resolution)) / SECONDS_IN_HOUR
-    base_power = get_base_power(container)
-    component_name = PSY.get_name(component)
-    cost_data = parameter_array[component_name, time_period]
-    if iszero(cost_data)
-        return
-    end
-    mult_ = parameter_multiplier[component_name, time_period]
-    variable = get_variable(container, get_variable_type(attributes)(), T)
-    gen_cost = variable[component_name, time_period] * mult_ * cost_data * base_power * dt
-    add_to_objective_variant_expression!(container, gen_cost)
-    set_expression!(container, ProductionCostExpression, gen_cost, component, time_period)
-=#
 
 function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyCase})
     container = PSI.get_optimization_container(decision_model)
@@ -976,8 +958,8 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyF
     P_ld = multiplier_load * PSY.get_max_active_power(h.electric_load)
 
     # Forecast Prices
-    λ_da = ext["λ_da_df"][!, Bus_name] * 100.0 # Multiply by 100 to transform to $/pu
-    λ_rt = ext["λ_rt_df"][!, Bus_name] * 100.0 # Multiply by 100 to transform to $/pu
+    λ_da = ext["λ_da_df"][!, Bus_name] # Do not multiply by 100 to transform to $/pu
+    λ_rt = ext["λ_rt_df"][!, Bus_name] # Do not multiply by 100 to transform to $/pu
 
     # Bids
     da_bid_out_fix = ext["bid_df"][!, "BidOut"]

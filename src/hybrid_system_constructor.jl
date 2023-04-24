@@ -235,7 +235,6 @@ function PSI.construct_device!(
         error("Services are not supported by $D")
     end
 
-    fix_variables!(container, devices, D())
     return
 end
 

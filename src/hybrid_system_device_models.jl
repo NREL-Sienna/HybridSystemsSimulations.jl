@@ -238,6 +238,14 @@ PSI.initial_condition_variable(
     ::AbstractHybridFormulation,
 ) = PSI.EnergyVariable()
 
+################### Parameters ############################
+
+PSI.get_parameter_multiplier(
+    ::PSI.FixValueParameter,
+    ::PSY.HybridSystem,
+    ::HybridEnergyOnlyFixedDA,
+) = 1.0
+
 ###################################################################
 ################### Objective Function ############################
 ###################################################################
@@ -471,7 +479,7 @@ function PSI.add_constraints!(
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     varon = PSI.get_variable(container, PSI.ReservationVariable(), D)
-    p_out = PSI.get_variable(container, ActivePowerOutVariable(), D)
+    p_out = PSI.get_variable(container, PSI.ActivePowerOutVariable(), D)
     con_ub = PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="ub")
 
     for device in devices, t in time_steps
@@ -499,7 +507,7 @@ function PSI.add_constraints!(
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     varon = PSI.get_variable(container, PSI.ReservationVariable(), D)
-    p_in = PSI.get_variable(container, ActivePowerInVariable(), D)
+    p_in = PSI.get_variable(container, PSI.ActivePowerInVariable(), D)
     con_ub = PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="ub")
 
     for device in devices, t in time_steps
@@ -845,26 +853,5 @@ function PSI.add_constraints!(
             )
         end
     end
-end
-
-################ Fix DA, fix variables #########
-
-function fix_variables!(
-    container::PSI.OptimizationContainer,
-    devices::U,
-    formulation::HybridEnergyOnlyFixedDA,
-) where {U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}}} where {D <: PSY.HybridSystem}
-    time_steps = PSI.get_time_steps(container)
-    p_out = PSI.get_variable(container, PSI.ActivePowerOutVariable(), D)
-    p_in = PSI.get_variable(container, PSI.ActivePowerInVariable(), D)
-    for device in devices
-        ci_name = PSY.get_name(device)
-        bids = device.ext["DABids"]
-        bid_out = bids[!, "BidOut"]
-        bid_in = bids[!, "BidIn"]
-        for t in time_steps
-            JuMP.fix(p_out[ci_name, t], bid_out[t]; force=true)
-            JuMP.fix(p_in[ci_name, t], bid_in[t]; force=true)
-        end
-    end
+    return
 end

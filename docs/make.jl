@@ -21,7 +21,7 @@ makedocs(
 )
 
 deploydocs(
-    repo="github.com/NREL-SIIP/HybridSystemsSimulations.jl.git",
+    repo="github.com//HybridSystemsSimulations.jl.git",
     target="build",
     branch="gh-pages",
     devbranch="main",

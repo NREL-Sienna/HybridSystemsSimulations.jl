@@ -18,6 +18,7 @@ export EnergyRTBidIn
 
 import MathOptInterface
 import PowerSimulations
+import StorageSystemsSimulations
 import PowerSystems
 import JuMP
 import Dates

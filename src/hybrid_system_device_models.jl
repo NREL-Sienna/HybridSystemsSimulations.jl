@@ -288,7 +288,7 @@ end
 
 ############### Thermal costs, HybridSystem #######################
 PSY.get_active_power_limits(device::PSY.HybridSystem) =
-    PSY.get_active_power_limits(PSY.get_thermal_unit(device))
+    PSY.get_output_active_power_limits(device)
 
 PSI.objective_function_multiplier(
     ::Union{ThermalPower, ThermalStatus},

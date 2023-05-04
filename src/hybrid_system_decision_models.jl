@@ -490,22 +490,10 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
         PSI.add_variables!(container, v, hybrids, MerchantModelEnergyOnly())
     end
 
-    # Add internal Asset Variables
-    for v in [
-        ThermalPower,
-        PSI.OnVariable,
-        RenewablePower,
-        BatteryCharge,
-        BatteryDischarge,
-        PSI.EnergyVariable,
-        BatteryStatus,
-    ]
-        PSI.add_variables!(container, v, hybrids, MerchantModelEnergyOnly())
-    end
 
-    ###############################
-    ####### Parameters ############
-    ###############################
+    #############################################
+    ####### Parameters and Variables ############
+    #############################################
 
     _hybrids_with_loads = [d for d in hybrids if PSY.get_electric_load(d) !== nothing]
     _hybrids_with_renewable = [d for d in hybrids if PSY.get_renewable_unit(d) !== nothing]
@@ -513,6 +501,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
     _hybrids_with_thermal = [d for d in hybrids if PSY.get_thermal_unit(d) !== nothing]
 
     if !isempty(_hybrids_with_renewable)
+        PSI.add_variables!(container, RenewablePower, _hybrids_with_renewable, MerchantModelEnergyOnly())
         add_time_series_parameters!(
             container,
             RenewablePowerTimeSeries(),
@@ -525,9 +514,24 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
             ElectricLoadTimeSeries(),
             _hybrids_with_loads,
         )
+        P_ld_container =
+            PSI.get_parameter(container, ElectricLoadTimeSeries(), PSY.HybridSystem)
+        P_ld_multiplier = PSI.get_parameter_multiplier_array(
+            container,
+            ElectricLoadTimeSeries(),
+            PSY.HybridSystem,
+        )
     end
 
     if !isempty(_hybrids_with_storage)
+        for v in [
+            BatteryCharge,
+            BatteryDischarge,
+            PSI.EnergyVariable,
+            BatteryStatus,
+            ]
+            PSI.add_variables!(container, v, _hybrids_with_storage, MerchantModelEnergyOnly())
+        end
         PSI.add_initial_condition!(
             container,
             _hybrids_with_storage,
@@ -536,13 +540,15 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
         )
     end
 
-    P_ld_container =
-        PSI.get_parameter(container, ElectricLoadTimeSeries(), PSY.HybridSystem)
-    P_ld_multiplier = PSI.get_parameter_multiplier_array(
-        container,
-        ElectricLoadTimeSeries(),
-        PSY.HybridSystem,
-    )
+    if !isempty(_hybrids_with_thermal)
+        for v in [
+            ThermalPower,
+            PSI.OnVariable,
+            ]
+            PSI.add_variables!(container, v, hybrids, MerchantModelEnergyOnly())
+        end
+    end
+    
 
     ###############################
     ####### Obj. Function #########
@@ -599,7 +605,9 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
     # DA costs
     eb_da_out = PSI.get_variable(container, EnergyDABidOut(), PSY.HybridSystem)
     eb_da_in = PSI.get_variable(container, EnergyDABidIn(), PSY.HybridSystem)
-    on_th = PSI.get_variable(container, PSI.OnVariable(), PSY.HybridSystem)
+    if !isempty(_hybrids_with_thermal)
+        on_th = PSI.get_variable(container, PSI.OnVariable(), PSY.HybridSystem)
+    end
 
     for t in T_da, dev in hybrids
         name = PSY.get_name(dev)
@@ -622,12 +630,18 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
     p_out = PSI.get_variable(container, PSI.ActivePowerOutVariable(), PSY.HybridSystem)
     p_in = PSI.get_variable(container, PSI.ActivePowerInVariable(), PSY.HybridSystem)
     status = PSI.get_variable(container, PSI.ReservationVariable(), PSY.HybridSystem)
-    p_th = PSI.get_variable(container, ThermalPower(), PSY.HybridSystem)
-    p_re = PSI.get_variable(container, RenewablePower(), PSY.HybridSystem)
-    p_ch = PSI.get_variable(container, BatteryCharge(), PSY.HybridSystem)
-    p_ds = PSI.get_variable(container, BatteryDischarge(), PSY.HybridSystem)
-    e_st = PSI.get_variable(container, PSI.EnergyVariable(), PSY.HybridSystem)
-    status_st = PSI.get_variable(container, BatteryStatus(), PSY.HybridSystem)
+    if !isempty(_hybrids_with_thermal)
+        p_th = PSI.get_variable(container, ThermalPower(), PSY.HybridSystem)
+    end
+    if !isempty(_hybrids_with_renewable)
+        p_re = PSI.get_variable(container, RenewablePower(), PSY.HybridSystem)
+    end
+    if !isempty(_hybrids_with_storage)
+        p_ch = PSI.get_variable(container, BatteryCharge(), PSY.HybridSystem)
+        p_ds = PSI.get_variable(container, BatteryDischarge(), PSY.HybridSystem)
+        e_st = PSI.get_variable(container, PSI.EnergyVariable(), PSY.HybridSystem)
+        status_st = PSI.get_variable(container, BatteryStatus(), PSY.HybridSystem)
+    end
 
     for t in T_rt, dev in hybrids
         name = PSY.get_name(dev)
@@ -791,12 +805,18 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
             constraint_status_bid_out[name, t] =
                 JuMP.@constraint(model, status[name, t] * P_max_pcc .>= p_out[name, t])
             # Power Balance
-            P_ld_array = PSI.get_parameter_column_refs(P_ld_container, name)
+            if !isnothing(dev.electric_load)
+                P_ld_array = PSI.get_parameter_column_refs(P_ld_container, name)
+            else
+                P_ld_array = zeros(length(p_out[name, :]))
+            end
             constraint_balance[name, t] = JuMP.@constraint(
                 model,
-                p_th[name, t] + p_re[name, t] + p_ds[name, t] - p_ch[name, t] -
-                P_ld_array[t] * P_ld_multiplier[name, t] - p_out[name, t] +
-                p_in[name, t] == 0.0
+                # We have to do this with expressions
+                #p_th[name, t] + p_re[name, t] + p_ds[name, t] - p_ch[name, t] -
+                #P_ld_array[t] * P_ld_multiplier[name, t] - p_out[name, t] +
+                #p_in[name, t] == 0.0
+                p_re[name, t] + p_ds[name, t] - p_ch[name, t] - p_out[name, t] + p_in[name, t] == 0.0
             )
         end
         # Thermal Status

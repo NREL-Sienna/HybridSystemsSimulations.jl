@@ -12,11 +12,12 @@ MathOptInterface = "b8f27783-ece8-5eb3-8dc8-9495eed66fee"
 PowerSimulations = "e690365d-45e2-57bb-ac84-44ba829e73c4"
 PowerSystemCaseBuilder = "f00506e0-b84f-492a-93c2-c0a9afc4364e"
 PowerSystems = "bcd98974-b02a-5e2f-9ee0-a103f5c450dd"
+StorageSystemsSimulations = "e2f1a126-19d0-4674-9252-42b2384f8e3c"
 
 [compat]
 DocStringExtensions = "~0.8, ~0.9"
 JuMP = "1"
 MathOptInterface = "1"
-PowerSimulations = "^0.19.4"
+PowerSimulations = "^0.20"
 PowerSystems = "2"
 julia = "^1.6"

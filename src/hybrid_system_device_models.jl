@@ -855,3 +855,326 @@ function PSI.add_constraints!(
     end
     return
 end
+
+
+############## Service Constraints, HybridSystem ###################
+
+function PSI.add_constraints!(
+    container::PSI.OptimizationContainer,
+    T::Type{ReserveEnergyLimit},
+    devices::U,
+    service::V,
+    model::PSI.DeviceModel{D, W},
+    network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    V <: PSY.Reserve{ReserveDown},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
+    time_steps = PSI.get_time_steps(container)
+    resolution = PSI.get_resolution(container)
+    fraction_of_hour = Dates.value(Dates.Minute(resolution)) / PSI.MINUTES_IN_HOUR
+    initial_conditions = PSI.get_initial_condition(container, PSI.InitialEnergyLevel(), D)
+    energy_var = PSI.get_variable(container, PSI.EnergyVariable(), D)
+    reserve_var = PSI.get_variable(container, ChargingReserveVariable(), V, get_name(service))
+    names = [PSY.get_name(d) for d in devices]
+    con = PSI.add_constraints_container!(container, T(), D, names, time_steps)
+    for ic in initial_conditions
+        device = PSI.get_component(ic)
+        @assert service in get_services(device)
+        ci_name = PSY.get_name(device)
+        storage = PSY.get_storage(device)
+        efficiency = PSY.get_efficiency(storage)
+        E_max = PSY.get_state_of_charge_limits(storage).max
+        con[ci_name, 1] = JuMP.@constraint(
+            container.JuMPmodel,
+            E_max - PSI.get_value(ic) >= efficiency * fraction_of_hour * reserve_var[ci_name, 1]
+        )
+        for t in time_steps[2:end]
+            con[ci_name, t] = JuMP.@constraint(
+                container.JuMPmodel,
+                E_max - energy_var[ci_name, t-1] >= efficiency * fraction_of_hour * reserve_var[ci_name, t]
+            )
+        end
+    end
+    return
+end
+
+
+function PSI.add_constraints!(
+    container::PSI.OptimizationContainer,
+    T::Type{ChargingReservePowerLimit},
+    devices::U,
+    model::PSI.DeviceModel{D, W},
+    network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
+    time_steps = PSI.get_time_steps(container)
+    resolution = PSI.get_resolution(container)
+    fraction_of_hour = Dates.value(Dates.Minute(resolution)) / PSI.MINUTES_IN_HOUR
+    charge_var = PSI.get_variable(container, BatteryCharge(), D)
+    status_var = PSI.get_variable(container, BatteryStatus(), D)
+    names = [PSY.get_name(d) for d in devices]
+    con_lb = PSI.add_constraints_container!(container, T(), D, names, time_steps; meta="lb")
+    con_ub = PSI.add_constraints_container!(container, T(), D, names, time_steps; meta="ub")
+    for device in devices
+        ci_name = PSY.get_name(device)
+        storage = PSY.get_storage(device)
+        P_max = PSY.get_input_active_power_limits(storage).max
+
+        for t in time_steps
+            service_exp_up = zero(JuMP.AffExpr)
+            service_exp_dn = zero(JuMP.AffExpr)
+            for service_model in get_services(model)
+                SR = get_component_type(service_model)
+                variable = get_variable(container, ChargingReserveVariable(), SR, get_service_name(service_model))
+                if SR <:PSY.Reserve{PSY.ReserveDown} 
+                    service_exp_dn =+ variable[ci_name, t]
+                else
+                    service_exp_up =+ variable[ci_name, t]
+                end
+            end
+            
+            con_lb[ci_name, t] = JuMP.@constraint(
+                container.JuMPmodel,
+                charge_var[ci_name, t] + service_exp_up <= P_max * (1- status_var[ci_name, t])
+            )
+            con_ub[ci_name, t] = JuMP.@constraint(
+                container.JuMPmodel,
+                charge_var[ci_name, t] - service_exp_dn >= 0.0
+            )
+        end
+    end
+    return
+end
+
+
+function PSI.add_constraints!(
+    container::PSI.OptimizationContainer,
+    T::Type{ReserveEnergyLimit},
+    devices::U,
+    service::V,
+    model::PSI.DeviceModel{D, W},
+    network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    V <: PSY.Reserve{ReserveUp},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
+    time_steps = PSI.get_time_steps(container)
+    resolution = PSI.get_resolution(container)
+    fraction_of_hour = Dates.value(Dates.Minute(resolution)) / PSI.MINUTES_IN_HOUR
+    initial_conditions = PSI.get_initial_condition(container, PSI.InitialEnergyLevel(), D)
+    energy_var = PSI.get_variable(container, PSI.EnergyVariable(), D)
+    reserve_var = PSI.get_variable(container, DischargingReserveVariable(), V, get_name(service))
+    names = [PSY.get_name(d) for d in devices]
+    con = PSI.add_constraints_container!(container, T(), D, names, time_steps)
+    for ic in initial_conditions
+        device = PSI.get_component(ic)
+        @assert service in get_services(device)
+        ci_name = PSY.get_name(device)
+        storage = PSY.get_storage(device)
+        efficiency = 1/PSY.get_efficiency(storage)
+        con[ci_name, 1] = JuMP.@constraint(
+            container.JuMPmodel,
+            PSI.get_value(ic) >= efficiency * fraction_of_hour * reserve_var[ci_name, 1]
+        )
+        for t in time_steps[2:end]
+            con[ci_name, t] = JuMP.@constraint(
+                container.JuMPmodel,
+                energy_var[ci_name, t-1] >= efficiency * fraction_of_hour * reserve_var[ci_name, t]
+            )
+        end
+    end
+    return
+end
+
+
+function PSI.add_constraints!(
+    container::PSI.OptimizationContainer,
+    T::Type{DischargingReservePowerLimit},
+    devices::U,
+    model::PSI.DeviceModel{D, W},
+    network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
+    time_steps = PSI.get_time_steps(container)
+    resolution = PSI.get_resolution(container)
+    fraction_of_hour = Dates.value(Dates.Minute(resolution)) / PSI.MINUTES_IN_HOUR
+    discharge_var = PSI.get_variable(container, BatteryDischarge(), D)
+    status_var = PSI.get_variable(container, BatteryStatus(), D)
+    sb_std = PSI.get_variable(container, DischargingReserveVariable(), D)
+    names = [PSY.get_name(d) for d in devices]
+    con_lb = PSI.add_constraints_container!(container, T(), D, names, time_steps; meta="lb")
+    con_ub = PSI.add_constraints_container!(container, T(), D, names, time_steps; meta="ub")
+    for device in devices
+        ci_name = PSY.get_name(device)
+        storage = PSY.get_storage(device)
+        P_max = PSY.get_output_active_power_limits(storage).max
+        for t in time_steps
+            service_exp_up = zero(JuMP.AffExpr)
+            service_exp_dn = zero(JuMP.AffExpr)
+            for service_model in get_services(model)
+                SR = get_component_type(service_model)
+                variable = get_variable(container, ChargingReserveVariable(), SR, get_service_name(service_model))
+                if SR <:PSY.Reserve{PSY.ReserveDown} 
+                    service_exp_dn =+ variable[ci_name, t]
+                else
+                    service_exp_up =+ variable[ci_name, t]
+                end
+            end
+            con_lb[ci_name, t] = JuMP.@constraint(
+                container.JuMPmodel,
+                discharge_var[ci_name, t] + service_exp_dn <= P_max * status_var[ci_name, t]
+            )
+            con_ub[ci_name, t] = JuMP.@constraint(
+                container.JuMPmodel,
+                discharge_var[ci_name, t] - service_exp_up >= 0.0
+            )
+        end
+    end
+    return
+end
+
+function PSI.add_constraints!(
+    container::PSI.OptimizationContainer,
+    T::Type{ThermalReserveLimit},
+    devices::U,
+    model::PSI.DeviceModel{D, W},
+    network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
+    time_steps = PSI.get_time_steps(container)
+    status_var = PSI.get_variable(container, ThermalStatus(), D)
+    p_var = PSI.get_variable(container, ThermalPower(), D)
+    names = [PSY.get_name(d) for d in devices]
+    con_up = PSI.add_constraints_container!(container, T(), D, names, time_steps; meta="up")
+    con_dn = PSI.add_constraints_container!(container, T(), D, names, time_steps; meta="dn")
+    for ic in initial_conditions
+        device = PSI.get_component(ic)
+        max_limit = PSY.get_active_power_limits(PSY.get_thermal_unit(device)).max
+        min_limit = PSY.get_active_power_limits(PSY.get_thermal_unit(device)).min
+        @assert service in get_services(device)
+        ci_name = PSY.get_name(device)
+        for t in time_steps
+            service_exp_up = zero(JuMP.AffExpr)
+            service_exp_dn = zero(JuMP.AffExpr)
+            for service_model in get_services(model)
+                SR = get_component_type(service_model)
+                variable = get_variable(container, ThermalReserveVariable(), SR, get_service_name(service_model))
+                if SR <:PSY.Reserve{PSY.ReserveDown}
+                    service_exp_dn =+ variable[ci_name, t]
+                else
+                    service_exp_up =+ variable[ci_name, t]
+                end
+            end
+            con_up[ci_name, t] = JuMP.@constraint(
+                container.JuMPmodel,
+                status_var[ci_name, t] * max_limit >= p_var[ci_name, t] + service_exp_up
+            )
+            con_dn[ci_name, t] = JuMP.@constraint(
+                container.JuMPmodel,
+                status_var[ci_name, t] * min_limit <= p_var[ci_name, t] - service_exp_dn
+            )
+        end
+    end
+    return
+end
+
+
+function PSI.add_constraints!(
+    container::PSI.OptimizationContainer,
+    T::Type{RenewableReserveLimit},
+    devices::U,
+    model::PSI.DeviceModel{D, W},
+    network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
+    time_steps = PSI.get_time_steps(container)
+    P = RenewablePowerTimeSeries
+    p_var = PSI.get_variable(container, RenewablePower(), D)
+    names = [PSY.get_name(d) for d in devices]
+    param_container = PSI.get_parameter(container, P(), D)
+    con_up = PSI.add_constraints_container!(container, T(), D, names, time_steps; meta="up")
+    con_dn = PSI.add_constraints_container!(container, T(), D, names, time_steps; meta="dn")
+    for ic in initial_conditions
+        device = PSI.get_component(ic)
+        multiplier = PSY.get_max_active_power(device.renewable_unit)
+        param = PSI.get_parameter_column_refs(param_container, ci_name)
+        @assert service in get_services(device)
+        ci_name = PSY.get_name(device)
+        for t in time_steps
+            service_exp_up = zero(JuMP.AffExpr)
+            service_exp_dn = zero(JuMP.AffExpr)
+            for service_model in get_services(model)
+                SR = get_component_type(service_model)
+                variable = get_variable(container, RenewableReserveVariable(), SR, get_service_name(service_model))
+                if SR <:PSY.Reserve{PSY.ReserveDown}
+                    service_exp_dn =+ variable[ci_name, t]
+                else
+                    service_exp_up =+ variable[ci_name, t]
+                end
+            end
+            con_up[ci_name, t] = JuMP.@constraint(
+                container.JuMPmodel,
+                multiplier * param[t] >= p_var[ci_name, t] + service_exp_up
+            )
+            con_dn[ci_name, t] = JuMP.@constraint(
+                container.JuMPmodel,
+                0.0 <= p_var[ci_name, t] - service_exp_dn
+            )
+        end
+    end
+    return
+end
+
+function PSI.add_constraints!(
+    container::PSI.OptimizationContainer,
+    T::Type{ReserveBalance},
+    devices::U,
+    service::V,
+    model::PSI.DeviceModel{D, W},
+    network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    V <: PSY.Reserve,
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
+    time_steps = PSI.get_time_steps(container)
+    res_var = PSI.get_variable(container, ReserveVariable(), V, get_name(service))
+    names = [PSY.get_name(d) for d in devices]
+    con = PSI.add_constraints_container!(container, T(), D, names, time_steps)
+    for ic in initial_conditions
+        device = PSI.get_component(ic)
+        @assert service in get_services(device)
+        ci_name = PSY.get_name(device)
+        for t in time_steps
+            service_exp = zero(JuMP.AffExpr)
+            if PSY.get_thermal_unit(d) !== nothing
+                var = PSI.get_variable(container, ThermalReserveVariable(), V, get_name(service))
+                service_exp =+ var[ci_name, t]
+            elseif PSY.get_renewable_unit(d) !== nothing
+                var = PSI.get_variable(container, RenewableReserveVariable(), V, get_name(service))
+                service_exp =+ var[ci_name, t]
+            elseif PSY.get_storage(d) !== nothing
+                discharge_res_var = PSI.get_variable(container, DischargingReserveVariable(), V, get_name(service))
+                charge_res_var = PSI.get_variable(container, ChargingReserveVariable(), V, get_name(service))
+                service_exp =+ discharge_res_var[ci_name, t]
+                service_exp =+ charge_res_var[ci_name, t]
+            end
+            con[ci_name, t] = JuMP.@constraint(
+                container.JuMPmodel,
+                res_var[ci_name, t] == service_exp
+            )
+        end
+    end
+    return
+end

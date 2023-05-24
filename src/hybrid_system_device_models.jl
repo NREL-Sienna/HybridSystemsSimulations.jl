@@ -246,6 +246,10 @@ PSI.get_parameter_multiplier(
     ::HybridEnergyOnlyFixedDA,
 ) = 1.0
 
+##### PSI HACK OVERLOAD #####
+
+PSI.get_attribute(::Nothing, ::String) = nothing
+
 ###################################################################
 ################### Objective Function ############################
 ###################################################################

@@ -44,7 +44,6 @@
     @test length(p_in) == 48
 end
 
-
 @testset "Test HybridSystem HybridBasicDispatch DeviceModel" begin
     ###############################
     ######## Load Systems #########

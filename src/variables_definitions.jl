@@ -57,6 +57,10 @@ struct BatteryDischarge <: HybridAssetVariableType end
 struct BatteryStatus <: HybridAssetVariableType end
 
 # AS Variable for battery
+struct ReserveVariableOut <: PSI.VariableType end
+struct ReserveVariableIn <: PSI.VariableType end
+struct ReserveReservationVariable <: PSI.VariableType end
+
 struct ChargingReserveVariable <: PSI.VariableType end
 struct DischargingReserveVariable <: PSI.VariableType end
 struct ThermalReserveVariable <: PSI.VariableType end

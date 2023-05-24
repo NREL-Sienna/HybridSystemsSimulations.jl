@@ -242,14 +242,25 @@ function PSI.construct_device!(
     _hybrids_with_storage = [d for d in devices if PSY.get_storage(d) !== nothing]
     _hybrids_with_loads = [d for d in devices if PSY.get_electric_load(d) !== nothing]
 
+    if PSI.has_service_model(model)
+        PSI.add_variables!(container, ReserveVariableOut, devices, D())
+        PSI.add_variables!(container, ReserveVariableIn, devices, D())
+        PSI.add_variables!(container, ReserveReservationVariable, devices, D())
+    end
     # Thermal
     if !isempty(_hybrids_with_thermal)
         PSI.add_variables!(container, ThermalPower, _hybrids_with_thermal, D())
         PSI.add_variables!(container, ThermalStatus, _hybrids_with_thermal, D())
-        if has_service_model(model)
+        if PSI.has_service_model(model)
             for service_model in get_services(model)
                 service = PSY.get_component(Service, sys, get_service_name(service_model))
-                PSI.add_variables!(container, ThermalReserveVariable, service, _hybrids_with_thermal, get_formulation(service_model))
+                PSI.add_variables!(
+                    container,
+                    ThermalReserveVariable,
+                    service,
+                    _hybrids_with_thermal,
+                    get_formulation(service_model),
+                )
             end
         end
     end
@@ -257,10 +268,16 @@ function PSI.construct_device!(
     # Renewable
     if !isempty(_hybrids_with_renewable)
         PSI.add_variables!(container, RenewablePower, _hybrids_with_renewable, D())
-        if has_service_model(model)
+        if PSI.has_service_model(model)
             for service_model in get_services(model)
                 service = PSY.get_component(Service, sys, get_service_name(service_model))
-                PSI.add_variables!(container, RenewableReserveVariable, service, _hybrids_with_renewable, get_formulation(service_model))
+                PSI.add_variables!(
+                    container,
+                    RenewableReserveVariable,
+                    service,
+                    _hybrids_with_renewable,
+                    get_formulation(service_model),
+                )
             end
         end
     end
@@ -272,11 +289,23 @@ function PSI.construct_device!(
         PSI.add_variables!(container, PSI.EnergyVariable, _hybrids_with_storage, D())
         PSI.add_variables!(container, BatteryStatus, _hybrids_with_storage, D())
 
-        if has_service_model(model)
+        if PSI.has_service_model(model)
             for service_model in get_services(model)
                 service = PSY.get_component(Service, sys, get_service_name(service_model))
-                PSI.add_variables!(container, ChargingReserveVariable, service, _hybrids_with_storage, get_formulation(service_model))
-                PSI.add_variables!(container, DischargingReserveVariable, service, _hybrids_with_storage, get_formulation(service_model))
+                PSI.add_variables!(
+                    container,
+                    ChargingReserveVariable,
+                    service,
+                    _hybrids_with_storage,
+                    get_formulation(service_model),
+                )
+                PSI.add_variables!(
+                    container,
+                    DischargingReserveVariable,
+                    service,
+                    _hybrids_with_storage,
+                    get_formulation(service_model),
+                )
             end
         end
         PSI.initial_conditions!(container, _hybrids_with_storage, D())
@@ -307,11 +336,7 @@ function PSI.construct_device!(
     ::PSI.ModelConstructStage,
     model::PSI.DeviceModel{T, D},
     network_model::PSI.NetworkModel{S},
-) where {
-    T <: PSY.HybridSystem,
-    D <: HybridBasicDispatch,
-    S <: PM.AbstractActivePowerModel,
-}
+) where {T <: PSY.HybridSystem, D <: HybridBasicDispatch, S <: PM.AbstractActivePowerModel}
     devices = PSI.get_available_components(T, sys)
 
     # Constraints
@@ -361,7 +386,7 @@ function PSI.construct_device!(
             model,
             network_model,
         )
-        if has_service_model(model)
+        if PSI.has_service_model(model)
             PSI.add_constraints!(
                 container,
                 ThermalReserveLimit,
@@ -409,7 +434,7 @@ function PSI.construct_device!(
             model,
             network_model,
         )
-        if has_service_model(model)
+        if PSI.has_service_model(model)
             for service_model in get_services(model)
                 service = PSY.get_component(Service, sys, get_service_name(service_model))
                 PSI.add_constraints!(
@@ -447,7 +472,7 @@ function PSI.construct_device!(
             model,
             network_model,
         )
-        if has_service_model(model)
+        if PSI.has_service_model(model)
             PSI.add_constraints!(
                 container,
                 RenewableReserveLimit,
@@ -458,7 +483,7 @@ function PSI.construct_device!(
         end
     end
 
-    if has_service_model(model)
+    if PSI.has_service_model(model)
         for service_model in get_services(model)
             service = PSY.get_component(Service, sys, get_service_name(service_model))
             PSI.add_constraints!(

@@ -4,6 +4,7 @@ module HybridSystemsSimulations
 export HybridEnergyOnlyDispatch
 export HybridEnergyOnlyFixedDA
 export HybridBasicDispatch
+
 # Decision Models
 export MerchantHybridEnergyOnly
 export MerchantHybridCooptimized

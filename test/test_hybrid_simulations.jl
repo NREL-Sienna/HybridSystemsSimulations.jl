@@ -39,7 +39,6 @@
     @test execute!(sim) == PSI.RunStatus.SUCCESSFUL
 end
 
-
 @testset "Test HybridSystem simulations" begin
     sys_uc = PSB.build_system(PSITestSystems, "c_sys5_hybrid_uc")
     sys_ed = PSB.build_system(PSITestSystems, "c_sys5_hybrid_ed")
@@ -141,7 +140,6 @@ end
     @test build_out == PSI.BuildStatus.BUILT
     @test execute!(sim) == PSI.RunStatus.SUCCESSFUL
 end
-
 
 @testset "Test HybridSystem simulations for HybridBasicDispatch" begin
     sys_uc = PSB.build_system(PSITestSystems, "c_sys5_hybrid_uc")

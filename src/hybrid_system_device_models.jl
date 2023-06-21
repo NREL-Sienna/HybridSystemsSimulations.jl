@@ -874,7 +874,7 @@ function PSI.add_constraints!(
     resolution = PSI.get_resolution(container)
     fraction_of_hour = Dates.value(Dates.Minute(resolution)) / PSI.MINUTES_IN_HOUR
     num_periods =
-        Dates.value(Dates.Minute(get_sustained_time(service))) / PSI.MINUTES_IN_HOUR
+        Dates.value(Dates.Minute(get_sustained_time(service))) / Dates.value(Dates.Minute(resolution)) 
     initial_conditions = PSI.get_initial_condition(container, PSI.InitialEnergyLevel(), D)
     energy_var = PSI.get_variable(container, PSI.EnergyVariable(), D)
     reserve_var =
@@ -939,20 +939,20 @@ function PSI.add_constraints!(
                     get_service_name(service_model),
                 )
                 if SR <: PSY.Reserve{PSY.ReserveDown}
-                    service_exp_dn = +variable[ci_name, t]
+                    JuMP.add_to_expression!(service_exp_dn, 1.0, variable[ci_name, t])
                 else
-                    service_exp_up = +variable[ci_name, t]
+                    JuMP.add_to_expression!(service_exp_up, 1.0, variable[ci_name, t])
                 end
             end
 
             con_lb[ci_name, t] = JuMP.@constraint(
                 container.JuMPmodel,
-                charge_var[ci_name, t] + service_exp_up <=
+                charge_var[ci_name, t] + service_exp_dn <=
                 P_max * (1 - status_var[ci_name, t])
             )
             con_ub[ci_name, t] = JuMP.@constraint(
                 container.JuMPmodel,
-                charge_var[ci_name, t] - service_exp_dn >= 0.0
+                charge_var[ci_name, t] - service_exp_up >= 0.0
             )
         end
     end
@@ -975,7 +975,7 @@ function PSI.add_constraints!(
     resolution = PSI.get_resolution(container)
     fraction_of_hour = Dates.value(Dates.Minute(resolution)) / PSI.MINUTES_IN_HOUR
     num_periods =
-        Dates.value(Dates.Minute(get_sustained_time(service))) / PSI.MINUTES_IN_HOUR
+        Dates.value(Dates.Minute(get_sustained_time(service))) / Dates.value(Dates.Minute(resolution))
     initial_conditions = PSI.get_initial_condition(container, PSI.InitialEnergyLevel(), D)
     energy_var = PSI.get_variable(container, PSI.EnergyVariable(), D)
     reserve_var =
@@ -1039,19 +1039,19 @@ function PSI.add_constraints!(
                     get_service_name(service_model),
                 )
                 if SR <: PSY.Reserve{PSY.ReserveDown}
-                    service_exp_dn = +variable[ci_name, t]
+                    JuMP.add_to_expression!(service_exp_dn, 1.0, variable[ci_name, t])
                 else
-                    service_exp_up = +variable[ci_name, t]
+                    JuMP.add_to_expression!(service_exp_up, 1.0, variable[ci_name, t])
                 end
             end
             con_lb[ci_name, t] = JuMP.@constraint(
                 container.JuMPmodel,
-                discharge_var[ci_name, t] + service_exp_dn <=
+                discharge_var[ci_name, t] + service_exp_up <=
                 P_max * status_var[ci_name, t]
             )
             con_ub[ci_name, t] = JuMP.@constraint(
                 container.JuMPmodel,
-                discharge_var[ci_name, t] - service_exp_up >= 0.0
+                discharge_var[ci_name, t] - service_exp_dn >= 0.0
             )
         end
     end
@@ -1092,9 +1092,9 @@ function PSI.add_constraints!(
                     get_service_name(service_model),
                 )
                 if SR <: PSY.Reserve{PSY.ReserveDown}
-                    service_exp_dn = +variable[ci_name, t]
+                    JuMP.add_to_expression!(service_exp_dn, 1.0, variable[ci_name, t])
                 else
-                    service_exp_up = +variable[ci_name, t]
+                    JuMP.add_to_expression!(service_exp_up, 1.0, variable[ci_name, t])
                 end
             end
             con_up[ci_name, t] = JuMP.@constraint(
@@ -1145,9 +1145,9 @@ function PSI.add_constraints!(
                     get_service_name(service_model),
                 )
                 if SR <: PSY.Reserve{PSY.ReserveDown}
-                    service_exp_dn = +variable[ci_name, t]
+                    JuMP.add_to_expression!(service_exp_dn, 1.0, variable[ci_name, t])
                 else
-                    service_exp_up = +variable[ci_name, t]
+                    JuMP.add_to_expression!(service_exp_up, 1.0, variable[ci_name, t])
                 end
             end
             con_up[ci_name, t] = JuMP.@constraint(
@@ -1192,7 +1192,7 @@ function PSI.add_constraints!(
                     V,
                     get_name(service),
                 )
-                service_exp = +var[ci_name, t]
+                JuMP.add_to_expression!(service_exp, 1.0, var[ci_name, t])
             elseif PSY.get_renewable_unit(d) !== nothing
                 var = PSI.get_variable(
                     container,
@@ -1200,7 +1200,7 @@ function PSI.add_constraints!(
                     V,
                     get_name(service),
                 )
-                service_exp = +var[ci_name, t]
+                JuMP.add_to_expression!(service_exp, 1.0, var[ci_name, t])
             elseif PSY.get_storage(d) !== nothing
                 discharge_res_var = PSI.get_variable(
                     container,
@@ -1214,8 +1214,8 @@ function PSI.add_constraints!(
                     V,
                     get_name(service),
                 )
-                service_exp = +discharge_res_var[ci_name, t]
-                service_exp = +charge_res_var[ci_name, t]
+                JuMP.add_to_expression!(service_exp, 1.0, discharge_res_var[ci_name, t])
+                JuMP.add_to_expression!(service_exp, 1.0, charge_res_var[ci_name, t])
             end
             con[ci_name, t] =
                 JuMP.@constraint(container.JuMPmodel, res_var[ci_name, t] == service_exp)

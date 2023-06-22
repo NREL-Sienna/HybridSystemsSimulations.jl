@@ -3,7 +3,7 @@ module HybridSystemsSimulations
 # Device Formulations
 export HybridEnergyOnlyDispatch
 export HybridEnergyOnlyFixedDA
-export HybridBasicDispatch
+export HybridDispatchWithReserves
 
 # Decision Models
 export MerchantHybridEnergyOnly

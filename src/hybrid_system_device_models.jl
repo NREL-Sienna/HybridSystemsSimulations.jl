@@ -426,6 +426,28 @@ end
 ###################################################################
 
 # Uses PSI calls
+function PSI.add_variables!(
+    container::OptimizationContainer,
+    ::Type{ThermalReserveVariable},
+    devices::Union{Vector{U}, IS.FlattenIteratorWrapper{U}},
+    formulation::HybridDispatchWithReserves,
+) where {U <: PSY.HybridSystem}
+    #TODO
+    if PSI.has_service_model(model)
+        for service_model in get_services(model)
+            service = PSY.get_component(Service, sys, get_service_name(service_model))
+            PSI.add_variables!(
+                container,
+                ThermalReserveVariable,
+                service,
+                _hybrids_with_thermal,
+                get_formulation(service_model),
+            )
+        end        
+    end
+
+end
+
 
 ###################################################################
 ######################## Parameters ###############################

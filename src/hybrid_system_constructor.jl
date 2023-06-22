@@ -198,13 +198,14 @@ function PSI.construct_device!(
     return
 end
 
+# Argument Constructor for Hybrid with Reserves
 function PSI.construct_device!(
     container::PSI.OptimizationContainer,
     sys::PSY.System,
     ::PSI.ArgumentConstructStage,
     model::PSI.DeviceModel{T, D},
     network_model::PSI.NetworkModel{S},
-) where {T <: PSY.HybridSystem, D <: HybridBasicDispatch, S <: PM.AbstractPowerModel}
+) where {T <: PSY.HybridSystem, D <: HybridDispatchWithReserves, S <: PM.AbstractPowerModel}
     devices = PSI.get_available_components(T, sys)
     # Add Common Variables
     PSI.add_variables!(container, PSI.ActivePowerOutVariable, devices, D())
@@ -231,10 +232,6 @@ function PSI.construct_device!(
 
     PSI.add_feedforward_arguments!(container, model, devices)
 
-    if PSI.has_service_model(model)
-        error("Services are not supported by $D")
-    end
-
     ### Add Component Variables ###
 
     _hybrids_with_thermal = [d for d in devices if PSY.get_thermal_unit(d) !== nothing]
@@ -251,18 +248,7 @@ function PSI.construct_device!(
     if !isempty(_hybrids_with_thermal)
         PSI.add_variables!(container, ThermalPower, _hybrids_with_thermal, D())
         PSI.add_variables!(container, ThermalStatus, _hybrids_with_thermal, D())
-        if PSI.has_service_model(model)
-            for service_model in get_services(model)
-                service = PSY.get_component(Service, sys, get_service_name(service_model))
-                PSI.add_variables!(
-                    container,
-                    ThermalReserveVariable,
-                    service,
-                    _hybrids_with_thermal,
-                    get_formulation(service_model),
-                )
-            end
-        end
+        # TODO Add reserve variables for thermal
     end
 
     # Renewable
@@ -329,14 +315,14 @@ function PSI.construct_device!(
     return
 end
 
-### ModelConstruct Hybrid Only Energy ###
+### ModelConstruct Hybrid with Reserves ###
 function PSI.construct_device!(
     container::PSI.OptimizationContainer,
     sys::PSY.System,
     ::PSI.ModelConstructStage,
     model::PSI.DeviceModel{T, D},
     network_model::PSI.NetworkModel{S},
-) where {T <: PSY.HybridSystem, D <: HybridBasicDispatch, S <: PM.AbstractActivePowerModel}
+) where {T <: PSY.HybridSystem, D <: HybridDispatchWithReserves, S <: PM.AbstractActivePowerModel}
     devices = PSI.get_available_components(T, sys)
 
     # Constraints

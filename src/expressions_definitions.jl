@@ -9,3 +9,4 @@ DischargeReserveUpExpression <: PSI.ExpressionType
 DischargeReserveDownExpression <: PSI.ExpressionType
 
 # Reserve Balance Expression
+ComponentReserveBalanceExpression <: PSI.ExpressionType

@@ -425,27 +425,33 @@ end
 ######################### Variables ###############################
 ###################################################################
 
-# Uses PSI calls
+# Uses PSI calls except component for reserves
 function PSI.add_variables!(
-    container::OptimizationContainer,
-    ::Type{ThermalReserveVariable},
+    container::PSI.OptimizationContainer,
+    ::Type{W},
     devices::Union{Vector{U}, IS.FlattenIteratorWrapper{U}},
     formulation::HybridDispatchWithReserves,
-) where {U <: PSY.HybridSystem}
-    #TODO
-    if PSI.has_service_model(model)
-        for service_model in get_services(model)
-            service = PSY.get_component(Service, sys, get_service_name(service_model))
-            PSI.add_variables!(
-                container,
-                ThermalReserveVariable,
-                service,
-                _hybrids_with_thermal,
-                get_formulation(service_model),
-            )
-        end        
-    end
+) where {U <: PSY.HybridSystem, W <: ComponentReserveVariableType}
 
+    time_steps = PSI.get_time_steps(container)
+    for service in PSY.get_services(device)
+        variable = PSI.add_variable_container!(
+            container,
+            W(),
+            typeof(service),
+            PSY.get_name.(devices),
+            time_steps,
+        )
+        for d in devices, t in time_steps
+            variable[d, t] = JuMP.@variable(
+                PSI.get_jump_model(container),
+                base_name = "$(W)_$(typeof(service))_{$(PSY.get_name(d)), $(t)}",
+                lower_bound = 0.0
+            )
+        end
+    end
+      
+    return
 end
 
 
@@ -454,6 +460,19 @@ end
 ###################################################################
 
 # Uses PSI calls
+
+function PSI.add_to_expression!(
+    
+)
+
+
+###################################################################
+####################### Expressions ###############################
+###################################################################
+
+# Uses PSI calls except for reserve Expressions
+
+function PSI.
 
 ###################################################################
 ######################## Initial Conditions #######################

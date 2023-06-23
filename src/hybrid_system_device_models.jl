@@ -245,6 +245,9 @@ PSI.get_variable_multiplier(::Type{<:ComponentReserveVariableType}, d::PSY.Hybri
 PSI.get_variable_multiplier(::Type{ChargingReserveVariable}, d::PSY.HybridSystem, ::HybridDispatchWithReserves, ::PSY.Reserve{PSY.ReserveUp}) = -1.0
 PSI.get_variable_multiplier(::Type{ChargingReserveVariable}, d::PSY.HybridSystem, ::HybridDispatchWithReserves, ::PSY.Reserve{PSY.ReserveDown}) = 1.0
 
+PSI.get_variable_multiplier(::Type{ReserveVariableOut}, d::PSY.HybridSystem, ::HybridDispatchWithReserves, ::PSY.Reserve) = -1.0
+PSI.get_variable_multiplier(::Type{ReserveVariableIn}, d::PSY.HybridSystem, ::HybridDispatchWithReserves, ::PSY.Reserve) = 1.0
+
 ################### Parameters ############################
 
 PSI.get_parameter_multiplier(
@@ -496,7 +499,7 @@ function PSI.add_to_expression!(
         for service in services            
             # TODO: This could be improved without requiring to read services for each component independently
             variable = PSI.get_variable(container, U(), typeof(service), PSY.get_name(service))
-            mult = PSI.get_variable_multiplier(T, d, W(), service)
+            mult = PSI.get_variable_multiplier(U, d, W(), service)
             for t in PSI.get_time_steps(container)
                 PSI._add_to_jump_expression(expression[name, t], variable[name, t], mult)
             end
@@ -505,6 +508,7 @@ function PSI.add_to_expression!(
     return
 end
 
+# Add Reserve Variable for each component to the Reserve Balance
 function PSI.add_to_expression!(
     container::PSI.OptimizationContainer,
     ::Type{T},
@@ -529,6 +533,40 @@ function PSI.add_to_expression!(
             expression = PSI.get_expression(container, T(), service_type)
             for t in PSI.get_time_steps(container)
                 PSI._add_to_jump_expression(expression[name, t], variable[name, t], 1.0)
+            end
+        end    
+    end
+    return
+end
+
+
+# Add ReserveOut and ReserveIn to the Reserve Balance
+function PSI.add_to_expression!(
+    container::PSI.OptimizationContainer,
+    ::Type{T},
+    ::Type{U},
+    devices::Union{Vector{V}, IS.FlattenIteratorWrapper{V}},
+    model::PSI.DeviceModel{V, W},
+    network_model::PSI.NetworkModel{X},
+) where {
+    T <: ComponentReserveBalanceExpression,
+    U <: Union{ReserveVariableOut, ReserveVariableIn},
+    V <: PSY.HybridSystem,
+    W <: HybridDispatchWithReserves,
+    X <: PM.AbstractPowerModel,
+}
+    for d in devices
+        name = PSY.get_name(d)
+        services = PSY.get_services(d)
+        for service in services            
+            # TODO: This could be improved without requiring to read services for each component independently
+            service_type = typeof(service)
+            service_name = PSY.get_name(service)
+            variable = PSI.get_variable(container, U(), service_type, service_name)
+            expression = PSI.get_expression(container, T(), service_type)
+            mult = PSI.get_variable_multiplier(U, d, W(), service)
+            for t in PSI.get_time_steps(container)
+                PSI._add_to_jump_expression(expression[service_name, t], variable[name, t], mult)
             end
         end    
     end

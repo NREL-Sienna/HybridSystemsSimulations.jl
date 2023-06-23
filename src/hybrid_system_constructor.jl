@@ -243,13 +243,30 @@ function PSI.construct_device!(
     if PSI.has_service_model(model)
         PSI.add_variables!(container, ReserveVariableOut, devices, D())
         PSI.add_variables!(container, ReserveVariableIn, devices, D())
-        PSI.add_variables!(container, ReserveReservationVariable, devices, D())
         PSI.lazy_container_addition!(
             container,
             ComponentReserveBalanceExpression(),
             T,
             service_names,
             get_time_steps(container),
+        )
+
+        PSI.add_to_expression!(
+            container,
+            ComponentReserveBalanceExpression,
+            ReserveVariableOut,
+            devices,
+            model,
+            network_model,
+        )
+
+        PSI.add_to_expression!(
+            container,
+            ComponentReserveBalanceExpression,
+            ReserveVariableIn,
+            devices,
+            model,
+            network_model,
         )
     end
 

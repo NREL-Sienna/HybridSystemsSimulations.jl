@@ -269,6 +269,7 @@ function PSI.construct_device!(
             PSY.get_name.(_hybrids_with_thermal),
             get_time_steps(container),
         )
+        
         PSI.lazy_container_addition!(
             container,
             ThermalReserveDownExpression(),

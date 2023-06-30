@@ -276,7 +276,12 @@ function PSI.construct_device!(
         PSI.add_variables!(container, ThermalStatus, _hybrids_with_thermal, D())
         # TODO Add reserve variables for thermal
         if PSI.has_service_model(model)
-            PSI.add_variables!(container, ThermalReserveVariable, _hybrids_with_thermal, D())
+            PSI.add_variables!(
+                container,
+                ThermalReserveVariable,
+                _hybrids_with_thermal,
+                D(),
+            )
         end
 
         PSI.lazy_container_addition!(
@@ -286,7 +291,7 @@ function PSI.construct_device!(
             PSY.get_name.(_hybrids_with_thermal),
             get_time_steps(container),
         )
-        
+
         PSI.lazy_container_addition!(
             container,
             ThermalReserveDownExpression(),
@@ -327,7 +332,12 @@ function PSI.construct_device!(
     if !isempty(_hybrids_with_renewable)
         PSI.add_variables!(container, RenewablePower, _hybrids_with_renewable, D())
         if PSI.has_service_model(model)
-            PSI.add_variables!(container, RenewableReserveVariable, _hybrids_with_renewable, D())
+            PSI.add_variables!(
+                container,
+                RenewableReserveVariable,
+                _hybrids_with_renewable,
+                D(),
+            )
         end
     end
 
@@ -339,8 +349,18 @@ function PSI.construct_device!(
         PSI.add_variables!(container, BatteryStatus, _hybrids_with_storage, D())
 
         if PSI.has_service_model(model)
-            PSI.add_variables!(container, ChargingReserveVariable, _hybrids_with_storage, D())
-            PSI.add_variables!(container, DischargingReserveVariable, _hybrids_with_storage, D())
+            PSI.add_variables!(
+                container,
+                ChargingReserveVariable,
+                _hybrids_with_storage,
+                D(),
+            )
+            PSI.add_variables!(
+                container,
+                DischargingReserveVariable,
+                _hybrids_with_storage,
+                D(),
+            )
         end
         PSI.initial_conditions!(container, _hybrids_with_storage, D())
     end
@@ -370,7 +390,11 @@ function PSI.construct_device!(
     ::PSI.ModelConstructStage,
     model::PSI.DeviceModel{T, D},
     network_model::PSI.NetworkModel{S},
-) where {T <: PSY.HybridSystem, D <: HybridDispatchWithReserves, S <: PM.AbstractActivePowerModel}
+) where {
+    T <: PSY.HybridSystem,
+    D <: HybridDispatchWithReserves,
+    S <: PM.AbstractActivePowerModel,
+}
     devices = PSI.get_available_components(T, sys)
 
     # Constraints

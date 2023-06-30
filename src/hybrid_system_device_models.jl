@@ -240,13 +240,43 @@ PSI.initial_condition_variable(
 
 ################### Reserve Variables ############################
 
-PSI.get_variable_multiplier(::Type{<:ComponentReserveVariableType}, d::PSY.HybridSystem, ::HybridDispatchWithReserves, ::PSY.Reserve{PSY.ReserveUp}) = 1.0
-PSI.get_variable_multiplier(::Type{<:ComponentReserveVariableType}, d::PSY.HybridSystem, ::HybridDispatchWithReserves, ::PSY.Reserve{PSY.ReserveDown}) = -1.0
-PSI.get_variable_multiplier(::Type{ChargingReserveVariable}, d::PSY.HybridSystem, ::HybridDispatchWithReserves, ::PSY.Reserve{PSY.ReserveUp}) = -1.0
-PSI.get_variable_multiplier(::Type{ChargingReserveVariable}, d::PSY.HybridSystem, ::HybridDispatchWithReserves, ::PSY.Reserve{PSY.ReserveDown}) = 1.0
+PSI.get_variable_multiplier(
+    ::Type{<:ComponentReserveVariableType},
+    d::PSY.HybridSystem,
+    ::HybridDispatchWithReserves,
+    ::PSY.Reserve{PSY.ReserveUp},
+) = 1.0
+PSI.get_variable_multiplier(
+    ::Type{<:ComponentReserveVariableType},
+    d::PSY.HybridSystem,
+    ::HybridDispatchWithReserves,
+    ::PSY.Reserve{PSY.ReserveDown},
+) = -1.0
+PSI.get_variable_multiplier(
+    ::Type{ChargingReserveVariable},
+    d::PSY.HybridSystem,
+    ::HybridDispatchWithReserves,
+    ::PSY.Reserve{PSY.ReserveUp},
+) = -1.0
+PSI.get_variable_multiplier(
+    ::Type{ChargingReserveVariable},
+    d::PSY.HybridSystem,
+    ::HybridDispatchWithReserves,
+    ::PSY.Reserve{PSY.ReserveDown},
+) = 1.0
 
-PSI.get_variable_multiplier(::Type{ReserveVariableOut}, d::PSY.HybridSystem, ::HybridDispatchWithReserves, ::PSY.Reserve) = -1.0
-PSI.get_variable_multiplier(::Type{ReserveVariableIn}, d::PSY.HybridSystem, ::HybridDispatchWithReserves, ::PSY.Reserve) = 1.0
+PSI.get_variable_multiplier(
+    ::Type{ReserveVariableOut},
+    d::PSY.HybridSystem,
+    ::HybridDispatchWithReserves,
+    ::PSY.Reserve,
+) = -1.0
+PSI.get_variable_multiplier(
+    ::Type{ReserveVariableIn},
+    d::PSY.HybridSystem,
+    ::HybridDispatchWithReserves,
+    ::PSY.Reserve,
+) = 1.0
 
 ################### Parameters ############################
 
@@ -442,7 +472,6 @@ function PSI.add_variables!(
     devices::Union{Vector{U}, IS.FlattenIteratorWrapper{U}},
     formulation::HybridDispatchWithReserves,
 ) where {U <: PSY.HybridSystem, W <: ComponentReserveVariableType}
-
     time_steps = PSI.get_time_steps(container)
     for service in PSY.get_services(device)
         variable = PSI.add_variable_container!(
@@ -460,10 +489,9 @@ function PSI.add_variables!(
             )
         end
     end
-      
+
     return
 end
-
 
 ###################################################################
 ######################## Parameters ###############################
@@ -496,14 +524,15 @@ function PSI.add_to_expression!(
     for d in devices
         name = PSY.get_name(d)
         services = PSY.get_services(d)
-        for service in services            
+        for service in services
             # TODO: This could be improved without requiring to read services for each component independently
-            variable = PSI.get_variable(container, U(), typeof(service), PSY.get_name(service))
+            variable =
+                PSI.get_variable(container, U(), typeof(service), PSY.get_name(service))
             mult = PSI.get_variable_multiplier(U, d, W(), service)
             for t in PSI.get_time_steps(container)
                 PSI._add_to_jump_expression(expression[name, t], variable[name, t], mult)
             end
-        end    
+        end
     end
     return
 end
@@ -526,7 +555,7 @@ function PSI.add_to_expression!(
     for d in devices
         name = PSY.get_name(d)
         services = PSY.get_services(d)
-        for service in services            
+        for service in services
             # TODO: This could be improved without requiring to read services for each component independently
             service_type = typeof(service)
             variable = PSI.get_variable(container, U(), service_type, PSY.get_name(service))
@@ -534,11 +563,10 @@ function PSI.add_to_expression!(
             for t in PSI.get_time_steps(container)
                 PSI._add_to_jump_expression(expression[name, t], variable[name, t], 1.0)
             end
-        end    
+        end
     end
     return
 end
-
 
 # Add ReserveOut and ReserveIn to the Reserve Balance
 function PSI.add_to_expression!(
@@ -558,7 +586,7 @@ function PSI.add_to_expression!(
     for d in devices
         name = PSY.get_name(d)
         services = PSY.get_services(d)
-        for service in services            
+        for service in services
             # TODO: This could be improved without requiring to read services for each component independently
             service_type = typeof(service)
             service_name = PSY.get_name(service)
@@ -566,15 +594,16 @@ function PSI.add_to_expression!(
             expression = PSI.get_expression(container, T(), service_type)
             mult = PSI.get_variable_multiplier(U, d, W(), service)
             for t in PSI.get_time_steps(container)
-                PSI._add_to_jump_expression(expression[service_name, t], variable[name, t], mult)
+                PSI._add_to_jump_expression(
+                    expression[service_name, t],
+                    variable[name, t],
+                    mult,
+                )
             end
-        end    
+        end
     end
     return
 end
-
-
-
 
 ###################################################################
 ######################## Initial Conditions #######################

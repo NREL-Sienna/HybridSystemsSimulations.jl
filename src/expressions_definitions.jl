@@ -4,14 +4,16 @@ abstract type ComponentReserveUpExpressionType <: ComponentReserveExpressionType
 abstract type ComponentReserveDownExpressionType <: ComponentReserveExpressionType end
 
 ### Component Total Reserve Expressions ###
-ThermalReserveUpExpression <: ComponentReserveUpExpressionType
-ThermalReserveDownExpression <: ComponentReserveDownExpressionType
-RenewableReserveUpExpression <: ComponentReserveUpExpressionType
-RenewableReserveDownExpression <: ComponentReserveDownExpressionType
-ChargeReserveUpExpression <: ComponentReserveUpExpressionType
-ChargeReserveDownExpression <: ComponentReserveDownExpressionType
-DischargeReserveUpExpression <: ComponentReserveUpExpressionType
-DischargeReserveDownExpression <: ComponentReserveDownExpressionType
+struct ThermalReserveUpExpression <: ComponentReserveUpExpressionType end
+struct ThermalReserveDownExpression <: ComponentReserveDownExpressionType end
+struct RenewableReserveUpExpression <: ComponentReserveUpExpressionType end
+struct RenewableReserveDownExpression <: ComponentReserveDownExpressionType end
+struct ChargeReserveUpExpression <: ComponentReserveUpExpressionType end
+struct ChargeReserveDownExpression <: ComponentReserveDownExpressionType end
+struct DischargeReserveUpExpression <: ComponentReserveUpExpressionType end
+struct DischargeReserveDownExpression <: ComponentReserveDownExpressionType end
 
 ### Reserve Balance Expression ###
-ComponentReserveBalanceExpression <: PSI.ExpressionType
+struct ComponentReserveBalanceExpression <: PSI.ExpressionType end
+struct TotalReserveUpExpression <: PSI.ExpressionType end
+struct TotalReserveDownExpression <: PSI.ExpressionType end

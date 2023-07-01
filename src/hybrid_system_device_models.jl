@@ -270,13 +270,13 @@ PSI.get_variable_multiplier(
     d::PSY.HybridSystem,
     ::HybridDispatchWithReserves,
     ::PSY.Reserve,
-) = -1.0
+) = 1.0
 PSI.get_variable_multiplier(
     ::Type{ReserveVariableIn},
     d::PSY.HybridSystem,
     ::HybridDispatchWithReserves,
     ::PSY.Reserve,
-) = 1.0
+) = -1.0
 
 ################### Parameters ############################
 
@@ -465,15 +465,27 @@ end
 ######################### Variables ###############################
 ###################################################################
 
-# Uses PSI calls except component for reserves
+# Uses PSI calls except for component with reserves
+
+# Reserve variable function for components
 function PSI.add_variables!(
     container::PSI.OptimizationContainer,
     ::Type{W},
     devices::Union{Vector{U}, IS.FlattenIteratorWrapper{U}},
     formulation::HybridDispatchWithReserves,
-) where {U <: PSY.HybridSystem, W <: ComponentReserveVariableType}
+) where {
+    U <: PSY.HybridSystem,
+    W <: Union{ComponentReserveVariableType, ReserveVariableOut, ReserveVariableIn},
+}
     time_steps = PSI.get_time_steps(container)
-    for service in PSY.get_services(device)
+    # TODO
+    # Best way to create this variable? We need to have all services and its type.
+    services = Vector()
+    for d in devices
+        services = vcat(PSY.get_services(d))
+    end
+    unique!(services)
+    for service in services
         variable = PSI.add_variable_container!(
             container,
             W(),
@@ -481,10 +493,12 @@ function PSI.add_variables!(
             PSY.get_name.(devices),
             time_steps,
         )
+        println(W())
+        println(PSY.get_name(service))
         for d in devices, t in time_steps
             variable[d, t] = JuMP.@variable(
                 PSI.get_jump_model(container),
-                base_name = "$(W)_$(typeof(service))_{$(PSY.get_name(d)), $(t)}",
+                base_name = "$(W)_$(U)_$(PSY.get_name(service))_{$(PSY.get_name(d)), $(t)}",
                 lower_bound = 0.0
             )
         end
@@ -505,7 +519,7 @@ end
 
 # Uses PSI calls except for reserve Expressions
 
-# ReserveUp Expression
+# ReserveUp/ReserveDown Upper/Lower Limit Expression
 function PSI.add_to_expression!(
     container::PSI.OptimizationContainer,
     ::Type{T},
@@ -514,8 +528,12 @@ function PSI.add_to_expression!(
     model::PSI.DeviceModel{V, W},
     network_model::PSI.NetworkModel{X},
 ) where {
-    T <: ComponentReserveExpressionType,
-    U <: VariableType,
+    T <: Union{
+        ComponentReserveExpressionType,
+        TotalReserveUpExpression,
+        TotalReserveDownExpression,
+    },
+    U <: PSI.VariableType,
     V <: PSY.HybridSystem,
     W <: HybridDispatchWithReserves,
     X <: PM.AbstractPowerModel,
@@ -675,6 +693,63 @@ function PSI.add_constraints!(
 ) where {
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
+    time_steps = PSI.get_time_steps(container)
+    names = [PSY.get_name(d) for d in devices]
+    varon = PSI.get_variable(container, PSI.ReservationVariable(), D)
+    p_in = PSI.get_variable(container, PSI.ActivePowerInVariable(), D)
+    con_ub = PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="ub")
+
+    for device in devices, t in time_steps
+        ci_name = PSY.get_name(device)
+        max_limit = PSI.get_variable_upper_bound(PSI.ActivePowerInVariable(), device, W())
+        @assert max_limit !== nothing ci_name
+        con_ub[ci_name, t] = JuMP.@constraint(
+            PSI.get_jump_model(container),
+            p_in[ci_name, t] <= max_limit * (1.0 - varon[ci_name, t])
+        )
+    end
+    return
+end
+
+# With Reserves
+function PSI.add_constraints!(
+    container::PSI.OptimizationContainer,
+    T::Type{<:StatusOutOn},
+    devices::U,
+    ::PSI.DeviceModel{D, W},
+    network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: HybridDispatchWithReserves,
+} where {D <: PSY.HybridSystem}
+    time_steps = PSI.get_time_steps(container)
+    names = [PSY.get_name(d) for d in devices]
+    varon = PSI.get_variable(container, PSI.ReservationVariable(), D)
+    p_out = PSI.get_variable(container, PSI.ActivePowerOutVariable(), D)
+    con_ub = PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="ub")
+
+    for device in devices, t in time_steps
+        ci_name = PSY.get_name(device)
+        max_limit = PSI.get_variable_upper_bound(PSI.ActivePowerOutVariable(), device, W())
+        @assert max_limit !== nothing ci_name
+        con_ub[ci_name, t] = JuMP.@constraint(
+            PSI.get_jump_model(container),
+            p_out[ci_name, t] <= max_limit * varon[ci_name, t]
+        )
+    end
+    return
+end
+
+function PSI.add_constraints!(
+    container::PSI.OptimizationContainer,
+    T::Type{<:StatusInOn},
+    devices::U,
+    ::PSI.DeviceModel{D, W},
+    network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: HybridDispatchWithReserves,
 } where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]

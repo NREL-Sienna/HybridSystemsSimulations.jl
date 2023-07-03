@@ -240,6 +240,17 @@ PSI.initial_condition_variable(
 
 ################### Reserve Variables ############################
 
+PSI.get_expression_type_for_reserve(
+    ::PSI.ActivePowerReserveVariable,
+    ::Type{<:PSY.HybridSystem},
+    ::Type{<:PSY.Reserve{PSY.ReserveUp}},
+) = PSI.ReserveRangeExpressionUB
+PSI.get_expression_type_for_reserve(
+    ::PSI.ActivePowerReserveVariable,
+    ::Type{<:PSY.HybridSystem},
+    ::Type{<:PSY.Reserve{PSY.ReserveDown}},
+) = PSI.ReserveRangeExpressionLB
+
 PSI.get_variable_multiplier(
     ::Type{<:ComponentReserveVariableType},
     d::PSY.HybridSystem,
@@ -480,25 +491,26 @@ function PSI.add_variables!(
     time_steps = PSI.get_time_steps(container)
     # TODO
     # Best way to create this variable? We need to have all services and its type.
-    services = Vector()
+    services = Set()
     for d in devices
-        services = vcat(PSY.get_services(d))
+        union!(services, PSY.get_services(d))
     end
-    unique!(services)
+
     for service in services
         variable = PSI.add_variable_container!(
             container,
             W(),
             typeof(service),
             PSY.get_name.(devices),
-            time_steps,
+            time_steps;
+            meta=PSY.get_name(service),
         )
-        println(W())
-        println(PSY.get_name(service))
+
         for d in devices, t in time_steps
-            variable[d, t] = JuMP.@variable(
+            name = PSY.get_name(d)
+            variable[name, t] = JuMP.@variable(
                 PSI.get_jump_model(container),
-                base_name = "$(W)_$(U)_$(PSY.get_name(service))_{$(PSY.get_name(d)), $(t)}",
+                base_name = "$(W)_$(PSY.get_name(service))_{$(PSY.get_name(d)), $(t)}",
                 lower_bound = 0.0
             )
         end
@@ -548,7 +560,7 @@ function PSI.add_to_expression!(
                 PSI.get_variable(container, U(), typeof(service), PSY.get_name(service))
             mult = PSI.get_variable_multiplier(U, d, W(), service)
             for t in PSI.get_time_steps(container)
-                PSI._add_to_jump_expression(expression[name, t], variable[name, t], mult)
+                PSI._add_to_jump_expression!(expression[name, t], variable[name, t], mult)
             end
         end
     end
@@ -573,13 +585,20 @@ function PSI.add_to_expression!(
     for d in devices
         name = PSY.get_name(d)
         services = PSY.get_services(d)
+        expression = PSI.get_expression(container, T(), V)
         for service in services
             # TODO: This could be improved without requiring to read services for each component independently
             service_type = typeof(service)
-            variable = PSI.get_variable(container, U(), service_type, PSY.get_name(service))
-            expression = PSI.get_expression(container, T(), service_type)
+            service_name = PSY.get_name(service)
+            variable = PSI.get_variable(container, U(), service_type, service_name)
             for t in PSI.get_time_steps(container)
-                PSI._add_to_jump_expression(expression[name, t], variable[name, t], 1.0)
+                expression[name, t]
+                variable[service_name, t]
+                PSI._add_to_jump_expression!(
+                    expression[name, t],
+                    variable[service_name, t],
+                    1.0,
+                )
             end
         end
     end
@@ -609,10 +628,10 @@ function PSI.add_to_expression!(
             service_type = typeof(service)
             service_name = PSY.get_name(service)
             variable = PSI.get_variable(container, U(), service_type, service_name)
-            expression = PSI.get_expression(container, T(), service_type)
+            expression = PSI.get_expression(container, T(), V)
             mult = PSI.get_variable_multiplier(U, d, W(), service)
             for t in PSI.get_time_steps(container)
-                PSI._add_to_jump_expression(
+                PSI._add_to_jump_expression!(
                     expression[service_name, t],
                     variable[name, t],
                     mult,

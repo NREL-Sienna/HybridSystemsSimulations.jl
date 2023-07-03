@@ -207,6 +207,7 @@ function PSI.construct_device!(
     network_model::PSI.NetworkModel{S},
 ) where {T <: PSY.HybridSystem, D <: HybridDispatchWithReserves, S <: PM.AbstractPowerModel}
     devices = PSI.get_available_components(T, sys)
+    device_names = PSY.get_name.(devices)
     service_names = PSY.get_name.(PSY.get_components(PSY.Reserve, sys))
     time_steps = PSI.get_time_steps(container)
     # Add Common Variables
@@ -245,33 +246,8 @@ function PSI.construct_device!(
     if PSI.has_service_model(model)
         PSI.add_variables!(container, ReserveVariableOut, devices, D())
         PSI.add_variables!(container, ReserveVariableIn, devices, D())
+
         # Ancillary Services Balance Expression
-        PSI.lazy_container_addition!(
-            container,
-            ComponentReserveBalanceExpression(),
-            T,
-            service_names,
-            time_steps,
-        )
-
-        PSI.add_to_expression!(
-            container,
-            ComponentReserveBalanceExpression,
-            ReserveVariableOut,
-            devices,
-            model,
-            network_model,
-        )
-
-        PSI.add_to_expression!(
-            container,
-            ComponentReserveBalanceExpression,
-            ReserveVariableIn,
-            devices,
-            model,
-            network_model,
-        )
-        # Expression for Total Reserve Up
         PSI.lazy_container_addition!(
             container,
             TotalReserveUpExpression(),
@@ -280,6 +256,15 @@ function PSI.construct_device!(
             time_steps,
         )
 
+        PSI.lazy_container_addition!(
+            container,
+            TotalReserveDownExpression(),
+            T,
+            PSY.get_name.(devices),
+            time_steps,
+        )
+
+        # Expression for Total Reserve Up
         PSI.add_to_expression!(
             container,
             TotalReserveUpExpression,
@@ -290,14 +275,6 @@ function PSI.construct_device!(
         )
 
         # Expression for Total Reserve Down
-        PSI.lazy_container_addition!(
-            container,
-            TotalReserveDownExpression(),
-            T,
-            PSY.get_name.(devices),
-            time_steps,
-        )
-
         PSI.add_to_expression!(
             container,
             TotalReserveDownExpression,
@@ -306,7 +283,38 @@ function PSI.construct_device!(
             model,
             network_model,
         )
+
+        for service_name in service_names
+            PSI.lazy_container_addition!(
+                container,
+                ComponentReserveBalanceExpression(),
+                T,
+                device_names,
+                time_steps;
+                meta=service_name,
+            )
+        end
     end
+    #= Add to Argument
+    PSI.add_to_expression!(
+        container,
+        ComponentReserveBalanceExpression,
+        ReserveVariableOut,
+        devices,
+        model,
+        network_model,
+    )
+
+    PSI.add_to_expression!(
+        container,
+        ComponentReserveBalanceExpression,
+        ReserveVariableIn,
+        devices,
+        model,
+        network_model,
+    )
+    # Expression for Total Reserve Up
+    =#
 
     # Thermal
     if !isempty(_hybrids_with_thermal)
@@ -338,6 +346,7 @@ function PSI.construct_device!(
                 time_steps,
             )
 
+            #=
             PSI.add_to_expression!(
                 container,
                 ComponentReserveBalanceExpression,
@@ -346,6 +355,7 @@ function PSI.construct_device!(
                 model,
                 network_model,
             )
+            =#
 
             PSI.add_to_expression!(
                 container,
@@ -396,6 +406,7 @@ function PSI.construct_device!(
                 time_steps,
             )
 
+            #=
             PSI.add_to_expression!(
                 container,
                 ComponentReserveBalanceExpression,
@@ -404,6 +415,7 @@ function PSI.construct_device!(
                 model,
                 network_model,
             )
+            =#
 
             PSI.add_to_expression!(
                 container,
@@ -466,6 +478,7 @@ function PSI.construct_device!(
                 time_steps,
             )
 
+            #=
             PSI.add_to_expression!(
                 container,
                 ComponentReserveBalanceExpression,
@@ -474,6 +487,7 @@ function PSI.construct_device!(
                 model,
                 network_model,
             )
+            =#
 
             PSI.add_to_expression!(
                 container,
@@ -510,6 +524,7 @@ function PSI.construct_device!(
                 time_steps,
             )
 
+            #=
             PSI.add_to_expression!(
                 container,
                 ComponentReserveBalanceExpression,
@@ -518,6 +533,7 @@ function PSI.construct_device!(
                 model,
                 network_model,
             )
+            =#
 
             PSI.add_to_expression!(
                 container,

@@ -684,8 +684,12 @@ function PSI.construct_device!(
             network_model,
         )
         if PSI.has_service_model(model)
-            for service_model in get_services(model)
-                service = PSY.get_component(Service, sys, get_service_name(service_model))
+            # TODO FIX: We need to ensure that when creating the constraints the each device has only its own services
+            services = Set()
+            for d in devices
+                union!(services, PSY.get_services(d))
+            end
+            for service in services
                 PSI.add_constraints!(
                     container,
                     ReserveEnergyLimit,
@@ -732,6 +736,7 @@ function PSI.construct_device!(
         end
     end
 
+    # TODO: Reserve Balance Method
     if PSI.has_service_model(model)
         for service_model in get_services(model)
             service = PSY.get_component(Service, sys, get_service_name(service_model))

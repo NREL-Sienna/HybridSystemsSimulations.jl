@@ -53,7 +53,7 @@ struct BidBalanceIn <: PSI.ConstraintType end
 struct StatusOutOn <: PSI.ConstraintType end
 struct StatusInOn <: PSI.ConstraintType end
 
-## AS for Battery
+## AS for Components
 struct ReserveEnergyLimit <: PSI.ConstraintType end
 struct ReserveBalance <: PSI.ConstraintType end
 struct ChargingReservePowerLimit <: PSI.ConstraintType end

@@ -4,6 +4,7 @@ using PowerSimulations
 using PowerSystemCaseBuilder
 using PowerNetworkMatrices
 using HybridSystemsSimulations
+using StorageSystemsSimulations
 using DataFrames
 using CSV
 using InfrastructureSystems
@@ -40,8 +41,8 @@ HiGHS_optimizer = JuMP.optimizer_with_attributes(
     HiGHS.Optimizer,
     "time_limit" => 300.0,
     "log_to_console" => false,
-    "mip_abs_gap" => 1e-1,
-    "mip_rel_gap" => 1e-1,
+    "mip_abs_gap" => 3e-1,
+    "mip_rel_gap" => 3e-1,
 )
 
 # Load

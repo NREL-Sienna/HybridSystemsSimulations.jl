@@ -15,5 +15,9 @@ struct DischargeReserveDownExpression <: ComponentReserveDownExpressionType end
 
 ### Reserve Balance Expression ###
 struct ComponentReserveBalanceExpression <: PSI.ExpressionType end
-struct TotalReserveUpExpression <: PSI.ExpressionType end
-struct TotalReserveDownExpression <: PSI.ExpressionType end
+abstract type TotalReserveUpExpression <: PSI.ExpressionType end
+abstract type TotalReserveDownExpression <: PSI.ExpressionType end
+struct TotalReserveOutUpExpression <: TotalReserveUpExpression end
+struct TotalReserveOutDownExpression <: TotalReserveDownExpression end
+struct TotalReserveInUpExpression <: TotalReserveUpExpression end
+struct TotalReserveInDownExpression <: TotalReserveDownExpression end

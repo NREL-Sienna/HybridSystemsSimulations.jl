@@ -6,10 +6,9 @@ export HybridEnergyOnlyFixedDA
 export HybridDispatchWithReserves
 
 # Decision Models
-export MerchantHybridEnergyOnly
-export MerchantHybridCooptimized
 export MerchantHybridEnergyCase
 export MerchantHybridEnergyFixedDA
+export MerchantHybridCooptimizerCase
 
 # Variables
 export EnergyDABidOut

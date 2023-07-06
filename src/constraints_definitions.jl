@@ -54,12 +54,15 @@ struct StatusOutOn <: PSI.ConstraintType end
 struct StatusInOn <: PSI.ConstraintType end
 
 ## AS for Components
-struct ReserveEnergyLimit <: PSI.ConstraintType end
-struct ReserveBalance <: PSI.ConstraintType end
+struct ReserveCoverageConstraint <: PSI.ConstraintType end
 struct ChargingReservePowerLimit <: PSI.ConstraintType end
 struct DischargingReservePowerLimit <: PSI.ConstraintType end
 struct ThermalReserveLimit <: PSI.ConstraintType end
 struct RenewableReserveLimit <: PSI.ConstraintType end
+
+## Auxiliary for Output
+struct AuxiliaryReserveConstraint <: PSI.ConstraintType end
+struct ReserveBalance <: PSI.ConstraintType end
 
 ###################
 ### Lower Level ###

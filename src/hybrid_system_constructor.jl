@@ -247,10 +247,10 @@ function PSI.construct_device!(
         PSI.add_variables!(container, ReserveVariableOut, devices, D())
         PSI.add_variables!(container, ReserveVariableIn, devices, D())
 
-        # Ancillary Services Balance Expression
+        # Ancillary Services Balance Expressions (Out/In Up/Down)
         PSI.lazy_container_addition!(
             container,
-            TotalReserveUpExpression(),
+            TotalReserveOutUpExpression(),
             T,
             PSY.get_name.(devices),
             time_steps,
@@ -258,64 +258,69 @@ function PSI.construct_device!(
 
         PSI.lazy_container_addition!(
             container,
-            TotalReserveDownExpression(),
+            TotalReserveOutDownExpression(),
             T,
             PSY.get_name.(devices),
             time_steps,
         )
 
-        # Expression for Total Reserve Up
+        PSI.lazy_container_addition!(
+            container,
+            TotalReserveInUpExpression(),
+            T,
+            PSY.get_name.(devices),
+            time_steps,
+        )
+
+        PSI.lazy_container_addition!(
+            container,
+            TotalReserveInDownExpression(),
+            T,
+            PSY.get_name.(devices),
+            time_steps,
+        )
+
+        # Expression for Total Reserve Out (Up/Down)
         PSI.add_to_expression!(
             container,
-            TotalReserveUpExpression,
+            TotalReserveOutUpExpression,
             ReserveVariableOut,
             devices,
             model,
             network_model,
         )
 
-        # Expression for Total Reserve Down
         PSI.add_to_expression!(
             container,
-            TotalReserveDownExpression,
+            TotalReserveOutDownExpression,
+            ReserveVariableOut,
+            devices,
+            model,
+            network_model,
+        )
+
+        # Expression for Total Reserve In (Up/Down)
+        PSI.add_to_expression!(
+            container,
+            TotalReserveInUpExpression,
             ReserveVariableIn,
             devices,
             model,
             network_model,
         )
 
-        for service_name in service_names
-            PSI.lazy_container_addition!(
-                container,
-                ComponentReserveBalanceExpression(),
-                T,
-                device_names,
-                time_steps;
-                meta=service_name,
-            )
-        end
+        PSI.add_to_expression!(
+            container,
+            TotalReserveInDownExpression,
+            ReserveVariableIn,
+            devices,
+            model,
+            network_model,
+        )
+
+    
     end
-    #= Add to Argument
-    PSI.add_to_expression!(
-        container,
-        ComponentReserveBalanceExpression,
-        ReserveVariableOut,
-        devices,
-        model,
-        network_model,
-    )
-
-    PSI.add_to_expression!(
-        container,
-        ComponentReserveBalanceExpression,
-        ReserveVariableIn,
-        devices,
-        model,
-        network_model,
-    )
-    # Expression for Total Reserve Up
-    =#
-
+    
     # Thermal
     if !isempty(_hybrids_with_thermal)
         # Physical Variables
@@ -330,6 +335,7 @@ function PSI.construct_device!(
                 D(),
             )
 
+            # Add reserve variables and expressions for thermal unit
             PSI.lazy_container_addition!(
                 container,
                 ThermalReserveUpExpression(),
@@ -346,17 +352,7 @@ function PSI.construct_device!(
                 time_steps,
             )
 
-            #=
-            PSI.add_to_expression!(
-                container,
-                ComponentReserveBalanceExpression,
-                ThermalReserveVariable,
-                _hybrids_with_thermal,
-                model,
-                network_model,
-            )
-            =#
-
+            # add to expression thermal up reserve
             PSI.add_to_expression!(
                 container,
                 ThermalReserveUpExpression,
@@ -366,6 +362,7 @@ function PSI.construct_device!(
                 network_model,
             )
 
+            # add to expression thermal down reserve
             PSI.add_to_expression!(
                 container,
                 ThermalReserveDownExpression,
@@ -390,6 +387,7 @@ function PSI.construct_device!(
                 D(),
             )
 
+            # Create renewable total up reserves
             PSI.lazy_container_addition!(
                 container,
                 RenewableReserveUpExpression(),
@@ -398,6 +396,7 @@ function PSI.construct_device!(
                 time_steps,
             )
 
+            # Create renewable total down reserves
             PSI.lazy_container_addition!(
                 container,
                 RenewableReserveDownExpression(),
@@ -406,17 +405,7 @@ function PSI.construct_device!(
                 time_steps,
             )
 
-            #=
-            PSI.add_to_expression!(
-                container,
-                ComponentReserveBalanceExpression,
-                RenewableReserveVariable,
-                _hybrids_with_renewable,
-                model,
-                network_model,
-            )
-            =#
-
+            # add to expression renewable up reserve
             PSI.add_to_expression!(
                 container,
                 RenewableReserveUpExpression,
@@ -426,6 +415,7 @@ function PSI.construct_device!(
                 network_model,
             )
 
+            # add to expression renewable down reserve
             PSI.add_to_expression!(
                 container,
                 RenewableReserveDownExpression,
@@ -461,7 +451,7 @@ function PSI.construct_device!(
                 D(),
             )
 
-            # Charge Reservation Expressions
+            # Add reserve variables and expressions for charging unit
             PSI.lazy_container_addition!(
                 container,
                 ChargeReserveUpExpression(),
@@ -477,17 +467,6 @@ function PSI.construct_device!(
                 PSY.get_name.(_hybrids_with_storage),
                 time_steps,
             )
-
-            #=
-            PSI.add_to_expression!(
-                container,
-                ComponentReserveBalanceExpression,
-                ChargingReserveVariable,
-                _hybrids_with_storage,
-                model,
-                network_model,
-            )
-            =#
 
             PSI.add_to_expression!(
                 container,
@@ -507,7 +486,7 @@ function PSI.construct_device!(
                 network_model,
             )
 
-            # Discharge Reservation Expressions
+            # Add reserve variables and expressions for discharging unit
             PSI.lazy_container_addition!(
                 container,
                 DischargeReserveUpExpression(),
@@ -523,17 +502,6 @@ function PSI.construct_device!(
                 PSY.get_name.(_hybrids_with_storage),
                 time_steps,
             )
-
-            #=
-            PSI.add_to_expression!(
-                container,
-                ComponentReserveBalanceExpression,
-                DischargingReserveVariable,
-                _hybrids_with_storage,
-                model,
-                network_model,
-            )
-            =#
 
             PSI.add_to_expression!(
                 container,
@@ -621,24 +589,25 @@ function PSI.construct_device!(
 
     # Thermal
     if !isempty(_hybrids_with_thermal)
-        PSI.add_constraints!(
-            container,
-            ThermalOnVariableOn,
-            _hybrids_with_thermal,
-            model,
-            network_model,
-        )
-        PSI.add_constraints!(
-            container,
-            ThermalOnVariableOff,
-            _hybrids_with_thermal,
-            model,
-            network_model,
-        )
         if PSI.has_service_model(model)
             PSI.add_constraints!(
                 container,
                 ThermalReserveLimit,
+                _hybrids_with_thermal,
+                model,
+                network_model,
+            )
+        else
+            PSI.add_constraints!(
+                container,
+                ThermalOnVariableOn,
+                _hybrids_with_thermal,
+                model,
+                network_model,
+            )
+            PSI.add_constraints!(
+                container,
+                ThermalOnVariableOff,
                 _hybrids_with_thermal,
                 model,
                 network_model,
@@ -648,20 +617,6 @@ function PSI.construct_device!(
 
     # Storage
     if !isempty(_hybrids_with_storage)
-        PSI.add_constraints!(
-            container,
-            BatteryStatusChargeOn,
-            _hybrids_with_storage,
-            model,
-            network_model,
-        )
-        PSI.add_constraints!(
-            container,
-            BatteryStatusDischargeOn,
-            _hybrids_with_storage,
-            model,
-            network_model,
-        )
         PSI.add_constraints!(
             container,
             BatteryBalance,
@@ -692,7 +647,7 @@ function PSI.construct_device!(
             for service in services
                 PSI.add_constraints!(
                     container,
-                    ReserveEnergyLimit,
+                    ReserveCoverageConstraint,
                     _hybrids_with_storage,
                     service,
                     model,
@@ -709,6 +664,21 @@ function PSI.construct_device!(
             PSI.add_constraints!(
                 container,
                 DischargingReservePowerLimit,
+                _hybrids_with_storage,
+                model,
+                network_model,
+            )
+        else
+            PSI.add_constraints!(
+            container,
+            BatteryStatusChargeOn,
+            _hybrids_with_storage,
+            model,
+            network_model,
+            )
+            PSI.add_constraints!(
+                container,
+                BatteryStatusDischargeOn,
                 _hybrids_with_storage,
                 model,
                 network_model,
@@ -738,8 +708,20 @@ function PSI.construct_device!(
 
     # TODO: Reserve Balance Method
     if PSI.has_service_model(model)
-        for service_model in get_services(model)
-            service = PSY.get_component(Service, sys, get_service_name(service_model))
+        services = Set()
+        for d in devices
+            union!(services, PSY.get_services(d))
+        end
+        for service in services
+            PSI.add_constraints!(
+                container,
+                AuxiliaryReserveConstraint,
+                devices,
+                service,
+                model,
+                network_model,
+            )
+
             PSI.add_constraints!(
                 container,
                 ReserveBalance,

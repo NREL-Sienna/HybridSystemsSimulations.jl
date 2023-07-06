@@ -893,7 +893,8 @@ function PSI.add_constraints!(
         @assert max_limit !== nothing ci_name
         con_ub[ci_name, t] = JuMP.@constraint(
             PSI.get_jump_model(container),
-            p_in[ci_name, t] + res_in_down[ci_name, t] <= max_limit * (1.0 - varon[ci_name, t])
+            p_in[ci_name, t] + res_in_down[ci_name, t] <=
+            max_limit * (1.0 - varon[ci_name, t])
         )
         con_lb[ci_name, t] = JuMP.@constraint(
             PSI.get_jump_model(container),
@@ -902,8 +903,6 @@ function PSI.add_constraints!(
     end
     return
 end
-
-
 
 ############ Asset Balance Constraints, HybridSystem ###############
 const JUMP_SET_TYPE = JuMP.Containers.DenseAxisArray{
@@ -1349,8 +1348,7 @@ function PSI.add_constraints!(
     resolution = PSI.get_resolution(container)
     fraction_of_hour = Dates.value(Dates.Minute(resolution)) / PSI.MINUTES_IN_HOUR
     sustained_time = PSY.get_sustained_time(service) # in seconds
-    num_periods =
-        sustained_time / Dates.value(Dates.Second(resolution))
+    num_periods = sustained_time / Dates.value(Dates.Second(resolution))
     initial_conditions = PSI.get_initial_condition(container, PSI.InitialEnergyLevel(), D)
     energy_var = PSI.get_variable(container, PSI.EnergyVariable(), D)
     service_name = PSY.get_name(service)
@@ -1520,7 +1518,14 @@ function PSI.add_constraints!(
     res_in = PSI.get_variable(container, ReserveVariableIn(), V, service_name)
     res_var = PSI.get_variable(container, PSI.ActivePowerReserveVariable(), V, service_name)
     names = [PSY.get_name(d) for d in devices]
-    con = PSI.add_constraints_container!(container, T(), D, names, time_steps, meta = service_name)
+    con = PSI.add_constraints_container!(
+        container,
+        T(),
+        D,
+        names,
+        time_steps,
+        meta=service_name,
+    )
     for device in devices, t in time_steps
         ci_name = PSY.get_name(device)
         con[ci_name, t] = JuMP.@constraint(
@@ -1548,7 +1553,14 @@ function PSI.add_constraints!(
     res_out = PSI.get_variable(container, ReserveVariableOut(), V, service_name)
     res_in = PSI.get_variable(container, ReserveVariableIn(), V, service_name)
     names = [PSY.get_name(d) for d in devices]
-    con = PSI.add_constraints_container!(container, T(), D, names, time_steps, meta = service_name)
+    con = PSI.add_constraints_container!(
+        container,
+        T(),
+        D,
+        names,
+        time_steps,
+        meta=service_name,
+    )
     for device in devices
         ci_name = PSY.get_name(device)
         vars_pos = Set{JUMP_SET_TYPE}()
@@ -1558,12 +1570,14 @@ function PSI.add_constraints!(
             push!(vars_pos, res_th[ci_name, :])
         end
         if !isnothing(PSY.get_renewable_unit(device))
-            res_re = PSI.get_variable(container, RenewableReserveVariable(), V, service_name)
+            res_re =
+                PSI.get_variable(container, RenewableReserveVariable(), V, service_name)
             push!(vars_pos, res_re[ci_name, :])
         end
         if !isnothing(PSY.get_storage(device))
             res_ch = PSI.get_variable(container, ChargingReserveVariable(), V, service_name)
-            res_ds = PSI.get_variable(container, DischargingReserveVariable(), V, service_name)
+            res_ds =
+                PSI.get_variable(container, DischargingReserveVariable(), V, service_name)
             push!(vars_pos, res_ds[ci_name, :])
             push!(vars_pos, res_ch[ci_name, :])
         end

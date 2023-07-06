@@ -317,10 +317,8 @@ function PSI.construct_device!(
             model,
             network_model,
         )
-
-    
     end
-    
+
     # Thermal
     if !isempty(_hybrids_with_thermal)
         # Physical Variables
@@ -670,11 +668,11 @@ function PSI.construct_device!(
             )
         else
             PSI.add_constraints!(
-            container,
-            BatteryStatusChargeOn,
-            _hybrids_with_storage,
-            model,
-            network_model,
+                container,
+                BatteryStatusChargeOn,
+                _hybrids_with_storage,
+                model,
+                network_model,
             )
             PSI.add_constraints!(
                 container,

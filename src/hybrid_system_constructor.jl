@@ -773,7 +773,7 @@ function PSI.construct_device!(
     return
 end
 
-### ModelConstruct Hybrid Only Energy ###
+### ModelConstruct Hybrid Only Energy FixedDA ###
 function PSI.construct_device!(
     container::PSI.OptimizationContainer,
     sys::PSY.System,

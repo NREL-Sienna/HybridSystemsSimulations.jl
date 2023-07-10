@@ -3,6 +3,7 @@ module HybridSystemsSimulations
 # Device Formulations
 export HybridEnergyOnlyDispatch
 export HybridEnergyOnlyFixedDA
+export HybridDispatchWithReserves
 
 # Decision Models
 export MerchantHybridEnergyOnly
@@ -39,6 +40,7 @@ include("formulations.jl")
 include("parameters_definitions.jl")
 include("variables_definitions.jl")
 include("constraints_definitions.jl")
+include("expressions_definitions.jl")
 include("hybrid_system_decision_models.jl")
 include("hybrid_system_device_models.jl")
 include("hybrid_system_constructor.jl")

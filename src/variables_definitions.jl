@@ -56,5 +56,17 @@ struct BatteryCharge <: HybridAssetVariableType end
 struct BatteryDischarge <: HybridAssetVariableType end
 struct BatteryStatus <: HybridAssetVariableType end
 
+# AS Variable for battery
+struct ReserveVariableOut <: PSI.VariableType end
+struct ReserveVariableIn <: PSI.VariableType end
+struct ReserveReservationVariable <: PSI.VariableType end
+
+abstract type ComponentReserveVariableType <: PSI.VariableType end
+
+struct ChargingReserveVariable <: ComponentReserveVariableType end
+struct DischargingReserveVariable <: ComponentReserveVariableType end
+struct ThermalReserveVariable <: ComponentReserveVariableType end
+struct RenewableReserveVariable <: ComponentReserveVariableType end
+
 # implement below
 # convert_result_to_natural_units(::Type{<:VariableType}) = false

@@ -1,4 +1,4 @@
-@testset "Test HybridSystem simulations" begin
+@testset "Test HybridSystem Simulation Only UC" begin
     sys_uc = PSB.build_system(PSITestSystems, "c_sys5_hybrid_uc")
 
     template_uc = get_template_standard_uc_simulation()
@@ -38,7 +38,7 @@
     @test build_out == PSI.BuildStatus.BUILT
     @test execute!(sim) == PSI.RunStatus.SUCCESSFUL
 end
-@testset "Test HybridSystem simulations" begin
+@testset "Test HybridSystem Simulation UC + ED" begin
     sys_uc = PSB.build_system(PSITestSystems, "c_sys5_hybrid_uc")
     sys_ed = PSB.build_system(PSITestSystems, "c_sys5_hybrid_ed")
 

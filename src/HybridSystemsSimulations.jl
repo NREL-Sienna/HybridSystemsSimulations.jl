@@ -35,12 +35,12 @@ using DocStringExtensions
                                  $(DOCSTRING)
                                  """
 
-include("decision_models.jl")
-include("formulations.jl")
-include("parameters_definitions.jl")
-include("variables_definitions.jl")
-include("constraints_definitions.jl")
-include("expressions_definitions.jl")
+include("core/decision_models.jl")
+include("core/formulations.jl")
+include("core/parameters.jl")
+include("core/variables.jl")
+include("core/constraints.jl")
+include("core/expressions.jl")
 include("hybrid_system_decision_models.jl")
 include("hybrid_system_device_models.jl")
 include("hybrid_system_constructor.jl")

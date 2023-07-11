@@ -68,7 +68,6 @@ PSI.get_variable_binary(
     ::AbstractHybridFormulation,
 ) = false
 
-
 # UBs and LowerBounds Decision Problem
 PSI.get_variable_lower_bound(
     ::EnergyDABidOut,
@@ -113,7 +112,6 @@ PSI.get_variable_upper_bound(
     d::PSY.HybridSystem,
     ::HybridDecisionProblem,
 ) = PSY.get_output_active_power_limits(d).max
-
 
 # UBs and LBs for Formulation
 PSI.get_variable_lower_bound(
@@ -160,7 +158,6 @@ PSI.get_variable_upper_bound(
     ::AbstractHybridFormulation,
 ) = PSY.get_output_active_power_limits(d).max
 
-
 function _get_row_val(df, row_name)
     return df[only(findall(==(row_name), df.ParamName)), :]["Value"]
 end
@@ -205,7 +202,7 @@ function PSI.add_variables!(
     ::Type{T},
     devices::Vector{PSY.HybridSystem},
     formulation::U,
-) where {T <: PSI.OnVariable,  U <: AbstractHybridFormulation}
+) where {T <: PSI.OnVariable, U <: AbstractHybridFormulation}
     @assert !isempty(devices)
     time_steps = PSY.get_ext(first(devices))["T_da"]
     variable = PSI.add_variable_container!(
@@ -272,10 +269,7 @@ function PSI.add_variables!(
     ::Type{W},
     devices::Union{Vector{U}, IS.FlattenIteratorWrapper{U}},
     formulation::MerchantHybridCooptimizerCase,
-) where {
-    U <: PSY.HybridSystem,
-    W <: ComponentReserveVariableType,
-}
+) where {U <: PSY.HybridSystem, W <: ComponentReserveVariableType}
     time_steps = PSI.get_time_steps(container)
     # TODO
     # Best way to create this variable? We need to have all services and its type.
@@ -570,7 +564,6 @@ end
 ########################## Builds #################################
 ###################################################################
 
-
 ## Merchant Only Energy Case Decision Model ##
 function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyCase})
     container = PSI.get_optimization_container(decision_model)
@@ -611,7 +604,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
     ###############################
     ######## Variables ############
     ###############################
-    
+
     # Add Market variables
     for v in [EnergyDABidOut, EnergyDABidIn]
         PSI.add_variables!(container, v, hybrids, MerchantModelEnergyOnly())
@@ -628,7 +621,6 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
     end
 
     # Add internal Asset Variables
-    
 
     ###############################
     ####### Parameters ############
@@ -640,7 +632,12 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
     _hybrids_with_thermal = [d for d in hybrids if PSY.get_thermal_unit(d) !== nothing]
 
     if !isempty(_hybrids_with_renewable)
-        PSI.add_variables!(container, RenewablePower, _hybrids_with_renewable, MerchantModelEnergyOnly())
+        PSI.add_variables!(
+            container,
+            RenewablePower,
+            _hybrids_with_renewable,
+            MerchantModelEnergyOnly(),
+        )
         add_time_series_parameters!(
             container,
             RenewablePowerTimeSeries(),
@@ -664,12 +661,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
     end
 
     if !isempty(_hybrids_with_storage)
-        for v in [
-            BatteryCharge,
-            BatteryDischarge,
-            PSI.EnergyVariable,
-            BatteryStatus,
-        ]
+        for v in [BatteryCharge, BatteryDischarge, PSI.EnergyVariable, BatteryStatus]
             PSI.add_variables!(container, v, hybrids, MerchantModelEnergyOnly())
         end
         PSI.add_initial_condition!(
@@ -681,14 +673,10 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
     end
 
     if !isempty(_hybrids_with_thermal)
-        for v in [
-            ThermalPower,
-            PSI.OnVariable,
-            ]
+        for v in [ThermalPower, PSI.OnVariable]
             PSI.add_variables!(container, v, hybrids, MerchantModelEnergyOnly())
         end
     end
-    
 
     ###############################
     ####### Obj. Function #########
@@ -1044,7 +1032,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
             )
         end
     end
-    
+
     return
 end
 
@@ -1084,7 +1072,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
         PSY.get_ext(h)["T_da"] = T_da
         PSY.get_ext(h)["tmap"] = tmap
     end
-    
+
     # Add Market variables
     for v in [EnergyDABidOut, EnergyDABidIn]
         PSI.add_variables!(container, v, hybrids, MerchantHybridCooptimizerCase())
@@ -1125,23 +1113,37 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
     _hybrids_with_thermal = [d for d in hybrids if PSY.get_thermal_unit(d) !== nothing]
 
     if !isempty(_hybrids_with_thermal)
-        PSI.add_variables!(container, ThermalReserveVariable, _hybrids_with_thermal, MerchantHybridCooptimizerCase())
+        PSI.add_variables!(
+            container,
+            ThermalReserveVariable,
+            _hybrids_with_thermal,
+            MerchantHybridCooptimizerCase(),
+        )
     end
 
     if !isempty(_hybrids_with_renewable)
-        PSI.add_variables!(container, RenewableReserveVariable, _hybrids_with_renewable, MerchantHybridCooptimizerCase())
+        PSI.add_variables!(
+            container,
+            RenewableReserveVariable,
+            _hybrids_with_renewable,
+            MerchantHybridCooptimizerCase(),
+        )
     end
 
     if !isempty(_hybrids_with_storage)
         for v in [ChargingReserveVariable, DischargingReserveVariable]
-            PSI.add_variables!(container, v, _hybrids_with_storage, MerchantHybridCooptimizerCase())
+            PSI.add_variables!(
+                container,
+                v,
+                _hybrids_with_storage,
+                MerchantHybridCooptimizerCase(),
+            )
         end
     end
     ###############################
     ####### Parameters ############
     ###############################
 
-    
     if !isempty(_hybrids_with_renewable)
         add_time_series_parameters!(
             container,
@@ -1179,7 +1181,12 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
     ###############################
 
     # This function add the parameters for both variables DABidOut and DABidIn
-    PSI.add_parameters!(container, DayAheadPrice(), hybrids, MerchantHybridCooptimizerCase())
+    PSI.add_parameters!(
+        container,
+        DayAheadPrice(),
+        hybrids,
+        MerchantHybridCooptimizerCase(),
+    )
 
     λ_da_pos = PSI.get_parameter_array(
         container,
@@ -1196,7 +1203,12 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
     )
 
     # This function add the parameters for both variables RTBidOut and RTBidIn
-    PSI.add_parameters!(container, RealTimePrice(), hybrids, MerchantHybridCooptimizerCase())
+    PSI.add_parameters!(
+        container,
+        RealTimePrice(),
+        hybrids,
+        MerchantHybridCooptimizerCase(),
+    )
 
     λ_rt_pos = PSI.get_parameter_array(
         container,
@@ -1510,7 +1522,6 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
     end
     return
 end
-
 
 ## Merchant Fixed DA: Not being used currently in Pipelines ##
 function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyFixedDA})

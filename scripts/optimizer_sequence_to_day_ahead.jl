@@ -89,11 +89,12 @@ decision_optimizer_DA = DecisionModel(
 build!(decision_optimizer_DA; output_dir=pwd())
 solve!(decision_optimizer_DA)
 
-
 cons = decision_optimizer_DA.internal.container.constraints
 vars = decision_optimizer_DA.internal.container.variables
 cons[PSI.ConstraintKey{HSS.StatusOutOn, HybridSystem}("")]["317_Hybrid", 1]
-JuMP.upper_bound(vars[PSI.VariableKey{HSS.EnergyRTBidOut, HybridSystem}("")]["317_Hybrid", 1])
+JuMP.upper_bound(
+    vars[PSI.VariableKey{HSS.EnergyRTBidOut, HybridSystem}("")]["317_Hybrid", 1],
+)
 mipgap = 0.01
 num_steps = 3
 start_time = DateTime("2020-10-03T00:00:00")

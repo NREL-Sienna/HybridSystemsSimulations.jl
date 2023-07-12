@@ -38,11 +38,19 @@
         MerchantHybridEnergyCase,
         ProblemTemplate(CopperPlatePowerModel),
         sys,
-        optimizer=Xpress.Optimizer,
+        optimizer=HiGHS_optimizer,
         calculate_conflict=true,
         store_variable_names=true;
         name="MerchantHybridEnergyCase_DA",
     )
 
     build!(decision_optimizer_DA; output_dir=pwd())
+    solve!(decision_optimizer_DA)
+
+    results = ProblemResults(decision_optimizer_DA)
+    var_results = results.variable_values
+    rt_bid_out = read_variable(results, "EnergyRTBidOut__HybridSystem")
+    da_bid_out = var_results[PSI.VariableKey{HSS.EnergyDABidOut, HybridSystem}("")]
+    @test length(da_bid_out[!, 1]) == 24
+    @test length(rt_bid_out[!, 1]) == 288
 end

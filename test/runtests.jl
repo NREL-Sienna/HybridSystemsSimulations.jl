@@ -32,6 +32,7 @@ const PSB = PowerSystemCaseBuilder
 const IS = InfrastructureSystems
 const PM = PSI.PM
 const PNM = PowerNetworkMatrices
+const HSS = HybridSystemsSimulations
 
 # Test Utils
 using JuMP

@@ -1033,6 +1033,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
         end
     end
 
+    PSI.serialize_metadata!(container, PSI.get_output_dir(decision_model))
     return
 end
 

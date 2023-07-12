@@ -89,6 +89,11 @@ decision_optimizer_DA = DecisionModel(
 build!(decision_optimizer_DA; output_dir=pwd())
 solve!(decision_optimizer_DA)
 
+results = ProblemResults(decision_optimizer_DA)
+var_results = results.variable_values
+rt_bid_out = read_variable(results, "EnergyRTBidOut__HybridSystem")
+da_bid_out = var_results[PSI.VariableKey{HSS.EnergyDABidOut, HybridSystem}("")]
+
 cons = decision_optimizer_DA.internal.container.constraints
 vars = decision_optimizer_DA.internal.container.variables
 cons[PSI.ConstraintKey{HSS.StatusOutOn, HybridSystem}("")]["317_Hybrid", 1]

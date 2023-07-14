@@ -1411,18 +1411,15 @@ end
 
 ############## Storage Constraints ReserveLimit, HybridSystem ###################
 
-# Range Constraint Coverage
-function PSI.add_constraints!(
+# Range Constraint Coverage Discharge
+function _add_constraints_reservecoverage_withreserves!(
     container::PSI.OptimizationContainer,
-    T::Type{ReserveCoverageConstraint},
+    T::Type{<:ReserveCoverageConstraint},
     devices::U,
     service::V,
-    model::PSI.DeviceModel{D, W},
-    network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
 ) where {
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     V <: PSY.Reserve{PSY.ReserveUp},
-    W <: HybridDispatchWithReserves,
 } where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     resolution = PSI.get_resolution(container)
@@ -1465,7 +1462,6 @@ function PSI.add_constraints!(
     return
 end
 
-# Sustained Time: Charging
 function PSI.add_constraints!(
     container::PSI.OptimizationContainer,
     T::Type{ReserveCoverageConstraint},
@@ -1475,8 +1471,22 @@ function PSI.add_constraints!(
     network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
 ) where {
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
-    V <: PSY.Reserve{PSY.ReserveDown},
+    V <: PSY.Reserve{PSY.ReserveUp},
     W <: HybridDispatchWithReserves,
+} where {D <: PSY.HybridSystem}
+    _add_constraints_reservecoverage_withreserves!(container, T, devices, service)
+    return
+end
+
+# Range Constraint Coverage Discharge
+function _add_constraints_reservecoverage_withreserves!(
+    container::PSI.OptimizationContainer,
+    T::Type{<:ReserveCoverageConstraint},
+    devices::U,
+    service::V,
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    V <: PSY.Reserve{PSY.ReserveDown},
 } where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     resolution = PSI.get_resolution(container)
@@ -1520,17 +1530,28 @@ function PSI.add_constraints!(
     return
 end
 
-# Charge Upper/Lower Reserve Limits
 function PSI.add_constraints!(
     container::PSI.OptimizationContainer,
-    T::Type{<:ChargingReservePowerLimit},
+    T::Type{ReserveCoverageConstraint},
     devices::U,
-    ::PSI.DeviceModel{D, W},
+    service::V,
+    model::PSI.DeviceModel{D, W},
     network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
 ) where {
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    V <: PSY.Reserve{PSY.ReserveDown},
     W <: HybridDispatchWithReserves,
 } where {D <: PSY.HybridSystem}
+    _add_constraints_reservecoverage_withreserves!(container, T, devices, service)
+    return
+end
+
+# Charge Upper/Lower Reserve Limits
+function _add_constraints_charging_reservelimit!(
+    container::PSI.OptimizationContainer,
+    T::Type{<:ThermalReserveLimit},
+    devices::U,
+) where {U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}}} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     status_st = PSI.get_variable(container, BatteryStatus(), D)
@@ -1545,23 +1566,20 @@ function PSI.add_constraints!(
         max_limit = PSY.get_input_active_power_limits(PSY.get_storage(device)).max
         con_ub[ci_name, t] = JuMP.@constraint(
             PSI.get_jump_model(container),
-            # TODO: Check that reg_th_dn expression is positive or handle sig
             p_ch[ci_name, t] + reg_ch_dn[ci_name, t] <=
             max_limit * (1.0 - status_st[ci_name, t])
         )
         con_lb[ci_name, t] = JuMP.@constraint(
             PSI.get_jump_model(container),
-            # TODO: Check that reg_th_up expression is negative or handle sign
             p_ch[ci_name, t] - reg_ch_up[ci_name, t] >= 0.0
         )
     end
     return
 end
 
-# Discharge Upper/Lower Reserve Limit
 function PSI.add_constraints!(
     container::PSI.OptimizationContainer,
-    T::Type{<:DischargingReservePowerLimit},
+    T::Type{<:ChargingReservePowerLimit},
     devices::U,
     ::PSI.DeviceModel{D, W},
     network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
@@ -1569,6 +1587,16 @@ function PSI.add_constraints!(
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     W <: HybridDispatchWithReserves,
 } where {D <: PSY.HybridSystem}
+    _add_constraints_charging_reservelimit!(container, T, devices)
+    return
+end
+
+# Discharge Upper/Lower Reserve Limit
+function _add_constraints_discharging_reservelimit!(
+    container::PSI.OptimizationContainer,
+    T::Type{<:ThermalReserveLimit},
+    devices::U,
+) where {U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}}} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     status_st = PSI.get_variable(container, BatteryStatus(), D)
@@ -1591,6 +1619,19 @@ function PSI.add_constraints!(
         )
     end
     return
+end
+
+function PSI.add_constraints!(
+    container::PSI.OptimizationContainer,
+    T::Type{<:DischargingReservePowerLimit},
+    devices::U,
+    ::PSI.DeviceModel{D, W},
+    network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: HybridDispatchWithReserves,
+} where {D <: PSY.HybridSystem}
+    _add_constraints_discharging_reservelimit!(container, T, devices)
 end
 
 ############## Renewable Constraints ReserveLimit, HybridSystem ###################

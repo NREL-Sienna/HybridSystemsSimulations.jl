@@ -15,6 +15,13 @@ export EnergyDABidOut
 export EnergyDABidIn
 export EnergyRTBidOut
 export EnergyRTBidIn
+export BidReserveVariableOut
+export BidReserveVariableIn
+
+# Parameters
+export DayAheadEnergyPrice
+export RealTimeEnergyPrice
+export AncillaryServicePrice
 
 import MathOptInterface
 import PowerSimulations

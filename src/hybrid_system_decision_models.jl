@@ -360,16 +360,19 @@ end
 
 # Multipliers consider that the objective function is a Maximization problem
 # But the default direction in PSI is Min.
-_get_multiplier(::Type{EnergyDABidOut}, ::DayAheadPrice) = -1.0
-_get_multiplier(::Type{EnergyDABidIn}, ::DayAheadPrice) = 1.0
-_get_multiplier(::Type{EnergyRTBidOut}, ::RealTimePrice) = -1.0
-_get_multiplier(::Type{EnergyRTBidIn}, ::RealTimePrice) = 1.0
-_get_multiplier(::Type{EnergyDABidOut}, ::RealTimePrice) = 1.0
-_get_multiplier(::Type{EnergyDABidIn}, ::RealTimePrice) = -1.0
+_get_multiplier(::Type{EnergyDABidOut}, ::DayAheadEnergyPrice) = -1.0
+_get_multiplier(::Type{EnergyDABidIn}, ::DayAheadEnergyPrice) = 1.0
+_get_multiplier(::Type{EnergyRTBidOut}, ::RealTimeEnergyPrice) = -1.0
+_get_multiplier(::Type{EnergyRTBidIn}, ::RealTimeEnergyPrice) = 1.0
+_get_multiplier(::Type{EnergyDABidOut}, ::RealTimeEnergyPrice) = 1.0
+_get_multiplier(::Type{EnergyDABidIn}, ::RealTimeEnergyPrice) = -1.0
+_get_multiplier(::Type{BidReserveVariableOut}, ::AncillaryServicePrice) = 1.0
+_get_multiplier(::Type{BidReserveVariableIn}, ::AncillaryServicePrice) = 1.0
 
+# DA and RT Prices
 function _add_price_time_series_parameters(
     container::PSI.OptimizationContainer,
-    param::Union{RealTimePrice, DayAheadPrice},
+    param::Union{RealTimeEnergyPrice, DayAheadEnergyPrice},
     ts_key::String,
     devices::Vector{PSY.HybridSystem},
     time_step_string::String,
@@ -418,6 +421,66 @@ function _add_price_time_series_parameters(
     return
 end
 
+# Ancillary Service Prices
+function _add_price_time_series_parameters(
+    container::PSI.OptimizationContainer,
+    param::AncillaryServicePrice,
+    ts_key::String,
+    devices::Vector{PSY.HybridSystem},
+    time_step_string::String,
+    vars::Vector,
+)
+    time_steps = 1:PSY.get_ext(first(devices))[time_step_string]
+    device_names = PSY.get_name.(devices)
+    jump_model = PSI.get_jump_model(container)
+
+    services = Set()
+    for d in devices
+        union!(services, PSY.get_services(d))
+    end
+    for var in vars
+        for service in services
+            service_name = PSY.get_name(service)
+            param_container = PSI.add_param_container!(
+                container,
+                param,
+                PSY.HybridSystem,
+                var,
+                PSI.SOSStatusVariable.NO_VARIABLE,
+                false,
+                Float64,
+                device_names,
+                time_steps;
+                meta="$(var)_$(service_name)",
+            )
+
+            for device in devices
+                ts_key_service = "$(ts_key)_$(service_name)"
+                λ = PSY.get_ext(device)[ts_key_service]
+                Bus_name = PSY.get_name(PSY.get_bus(device))
+                price_value = λ[!, Bus_name]
+                name = PSY.get_name(device)
+                for step in time_steps
+                    PSI.set_parameter!(
+                        param_container,
+                        jump_model,
+                        price_value[step],
+                        name,
+                        step,
+                    )
+                    PSI.set_multiplier!(
+                        param_container,
+                        _get_multiplier(var, param),
+                        name,
+                        step,
+                    )
+                end
+            end
+        end
+    end
+    return
+end
+
 function add_time_series_parameters!(
     container::PSI.OptimizationContainer,
     param::RenewablePowerTimeSeries,
@@ -443,7 +506,7 @@ function PSI.add_parameters!(
     devices::Vector{PSY.HybridSystem},
     ::W,
 ) where {
-    T <: Union{DayAheadPrice, RealTimePrice},
+    T <: Union{DayAheadEnergyPrice, RealTimeEnergyPrice, AncillaryServicePrice},
     W <: Union{MerchantModelEnergyOnly, MerchantModelWithReserves},
 }
     add_time_series_parameters!(container, param, devices)
@@ -451,7 +514,7 @@ end
 
 function add_time_series_parameters!(
     container::PSI.OptimizationContainer,
-    param::DayAheadPrice,
+    param::DayAheadEnergyPrice,
     devices::Vector{PSY.HybridSystem},
 )
     ts_key = "λ_da_df"
@@ -462,7 +525,7 @@ end
 
 function add_time_series_parameters!(
     container::PSI.OptimizationContainer,
-    param::RealTimePrice,
+    param::RealTimeEnergyPrice,
     devices::Vector{PSY.HybridSystem},
 )
     ts_key = "λ_rt_df"
@@ -471,11 +534,22 @@ function add_time_series_parameters!(
     return
 end
 
+function add_time_series_parameters!(
+    container::PSI.OptimizationContainer,
+    param::AncillaryServicePrice,
+    devices::Vector{PSY.HybridSystem},
+)
+    ts_key = "λ"
+    vars = [BidReserveVariableOut, BidReserveVariableIn]
+    _add_price_time_series_parameters(container, param, ts_key, devices, "horizon_DA", vars)
+    return
+end
+
 function PSI.update_parameter_values!(
     model::PSI.DecisionModel{T},
     key::PSI.ParameterKey{U, PSY.HybridSystem},
     ::PSI.DatasetContainer{PSI.DataFrameDataset},
-) where {T <: HybridDecisionProblem, U <: Union{DayAheadPrice, RealTimePrice}}
+) where {T <: HybridDecisionProblem, U <: Union{DayAheadEnergyPrice, RealTimeEnergyPrice}}
     container = PSI.get_optimization_container(model)
     @assert !PSI.is_synchronized(container)
     _update_parameter_values!(model, key)
@@ -484,7 +558,7 @@ end
 
 function _update_parameter_values!(
     model::PSI.DecisionModel{T},
-    key::PSI.ParameterKey{DayAheadPrice, PSY.HybridSystem},
+    key::PSI.ParameterKey{DayAheadEnergyPrice, PSY.HybridSystem},
 ) where {T <: HybridDecisionProblem}
     initial_forecast_time = PSI.get_current_time(model)
     container = PSI.get_optimization_container(model)
@@ -522,7 +596,7 @@ end
 # want to expose this level of detail to users wanting to make extensions
 function _update_parameter_values!(
     model::PSI.DecisionModel{T},
-    key::PSI.ParameterKey{RealTimePrice, PSY.HybridSystem},
+    key::PSI.ParameterKey{RealTimeEnergyPrice, PSY.HybridSystem},
 ) where {T <: HybridDecisionProblem}
     initial_forecast_time = PSI.get_current_time(model)
     container = PSI.get_optimization_container(model)
@@ -602,6 +676,11 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
     for h in hybrids
         PSY.get_ext(h)["T_da"] = T_da
         PSY.get_ext(h)["tmap"] = tmap
+    end
+
+    services = Set()
+    for d in hybrids
+        union!(services, PSY.get_services(d))
     end
 
     ###############################
@@ -686,49 +765,59 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
     ###############################
 
     # This function add the parameters for both variables DABidOut and DABidIn
-    PSI.add_parameters!(container, DayAheadPrice(), hybrids, MerchantModelEnergyOnly())
+    PSI.add_parameters!(
+        container,
+        DayAheadEnergyPrice(),
+        hybrids,
+        MerchantModelEnergyOnly(),
+    )
 
     λ_da_pos = PSI.get_parameter_array(
         container,
-        DayAheadPrice(),
+        DayAheadEnergyPrice(),
         PSY.HybridSystem,
         "EnergyDABidOut",
     )
 
     λ_da_neg = PSI.get_parameter_array(
         container,
-        DayAheadPrice(),
+        DayAheadEnergyPrice(),
         PSY.HybridSystem,
         "EnergyDABidIn",
     )
 
     # This function add the parameters for both variables RTBidOut and RTBidIn
-    PSI.add_parameters!(container, RealTimePrice(), hybrids, MerchantModelEnergyOnly())
+    PSI.add_parameters!(
+        container,
+        RealTimeEnergyPrice(),
+        hybrids,
+        MerchantModelEnergyOnly(),
+    )
 
     λ_rt_pos = PSI.get_parameter_array(
         container,
-        RealTimePrice(),
+        RealTimeEnergyPrice(),
         PSY.HybridSystem,
         "EnergyRTBidOut",
     )
 
     λ_rt_neg = PSI.get_parameter_array(
         container,
-        RealTimePrice(),
+        RealTimeEnergyPrice(),
         PSY.HybridSystem,
         "EnergyRTBidIn",
     )
 
     λ_dart_pos = PSI.get_parameter_array(
         container,
-        RealTimePrice(),
+        RealTimeEnergyPrice(),
         PSY.HybridSystem,
         "EnergyDABidOut",
     )
 
     λ_dart_neg = PSI.get_parameter_array(
         container,
-        RealTimePrice(),
+        RealTimeEnergyPrice(),
         PSY.HybridSystem,
         "EnergyDABidIn",
     )
@@ -1286,51 +1375,69 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
     ###############################
 
     # This function add the parameters for both variables DABidOut and DABidIn
-    PSI.add_parameters!(container, DayAheadPrice(), hybrids, MerchantModelWithReserves())
+    PSI.add_parameters!(
+        container,
+        DayAheadEnergyPrice(),
+        hybrids,
+        MerchantModelWithReserves(),
+    )
 
     λ_da_pos = PSI.get_parameter_array(
         container,
-        DayAheadPrice(),
+        DayAheadEnergyPrice(),
         PSY.HybridSystem,
         "EnergyDABidOut",
     )
 
     λ_da_neg = PSI.get_parameter_array(
         container,
-        DayAheadPrice(),
+        DayAheadEnergyPrice(),
         PSY.HybridSystem,
         "EnergyDABidIn",
     )
 
     # This function add the parameters for both variables RTBidOut and RTBidIn
-    PSI.add_parameters!(container, RealTimePrice(), hybrids, MerchantModelWithReserves())
+    PSI.add_parameters!(
+        container,
+        RealTimeEnergyPrice(),
+        hybrids,
+        MerchantModelWithReserves(),
+    )
 
     λ_rt_pos = PSI.get_parameter_array(
         container,
-        RealTimePrice(),
+        RealTimeEnergyPrice(),
         PSY.HybridSystem,
         "EnergyRTBidOut",
     )
 
     λ_rt_neg = PSI.get_parameter_array(
         container,
-        RealTimePrice(),
+        RealTimeEnergyPrice(),
         PSY.HybridSystem,
         "EnergyRTBidIn",
     )
 
     λ_dart_pos = PSI.get_parameter_array(
         container,
-        RealTimePrice(),
+        RealTimeEnergyPrice(),
         PSY.HybridSystem,
         "EnergyDABidOut",
     )
 
     λ_dart_neg = PSI.get_parameter_array(
         container,
-        RealTimePrice(),
+        RealTimeEnergyPrice(),
         PSY.HybridSystem,
         "EnergyDABidIn",
+    )
+
+    # This function add the parameters for each Ancillary Service Variable (Out and In)
+    PSI.add_parameters!(
+        container,
+        AncillaryServicePrice(),
+        hybrids,
+        MerchantModelEnergyOnly(),
     )
 
     # DA costs
@@ -1346,6 +1453,38 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
         lin_cost_da_in = -Δt_DA * λ_da_neg[name, t] * eb_da_in[name, t]
         PSI.add_to_objective_variant_expression!(container, lin_cost_da_out)
         PSI.add_to_objective_variant_expression!(container, lin_cost_da_in)
+        dev_services = PSY.get_services(dev)
+        for service in dev_services
+            service_name = PSY.get_name(service)
+            price_service_out = PSI.get_parameter_array(
+                container,
+                AncillaryServicePrice(),
+                PSY.HybridSystem,
+                "BidReserveVariableOut_$(service_name)",
+            )
+            sb_service_out = PSI.get_variable(
+                container,
+                BidReserveVariableOut(),
+                typeof(service),
+                service_name,
+            )
+            price_service_in = PSI.get_parameter_array(
+                container,
+                AncillaryServicePrice(),
+                PSY.HybridSystem,
+                "BidReserveVariableIn_$(service_name)",
+            )
+            sb_service_in = PSI.get_variable(
+                container,
+                BidReserveVariableIn(),
+                typeof(service),
+                service_name,
+            )
+            service_out_cost = Δt_DA * price_service_out[name, t] * sb_service_out[name, t]
+            service_in_cost = Δt_DA * price_service_in[name, t] * sb_service_in[name, t]
+            PSI.add_to_objective_variant_expression!(container, service_out_cost)
+            PSI.add_to_objective_variant_expression!(container, service_in_cost)
+        end
         if !isnothing(dev.thermal_unit)
             t_gen = dev.thermal_unit
             three_cost = PSY.get_operation_cost(t_gen)

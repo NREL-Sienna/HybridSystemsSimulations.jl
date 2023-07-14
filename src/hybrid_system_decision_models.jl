@@ -441,8 +441,11 @@ function PSI.add_parameters!(
     container::PSI.OptimizationContainer,
     param::T,
     devices::Vector{PSY.HybridSystem},
-    ::MerchantModelEnergyOnly,
-) where {T <: Union{DayAheadPrice, RealTimePrice}}
+    ::W,
+) where {
+    T <: Union{DayAheadPrice, RealTimePrice},
+    W <: Union{MerchantModelEnergyOnly, MerchantModelWithReserves},
+}
     add_time_series_parameters!(container, param, devices)
 end
 
@@ -1114,7 +1117,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
             container,
             RenewablePower,
             _hybrids_with_renewable,
-            MerchantModelEnergyOnly(),
+            MerchantModelWithReserves(),
         )
         add_time_series_parameters!(
             container,
@@ -1140,19 +1143,19 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
 
     if !isempty(_hybrids_with_storage)
         for v in [BatteryCharge, BatteryDischarge, PSI.EnergyVariable, BatteryStatus]
-            PSI.add_variables!(container, v, hybrids, MerchantModelEnergyOnly())
+            PSI.add_variables!(container, v, hybrids, MerchantModelWithReserves())
         end
         PSI.add_initial_condition!(
             container,
             _hybrids_with_storage,
-            MerchantModelEnergyOnly(),
+            MerchantModelWithReserves(),
             PSI.InitialEnergyLevel(),
         )
     end
 
     if !isempty(_hybrids_with_thermal)
         for v in [ThermalPower, PSI.OnVariable]
-            PSI.add_variables!(container, v, hybrids, MerchantModelEnergyOnly())
+            PSI.add_variables!(container, v, hybrids, MerchantModelWithReserves())
         end
     end
 
@@ -1161,7 +1164,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
     ###############################
 
     # This function add the parameters for both variables DABidOut and DABidIn
-    PSI.add_parameters!(container, DayAheadPrice(), hybrids, MerchantModelEnergyOnly())
+    PSI.add_parameters!(container, DayAheadPrice(), hybrids, MerchantModelWithReserves())
 
     λ_da_pos = PSI.get_parameter_array(
         container,
@@ -1178,7 +1181,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
     )
 
     # This function add the parameters for both variables RTBidOut and RTBidIn
-    PSI.add_parameters!(container, RealTimePrice(), hybrids, MerchantModelEnergyOnly())
+    PSI.add_parameters!(container, RealTimePrice(), hybrids, MerchantModelWithReserves())
 
     λ_rt_pos = PSI.get_parameter_array(
         container,
@@ -1364,27 +1367,30 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
             T_rt,
         )
 
-        constraint_battery_balance = PSI.add_constraints_container!(
+        # Battery Balance
+        _add_constraints_batterybalance!(
             container,
-            BatteryBalance(),
-            PSY.HybridSystem,
-            h_names,
-            T_rt,
+            BatteryBalance,
+            _hybrids_with_storage,
+            MerchantModelWithReserves(),
         )
 
-        constraint_cycling_charge = PSI.add_constraints_container!(
-            container,
-            CyclingCharge(),
-            PSY.HybridSystem,
-            h_names,
-        )
-
-        constraint_cycling_discharge = PSI.add_constraints_container!(
-            container,
-            CyclingDischarge(),
-            PSY.HybridSystem,
-            h_names,
-        )
+        # TODO: set-up cycling in the decision model
+        cycling = true
+        if cycling
+            _add_constraints_cyclingcharge!(
+                container,
+                CyclingCharge,
+                _hybrids_with_storage,
+                MerchantModelWithReserves(),
+            )
+            _add_constraints_cyclingdischarge!(
+                container,
+                CyclingDischarge,
+                _hybrids_with_storage,
+                MerchantModelWithReserves(),
+            )
+        end
     end
 
     if !isempty(_hybrids_with_renewable)
@@ -1400,6 +1406,8 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
         re_param_container =
             PSI.get_parameter(container, RenewablePowerTimeSeries(), PSY.HybridSystem)
     end
+
+    #= Old Constraints
     for t in T_rt
         for dev in hybrids
             name = PSY.get_name(dev)
@@ -1510,7 +1518,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
             )
         end
     end
-
+    =#
     PSI.serialize_metadata!(container, PSI.get_output_dir(decision_model))
     return
 end

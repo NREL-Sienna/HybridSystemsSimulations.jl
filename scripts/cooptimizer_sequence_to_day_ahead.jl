@@ -102,3 +102,7 @@ decision_optimizer_DA = DecisionModel(
 )
 
 build!(decision_optimizer_DA; output_dir=pwd())
+
+cons = decision_optimizer_DA.internal.container.constraints
+
+cons[PSI.ConstraintKey{HSS.BatteryBalance, HybridSystem}("")]["317_Hybrid", 2]

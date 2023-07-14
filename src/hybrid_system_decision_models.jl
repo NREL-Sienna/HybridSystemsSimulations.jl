@@ -1045,6 +1045,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
     container = PSI.get_optimization_container(decision_model)
     model = container.JuMPmodel
     sys = PSI.get_system(decision_model)
+    T = PSY.HybridSystem
     # Resolution
     RT_resolution = PSY.get_time_series_resolution(sys)
     Δt_DA = 1.0
@@ -1062,6 +1063,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
     T_da = 1:len_DA
     T_rt = 1:len_RT
     container.time_steps = T_rt
+    time_steps = T_rt
 
     # Map for DA to RT
     tmap = [div(k - 1, Int(length(T_rt) / length(T_da))) + 1 for k in T_rt]
@@ -1168,25 +1170,44 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
 
     if !isempty(_hybrids_with_thermal)
         for v in [ThermalPower, PSI.OnVariable, ThermalReserveVariable]
-            PSI.add_variables!(container, v, hybrids, MerchantModelWithReserves())
-
-            # Add Expressions for Thermal
-            PSI.lazy_container_addition!(
+            PSI.add_variables!(
                 container,
-                ThermalReserveUpExpression(),
-                T,
-                PSY.get_name.(_hybrids_with_thermal),
-                time_steps,
-            )
-
-            PSI.lazy_container_addition!(
-                container,
-                ThermalReserveDownExpression(),
-                T,
-                PSY.get_name.(_hybrids_with_thermal),
-                time_steps,
+                v,
+                _hybrids_with_thermal,
+                MerchantModelWithReserves(),
             )
         end
+        # Add Expressions for Thermal
+        PSI.lazy_container_addition!(
+            container,
+            ThermalReserveUpExpression(),
+            T,
+            PSY.get_name.(_hybrids_with_thermal),
+            time_steps,
+        )
+
+        PSI.lazy_container_addition!(
+            container,
+            ThermalReserveDownExpression(),
+            T,
+            PSY.get_name.(_hybrids_with_thermal),
+            time_steps,
+        )
+
+        add_to_expression_componentreserveup!(
+            container,
+            ThermalReserveUpExpression,
+            ThermalReserveVariable,
+            _hybrids_with_thermal,
+            MerchantModelWithReserves(),
+        )
+        add_to_expression_componentreservedown!(
+            container,
+            ThermalReserveDownExpression,
+            ThermalReserveVariable,
+            _hybrids_with_thermal,
+            MerchantModelWithReserves(),
+        )
     end
 
     ###############################

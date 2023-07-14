@@ -257,38 +257,50 @@ PSI.get_expression_type_for_reserve(
 PSI.get_variable_multiplier(
     ::Type{<:ComponentReserveVariableType},
     d::PSY.HybridSystem,
-    ::HybridDispatchWithReserves,
+    ::AbstractHybridFormulationWithReserves,
     ::PSY.Reserve{PSY.ReserveUp},
 ) = 1.0
 PSI.get_variable_multiplier(
     ::Type{<:ComponentReserveVariableType},
     d::PSY.HybridSystem,
-    ::HybridDispatchWithReserves,
+    ::AbstractHybridFormulationWithReserves,
     ::PSY.Reserve{PSY.ReserveDown},
 ) = 1.0
 PSI.get_variable_multiplier(
     ::Type{ChargingReserveVariable},
     d::PSY.HybridSystem,
-    ::HybridDispatchWithReserves,
+    ::AbstractHybridFormulationWithReserves,
     ::PSY.Reserve{PSY.ReserveUp},
 ) = 1.0
 PSI.get_variable_multiplier(
     ::Type{ChargingReserveVariable},
     d::PSY.HybridSystem,
-    ::HybridDispatchWithReserves,
+    ::AbstractHybridFormulationWithReserves,
+    ::PSY.Reserve{PSY.ReserveDown},
+) = 1.0
+PSI.get_variable_multiplier(
+    ::Type{ThermalReserveVariable},
+    d::PSY.HybridSystem,
+    ::AbstractHybridFormulationWithReserves,
+    ::PSY.Reserve{PSY.ReserveUp},
+) = 1.0
+PSI.get_variable_multiplier(
+    ::Type{ThermalReserveVariable},
+    d::PSY.HybridSystem,
+    ::AbstractHybridFormulationWithReserves,
     ::PSY.Reserve{PSY.ReserveDown},
 ) = 1.0
 
 PSI.get_variable_multiplier(
     ::Type{ReserveVariableOut},
     d::PSY.HybridSystem,
-    ::HybridDispatchWithReserves,
+    ::AbstractHybridFormulationWithReserves,
     ::PSY.Reserve,
 ) = 1.0
 PSI.get_variable_multiplier(
     ::Type{ReserveVariableIn},
     d::PSY.HybridSystem,
-    ::HybridDispatchWithReserves,
+    ::AbstractHybridFormulationWithReserves,
     ::PSY.Reserve,
 ) = 1.0
 
@@ -493,6 +505,8 @@ function PSI.add_variables!(
     time_steps = PSI.get_time_steps(container)
     # TODO
     # Best way to create this variable? We need to have all services and its type.
+    @show "here"
+    @show W
     services = Set()
     for d in devices
         union!(services, PSY.get_services(d))

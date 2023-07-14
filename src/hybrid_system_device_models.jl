@@ -505,8 +505,6 @@ function PSI.add_variables!(
     time_steps = PSI.get_time_steps(container)
     # TODO
     # Best way to create this variable? We need to have all services and its type.
-    @show "here"
-    @show W
     services = Set()
     for d in devices
         union!(services, PSY.get_services(d))

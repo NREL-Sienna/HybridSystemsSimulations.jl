@@ -1158,13 +1158,84 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
             ChargingReserveVariable,
             DischargingReserveVariable,
         ]
-            PSI.add_variables!(container, v, hybrids, MerchantModelWithReserves())
+            PSI.add_variables!(
+                container,
+                v,
+                _hybrids_with_storage,
+                MerchantModelWithReserves(),
+            )
         end
         PSI.add_initial_condition!(
             container,
             _hybrids_with_storage,
             MerchantModelWithReserves(),
             PSI.InitialEnergyLevel(),
+        )
+
+        # Add reserve expressions for charging unit
+        PSI.lazy_container_addition!(
+            container,
+            ChargeReserveUpExpression(),
+            T,
+            PSY.get_name.(_hybrids_with_storage),
+            time_steps,
+        )
+
+        PSI.lazy_container_addition!(
+            container,
+            ChargeReserveDownExpression(),
+            T,
+            PSY.get_name.(_hybrids_with_storage),
+            time_steps,
+        )
+
+        add_to_expression_componentreserveup!(
+            container,
+            ChargeReserveUpExpression,
+            ChargingReserveVariable,
+            _hybrids_with_storage,
+            MerchantModelWithReserves(),
+        )
+
+        add_to_expression_componentreservedown!(
+            container,
+            ChargeReserveDownExpression,
+            ChargingReserveVariable,
+            _hybrids_with_storage,
+            MerchantModelWithReserves(),
+        )
+
+        # Add reserve expressions for discharging unit
+        PSI.lazy_container_addition!(
+            container,
+            DischargeReserveUpExpression(),
+            T,
+            PSY.get_name.(_hybrids_with_storage),
+            time_steps,
+        )
+
+        PSI.lazy_container_addition!(
+            container,
+            DischargeReserveDownExpression(),
+            T,
+            PSY.get_name.(_hybrids_with_storage),
+            time_steps,
+        )
+
+        add_to_expression_componentreserveup!(
+            container,
+            DischargeReserveUpExpression,
+            DischargingReserveVariable,
+            _hybrids_with_storage,
+            MerchantModelWithReserves(),
+        )
+
+        add_to_expression_componentreservedown!(
+            container,
+            DischargeReserveDownExpression,
+            DischargingReserveVariable,
+            _hybrids_with_storage,
+            MerchantModelWithReserves(),
         )
     end
 

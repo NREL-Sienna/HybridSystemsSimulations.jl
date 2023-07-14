@@ -777,16 +777,12 @@ end
 
 ############ Output/Input Constraints, HybridSystem ################
 
-function PSI.add_constraints!(
+# Status Out ON (Generation Operation)
+function _add_constraints_statusout!(
     container::PSI.OptimizationContainer,
     T::Type{<:StatusOutOn},
     devices::U,
-    ::PSI.DeviceModel{D, W},
-    network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
-) where {
-    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
-    W <: AbstractHybridFormulation,
-} where {D <: PSY.HybridSystem}
+) where {U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}}} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     varon = PSI.get_variable(container, PSI.ReservationVariable(), D)
@@ -805,7 +801,6 @@ function PSI.add_constraints!(
     return
 end
 
-# With Reserves
 function PSI.add_constraints!(
     container::PSI.OptimizationContainer,
     T::Type{<:StatusOutOn},
@@ -814,8 +809,18 @@ function PSI.add_constraints!(
     network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
 ) where {
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
-    W <: HybridDispatchWithReserves,
+    W <: AbstractHybridFormulation,
 } where {D <: PSY.HybridSystem}
+    _add_constraints_statusout!(container, T, devices)
+    return
+end
+
+# Status Out ON (Generation Operation) With Reserves
+function _add_constraints_statusout_withreserves!(
+    container::PSI.OptimizationContainer,
+    T::Type{<:StatusOutOn},
+    devices::U,
+) where {U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}}} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     varon = PSI.get_variable(container, PSI.ReservationVariable(), D)
@@ -843,14 +848,24 @@ end
 
 function PSI.add_constraints!(
     container::PSI.OptimizationContainer,
-    T::Type{<:StatusInOn},
+    T::Type{<:StatusOutOn},
     devices::U,
     ::PSI.DeviceModel{D, W},
     network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
 ) where {
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
-    W <: AbstractHybridFormulation,
+    W <: HybridDispatchWithReserves,
 } where {D <: PSY.HybridSystem}
+    _add_constraints_statusout_withreserves!(container, T, devices)
+    return
+end
+
+# Status In ON (Demand Operation)
+function _add_constraints_statusin!(
+    container::PSI.OptimizationContainer,
+    T::Type{<:StatusInOn},
+    devices::U,
+) where {U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}}} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     varon = PSI.get_variable(container, PSI.ReservationVariable(), D)
@@ -877,8 +892,18 @@ function PSI.add_constraints!(
     network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
 ) where {
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
-    W <: HybridDispatchWithReserves,
+    W <: AbstractHybridFormulation,
 } where {D <: PSY.HybridSystem}
+    _add_constraints_statusin!(container, T, devices)
+    return
+end
+
+# Status In ON (Demand Operation) with Reserves
+function _add_constraints_statusin_withreserves!(
+    container::PSI.OptimizationContainer,
+    T::Type{<:StatusInOn},
+    devices::U,
+) where {U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}}} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     varon = PSI.get_variable(container, PSI.ReservationVariable(), D)
@@ -902,6 +927,20 @@ function PSI.add_constraints!(
             p_in[ci_name, t] - res_in_up[ci_name, t] >= 0.0
         )
     end
+    return
+end
+
+function PSI.add_constraints!(
+    container::PSI.OptimizationContainer,
+    T::Type{<:StatusInOn},
+    devices::U,
+    ::PSI.DeviceModel{D, W},
+    network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: HybridDispatchWithReserves,
+} where {D <: PSY.HybridSystem}
+    _add_constraints_statusin_withreserves!(container, T, devices)
     return
 end
 

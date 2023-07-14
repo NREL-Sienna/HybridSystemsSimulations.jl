@@ -82,7 +82,9 @@ hy_sys = first(get_components(HybridSystem, sys))
 services = get_components(VariableReserve, sys)
 for service in services
     serv_name = get_name(service)
-    if contains(serv_name, "Spin_Up_R1") || contains(serv_name, "Spin_Up_R2")
+    if contains(serv_name, "Spin_Up_R1") |
+       contains(serv_name, "Spin_Up_R2") |
+       contains(serv_name, "Flex")
         continue
     else
         add_service!(hy_sys, service, sys)
@@ -104,5 +106,6 @@ decision_optimizer_DA = DecisionModel(
 build!(decision_optimizer_DA; output_dir=pwd())
 
 cons = decision_optimizer_DA.internal.container.constraints
+vars = decision_optimizer_DA.internal.container.variables
 
 cons[PSI.ConstraintKey{HSS.BatteryBalance, HybridSystem}("")]["317_Hybrid", 2]

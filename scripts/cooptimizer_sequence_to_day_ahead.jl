@@ -69,11 +69,11 @@ dic["λ_da_df"] =
     CSV.read("scripts/simulation_pipeline/inputs/$(bus_name)_DA_prices.csv", DataFrame)
 dic["λ_rt_df"] =
     CSV.read("scripts/simulation_pipeline/inputs/$(bus_name)_RT_prices.csv", DataFrame)
-dic["λ_regup_df"] =
+dic["λ_Reg_Up"] =
     CSV.read("scripts/simulation_pipeline/inputs/$(bus_name)_RegUp_prices.csv", DataFrame)
-dic["λ_regdown_df"] =
+dic["λ_Reg_Down"] =
     CSV.read("scripts/simulation_pipeline/inputs/$(bus_name)_RegDown_prices.csv", DataFrame)
-dic["λ_spin_df"] =
+dic["λ_Spin_Up_R3"] =
     CSV.read("scripts/simulation_pipeline/inputs/$(bus_name)_Spin_prices.csv", DataFrame)
 dic["horizon_RT"] = horizon_merchant_rt
 dic["horizon_DA"] = horizon_merchant_da
@@ -107,5 +107,6 @@ build!(decision_optimizer_DA; output_dir=pwd())
 
 cons = decision_optimizer_DA.internal.container.constraints
 vars = decision_optimizer_DA.internal.container.variables
+params = decision_optimizer_DA.internal.container.parameters
 
 cons[PSI.ConstraintKey{HSS.BatteryBalance, HybridSystem}("")]["317_Hybrid", 2]

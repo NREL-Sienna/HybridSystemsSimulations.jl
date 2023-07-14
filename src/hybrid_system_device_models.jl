@@ -782,7 +782,8 @@ function _add_constraints_statusout!(
     container::PSI.OptimizationContainer,
     T::Type{<:StatusOutOn},
     devices::U,
-) where {U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}}} where {D <: PSY.HybridSystem}
+    ::W,
+) where {U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}}, W <: AbstractHybridFormulation} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     varon = PSI.get_variable(container, PSI.ReservationVariable(), D)
@@ -811,7 +812,7 @@ function PSI.add_constraints!(
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     W <: AbstractHybridFormulation,
 } where {D <: PSY.HybridSystem}
-    _add_constraints_statusout!(container, T, devices)
+    _add_constraints_statusout!(container, T, devices, W())
     return
 end
 
@@ -820,7 +821,8 @@ function _add_constraints_statusout_withreserves!(
     container::PSI.OptimizationContainer,
     T::Type{<:StatusOutOn},
     devices::U,
-) where {U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}}} where {D <: PSY.HybridSystem}
+    ::W,
+) where {U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}}, W <: AbstractHybridFormulation} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     varon = PSI.get_variable(container, PSI.ReservationVariable(), D)
@@ -856,7 +858,7 @@ function PSI.add_constraints!(
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     W <: HybridDispatchWithReserves,
 } where {D <: PSY.HybridSystem}
-    _add_constraints_statusout_withreserves!(container, T, devices)
+    _add_constraints_statusout_withreserves!(container, T, devices, W())
     return
 end
 
@@ -865,7 +867,8 @@ function _add_constraints_statusin!(
     container::PSI.OptimizationContainer,
     T::Type{<:StatusInOn},
     devices::U,
-) where {U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}}} where {D <: PSY.HybridSystem}
+    ::W, 
+) where {U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},  W <: AbstractHybridFormulation} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     varon = PSI.get_variable(container, PSI.ReservationVariable(), D)
@@ -894,7 +897,7 @@ function PSI.add_constraints!(
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     W <: AbstractHybridFormulation,
 } where {D <: PSY.HybridSystem}
-    _add_constraints_statusin!(container, T, devices)
+    _add_constraints_statusin!(container, T, devices, W())
     return
 end
 
@@ -903,7 +906,8 @@ function _add_constraints_statusin_withreserves!(
     container::PSI.OptimizationContainer,
     T::Type{<:StatusInOn},
     devices::U,
-) where {U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}}} where {D <: PSY.HybridSystem}
+    ::W,
+) where {U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},  W <: AbstractHybridFormulation} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     varon = PSI.get_variable(container, PSI.ReservationVariable(), D)
@@ -940,7 +944,7 @@ function PSI.add_constraints!(
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     W <: HybridDispatchWithReserves,
 } where {D <: PSY.HybridSystem}
-    _add_constraints_statusin_withreserves!(container, T, devices)
+    _add_constraints_statusin_withreserves!(container, T, devices, W())
     return
 end
 
@@ -956,7 +960,8 @@ function _add_constrains_energyassetbalance!(
     container::PSI.OptimizationContainer,
     T::Type{<:EnergyAssetBalance},
     devices::U,
-) where {U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}}} where {D <: PSY.HybridSystem}
+    ::W,
+) where {U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},  W <: AbstractHybridFormulation} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     p_out = PSI.get_variable(container, PSI.ActivePowerOutVariable(), D)
@@ -1018,7 +1023,7 @@ function PSI.add_constraints!(
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     W <: AbstractHybridFormulation,
 } where {D <: PSY.HybridSystem}
-    _add_constrains_energyassetbalance!(container, T, devices)
+    _add_constrains_energyassetbalance!(container, T, devices, W())
     return
 end
 
@@ -1029,7 +1034,8 @@ function _add_constraints_thermalon_variableon!(
     container::PSI.OptimizationContainer,
     T::Type{<:ThermalOnVariableOn},
     devices::U,
-) where {U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}}} where {D <: PSY.HybridSystem}
+    ::W,
+) where {U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}}, W <: AbstractHybridFormulation} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     varon = PSI.get_variable(container, ThermalStatus(), D)
@@ -1057,7 +1063,7 @@ function PSI.add_constraints!(
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     W <: AbstractHybridFormulation,
 } where {D <: PSY.HybridSystem}
-    _add_constraints_thermalon_variableon!(container, T, devices)
+    _add_constraints_thermalon_variableon!(container, T, devices, W())
     return
 end
 
@@ -1066,7 +1072,8 @@ function _add_constraints_thermalon_variableoff!(
     container::PSI.OptimizationContainer,
     T::Type{<:ThermalOnVariableOff},
     devices::U,
-) where {U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}}} where {D <: PSY.HybridSystem}
+    ::W, 
+) where {U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},  W <: AbstractHybridFormulation} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     varon = PSI.get_variable(container, ThermalStatus(), D)
@@ -1094,7 +1101,7 @@ function PSI.add_constraints!(
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     W <: AbstractHybridFormulation,
 } where {D <: PSY.HybridSystem}
-    _add_constraints_thermalon_variableoff!(container, T, devices)
+    _add_constraints_thermalon_variableoff!(container, T, devices, W())
     return
 end
 
@@ -1105,7 +1112,8 @@ function _add_constraints_batterychargeon!(
     container::PSI.OptimizationContainer,
     T::Type{<:BatteryStatusChargeOn},
     devices::U,
-) where {U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}}} where {D <: PSY.HybridSystem}
+    ::W,
+) where {U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},  W <: AbstractHybridFormulation} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     status_st = PSI.get_variable(container, BatteryStatus(), D)
@@ -1134,7 +1142,7 @@ function PSI.add_constraints!(
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     W <: AbstractHybridFormulation,
 } where {D <: PSY.HybridSystem}
-    _add_constraints_batterychargeon!(container, T, devices)
+    _add_constraints_batterychargeon!(container, T, devices, W())
     return
 end
 
@@ -1143,7 +1151,8 @@ function _add_constraints_batterydischargeon!(
     container::PSI.OptimizationContainer,
     T::Type{<:BatteryStatusDischargeOn},
     devices::U,
-) where {U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}}} where {D <: PSY.HybridSystem}
+    ::W,
+) where {U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}}, W <: AbstractHybridFormulation} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     status_st = PSI.get_variable(container, BatteryStatus(), D)
@@ -1172,7 +1181,7 @@ function PSI.add_constraints!(
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     W <: AbstractHybridFormulation,
 } where {D <: PSY.HybridSystem}
-    _add_constraints_batterydischargeon!(container, T, devices)
+    _add_constraints_batterydischargeon!(container, T, devices, W())
     return
 end
 
@@ -1181,7 +1190,8 @@ function _add_constraints_batterybalance!(
     container::PSI.OptimizationContainer,
     T::Type{<:BatteryBalance},
     devices::U,
-) where {U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}}} where {D <: PSY.HybridSystem}
+    ::W, 
+) where {U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}}, W <: AbstractHybridFormulation} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     resolution = PSI.get_resolution(container)
     fraction_of_hour = Dates.value(Dates.Minute(resolution)) / PSI.MINUTES_IN_HOUR
@@ -1232,7 +1242,7 @@ function PSI.add_constraints!(
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     W <: AbstractHybridFormulation,
 } where {D <: PSY.HybridSystem}
-    _add_constraints_batterybalance!(container, T, devices)
+    _add_constraints_batterybalance!(container, T, devices, W())
     return
 end
 
@@ -1241,7 +1251,8 @@ function _add_constraints_cyclingcharge!(
     container::PSI.OptimizationContainer,
     T::Type{<:CyclingCharge},
     devices::U,
-) where {U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}}} where {D <: PSY.HybridSystem}
+    ::W,
+) where {U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}}, W <: AbstractHybridFormulation} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     resolution = PSI.get_resolution(container)
     fraction_of_hour = Dates.value(Dates.Minute(resolution)) / PSI.MINUTES_IN_HOUR
@@ -1275,7 +1286,7 @@ function PSI.add_constraints!(
     W <: AbstractHybridFormulation,
 } where {D <: PSY.HybridSystem}
     if PSI.get_attribute(model, "cycling")
-        _add_constraints_cyclingcharge!(container, T, devices)
+        _add_constraints_cyclingcharge!(container, T, devices, W())
     end
     return
 end
@@ -1285,7 +1296,8 @@ function _add_constraints_cyclingdischarge!(
     container::PSI.OptimizationContainer,
     T::Type{<:CyclingDischarge},
     devices::U,
-) where {U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}}} where {D <: PSY.HybridSystem}
+    ::W,
+) where {U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}}, W <: AbstractHybridFormulation} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     resolution = PSI.get_resolution(container)
     fraction_of_hour = Dates.value(Dates.Minute(resolution)) / PSI.MINUTES_IN_HOUR
@@ -1318,7 +1330,7 @@ function PSI.add_constraints!(
     W <: AbstractHybridFormulation,
 } where {D <: PSY.HybridSystem}
     if PSI.get_attribute(model, "cycling")
-        _add_constraints_cyclingdischarge!(container, T, devices)
+        _add_constraints_cyclingdischarge!(container, T, devices, W())
     end
     return
 end
@@ -1329,7 +1341,8 @@ function _add_constraints_renewablelimit!(
     container::PSI.OptimizationContainer,
     T::Type{<:RenewableActivePowerLimitConstraint},
     devices::U,
-) where {U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}}} where {D <: PSY.HybridSystem}
+    ::W,
+) where {U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}}, W <: AbstractHybridFormulation} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     P = RenewablePowerTimeSeries
     p_re = PSI.get_variable(container, RenewablePower(), D)
@@ -1361,7 +1374,7 @@ function PSI.add_constraints!(
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     W <: AbstractHybridFormulation,
 } where {D <: PSY.HybridSystem}
-    _add_constraints_renewablelimit!(container, T, devices)
+    _add_constraints_renewablelimit!(container, T, devices, W())
     return
 end
 
@@ -1371,7 +1384,8 @@ function _add_thermallimit_withreserves!(
     container::PSI.OptimizationContainer,
     T::Type{<:ThermalReserveLimit},
     devices::U,
-) where {U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}}} where {D <: PSY.HybridSystem}
+    ::W,
+) where {U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}}, W <: AbstractHybridFormulation} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     varon = PSI.get_variable(container, ThermalStatus(), D)
@@ -1405,7 +1419,7 @@ function PSI.add_constraints!(
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     W <: HybridDispatchWithReserves,
 } where {D <: PSY.HybridSystem}
-    _add_thermallimit_withreserves!(container, T, devices)
+    _add_thermallimit_withreserves!(container, T, devices, W())
     return
 end
 
@@ -1417,9 +1431,11 @@ function _add_constraints_reservecoverage_withreserves!(
     T::Type{<:ReserveCoverageConstraint},
     devices::U,
     service::V,
+    ::W,
 ) where {
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     V <: PSY.Reserve{PSY.ReserveUp},
+    W <: AbstractHybridFormulation,
 } where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     resolution = PSI.get_resolution(container)
@@ -1474,7 +1490,7 @@ function PSI.add_constraints!(
     V <: PSY.Reserve{PSY.ReserveUp},
     W <: HybridDispatchWithReserves,
 } where {D <: PSY.HybridSystem}
-    _add_constraints_reservecoverage_withreserves!(container, T, devices, service)
+    _add_constraints_reservecoverage_withreserves!(container, T, devices, service, W())
     return
 end
 
@@ -1484,9 +1500,11 @@ function _add_constraints_reservecoverage_withreserves!(
     T::Type{<:ReserveCoverageConstraint},
     devices::U,
     service::V,
+    ::W,
 ) where {
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     V <: PSY.Reserve{PSY.ReserveDown},
+    W <: AbstractHybridFormulation,
 } where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     resolution = PSI.get_resolution(container)
@@ -1542,7 +1560,7 @@ function PSI.add_constraints!(
     V <: PSY.Reserve{PSY.ReserveDown},
     W <: HybridDispatchWithReserves,
 } where {D <: PSY.HybridSystem}
-    _add_constraints_reservecoverage_withreserves!(container, T, devices, service)
+    _add_constraints_reservecoverage_withreserves!(container, T, devices, service, W())
     return
 end
 
@@ -1551,7 +1569,8 @@ function _add_constraints_charging_reservelimit!(
     container::PSI.OptimizationContainer,
     T::Type{<:ThermalReserveLimit},
     devices::U,
-) where {U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}}} where {D <: PSY.HybridSystem}
+    ::W,
+) where {U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}}, W <: AbstractHybridFormulation} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     status_st = PSI.get_variable(container, BatteryStatus(), D)
@@ -1587,7 +1606,7 @@ function PSI.add_constraints!(
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     W <: HybridDispatchWithReserves,
 } where {D <: PSY.HybridSystem}
-    _add_constraints_charging_reservelimit!(container, T, devices)
+    _add_constraints_charging_reservelimit!(container, T, devices, W())
     return
 end
 
@@ -1596,7 +1615,8 @@ function _add_constraints_discharging_reservelimit!(
     container::PSI.OptimizationContainer,
     T::Type{<:ThermalReserveLimit},
     devices::U,
-) where {U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}}} where {D <: PSY.HybridSystem}
+    ::W,
+) where {U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}}, W <: AbstractHybridFormulation} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     status_st = PSI.get_variable(container, BatteryStatus(), D)
@@ -1631,7 +1651,7 @@ function PSI.add_constraints!(
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     W <: HybridDispatchWithReserves,
 } where {D <: PSY.HybridSystem}
-    _add_constraints_discharging_reservelimit!(container, T, devices)
+    _add_constraints_discharging_reservelimit!(container, T, devices, W())
 end
 
 ############## Renewable Constraints ReserveLimit, HybridSystem ###################

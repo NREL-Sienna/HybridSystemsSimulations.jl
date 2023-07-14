@@ -1609,7 +1609,7 @@ end
 # Charge Upper/Lower Reserve Limits
 function _add_constraints_charging_reservelimit!(
     container::PSI.OptimizationContainer,
-    T::Type{<:ThermalReserveLimit},
+    T::Type{<:ChargingReservePowerLimit},
     devices::U,
     ::W,
 ) where {
@@ -1658,7 +1658,7 @@ end
 # Discharge Upper/Lower Reserve Limit
 function _add_constraints_discharging_reservelimit!(
     container::PSI.OptimizationContainer,
-    T::Type{<:ThermalReserveLimit},
+    T::Type{<:DischargingReservePowerLimit},
     devices::U,
     ::W,
 ) where {

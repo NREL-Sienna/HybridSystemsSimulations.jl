@@ -1367,16 +1367,11 @@ end
 
 ############## Thermal Constraints ReserveLimit, HybridSystem ###################
 
-function PSI.add_constraints!(
+function _add_thermallimit_withreserves!(
     container::PSI.OptimizationContainer,
     T::Type{<:ThermalReserveLimit},
     devices::U,
-    ::PSI.DeviceModel{D, W},
-    network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
-) where {
-    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
-    W <: HybridDispatchWithReserves,
-} where {D <: PSY.HybridSystem}
+) where {U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}}} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     varon = PSI.get_variable(container, ThermalStatus(), D)
@@ -1395,10 +1390,22 @@ function PSI.add_constraints!(
         )
         con_lb[ci_name, t] = JuMP.@constraint(
             PSI.get_jump_model(container),
-            # TODO: Check that reg_th_dn expression is negative or handle sign
             p_th[ci_name, t] - reg_th_dn[ci_name, t] >= min_limit * varon[ci_name, t]
         )
     end
+end
+
+function PSI.add_constraints!(
+    container::PSI.OptimizationContainer,
+    T::Type{<:ThermalReserveLimit},
+    devices::U,
+    ::PSI.DeviceModel{D, W},
+    network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: HybridDispatchWithReserves,
+} where {D <: PSY.HybridSystem}
+    _add_thermallimit_withreserves!(container, T, devices)
     return
 end
 

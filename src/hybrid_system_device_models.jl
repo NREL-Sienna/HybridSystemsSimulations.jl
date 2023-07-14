@@ -304,6 +304,19 @@ PSI.get_variable_multiplier(
     ::PSY.Reserve,
 ) = 1.0
 
+PSI.get_variable_multiplier(
+    ::Type{BidReserveVariableOut},
+    d::PSY.HybridSystem,
+    ::AbstractHybridFormulationWithReserves,
+    ::PSY.Reserve,
+) = 1.0
+PSI.get_variable_multiplier(
+    ::Type{BidReserveVariableIn},
+    d::PSY.HybridSystem,
+    ::AbstractHybridFormulationWithReserves,
+    ::PSY.Reserve,
+) = 1.0
+
 ################### Parameters ############################
 
 PSI.get_parameter_multiplier(

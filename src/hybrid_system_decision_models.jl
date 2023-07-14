@@ -1124,6 +1124,12 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
             RenewablePowerTimeSeries(),
             _hybrids_with_renewable,
         )
+        PSI.add_variables!(
+            container,
+            RenewableReserveVariable,
+            _hybrids_with_renewable,
+            MerchantModelWithReserves(),
+        )
     end
 
     if !isempty(_hybrids_with_loads)
@@ -1142,7 +1148,14 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
     end
 
     if !isempty(_hybrids_with_storage)
-        for v in [BatteryCharge, BatteryDischarge, PSI.EnergyVariable, BatteryStatus]
+        for v in [
+            BatteryCharge,
+            BatteryDischarge,
+            PSI.EnergyVariable,
+            BatteryStatus,
+            ChargingReserveVariable,
+            DischargingReserveVariable,
+        ]
             PSI.add_variables!(container, v, hybrids, MerchantModelWithReserves())
         end
         PSI.add_initial_condition!(
@@ -1154,8 +1167,25 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
     end
 
     if !isempty(_hybrids_with_thermal)
-        for v in [ThermalPower, PSI.OnVariable]
+        for v in [ThermalPower, PSI.OnVariable, ThermalReserveVariable]
             PSI.add_variables!(container, v, hybrids, MerchantModelWithReserves())
+
+            # Add Expressions for Thermal
+            PSI.lazy_container_addition!(
+                container,
+                ThermalReserveUpExpression(),
+                T,
+                PSY.get_name.(_hybrids_with_thermal),
+                time_steps,
+            )
+
+            PSI.lazy_container_addition!(
+                container,
+                ThermalReserveDownExpression(),
+                T,
+                PSY.get_name.(_hybrids_with_thermal),
+                time_steps,
+            )
         end
     end
 

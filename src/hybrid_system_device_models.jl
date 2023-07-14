@@ -912,16 +912,12 @@ const JUMP_SET_TYPE = JuMP.Containers.DenseAxisArray{
     Tuple{UnitRange{Int64}},
     Tuple{JuMP.Containers._AxisLookup{Tuple{Int64, Int64}}},
 }
-function PSI.add_constraints!(
+
+function _add_constrains_energyassetbalance!(
     container::PSI.OptimizationContainer,
     T::Type{<:EnergyAssetBalance},
     devices::U,
-    ::PSI.DeviceModel{D, W},
-    network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
-) where {
-    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
-    W <: AbstractHybridFormulation,
-} where {D <: PSY.HybridSystem}
+) where {U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}}} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     p_out = PSI.get_variable(container, PSI.ActivePowerOutVariable(), D)
@@ -973,11 +969,9 @@ function PSI.add_constraints!(
     return
 end
 
-############## Thermal Constraints, HybridSystem ###################
-
 function PSI.add_constraints!(
     container::PSI.OptimizationContainer,
-    T::Type{<:ThermalOnVariableOn},
+    T::Type{<:EnergyAssetBalance},
     devices::U,
     ::PSI.DeviceModel{D, W},
     network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
@@ -985,6 +979,18 @@ function PSI.add_constraints!(
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     W <: AbstractHybridFormulation,
 } where {D <: PSY.HybridSystem}
+    _add_constrains_energyassetbalance!(container, T, devices)
+    return
+end
+
+############## Thermal Constraints, HybridSystem ###################
+
+# ThermalOn Variable ON
+function _add_constraints_thermalon_variableon!(
+    container::PSI.OptimizationContainer,
+    T::Type{<:ThermalOnVariableOn},
+    devices::U,
+) where {U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}}} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     varon = PSI.get_variable(container, ThermalStatus(), D)
@@ -1004,7 +1010,7 @@ end
 
 function PSI.add_constraints!(
     container::PSI.OptimizationContainer,
-    T::Type{<:ThermalOnVariableOff},
+    T::Type{<:ThermalOnVariableOn},
     devices::U,
     ::PSI.DeviceModel{D, W},
     network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
@@ -1012,6 +1018,16 @@ function PSI.add_constraints!(
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     W <: AbstractHybridFormulation,
 } where {D <: PSY.HybridSystem}
+    _add_constraints_thermalon_variableon!(container, T, devices)
+    return
+end
+
+# ThermalOn Variable OFF
+function _add_constraints_thermalon_variableoff!(
+    container::PSI.OptimizationContainer,
+    T::Type{<:ThermalOnVariableOff},
+    devices::U,
+) where {U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}}} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     varon = PSI.get_variable(container, ThermalStatus(), D)
@@ -1026,6 +1042,20 @@ function PSI.add_constraints!(
             min_limit * varon[ci_name, t] <= p_th[ci_name, t]
         )
     end
+    return
+end
+
+function PSI.add_constraints!(
+    container::PSI.OptimizationContainer,
+    T::Type{<:ThermalOnVariableOff},
+    devices::U,
+    ::PSI.DeviceModel{D, W},
+    network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
+    _add_constraints_thermalon_variableoff!(container, T, devices)
     return
 end
 

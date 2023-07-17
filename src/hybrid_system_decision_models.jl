@@ -641,7 +641,10 @@ end
 ########################## Builds #################################
 ###################################################################
 
-## Merchant Only Energy Case Decision Model ##
+###################################################################
+############# Merchant Only Energy Case Decision Model  ###########
+###################################################################
+
 function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyCase})
     container = PSI.get_optimization_container(decision_model)
     model = container.JuMPmodel
@@ -1129,7 +1132,9 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
     return
 end
 
-## Merchant Energy + Reserves Case Decision Model ##
+###################################################################
+########## Merchant Energy + Reserves Case Decision Model  ########
+###################################################################
 function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptimizerCase})
     container = PSI.get_optimization_container(decision_model)
     model = container.JuMPmodel
@@ -1203,6 +1208,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
     _hybrids_with_storage = [d for d in hybrids if PSY.get_storage(d) !== nothing]
     _hybrids_with_thermal = [d for d in hybrids if PSY.get_thermal_unit(d) !== nothing]
 
+    ## Renewable Variables and Expressions ##
     if !isempty(_hybrids_with_renewable)
         PSI.add_variables!(
             container,
@@ -1223,6 +1229,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
         )
     end
 
+    ## Load Variables and Expressions ##
     if !isempty(_hybrids_with_loads)
         add_time_series_parameters!(
             container,
@@ -1238,6 +1245,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
         )
     end
 
+    ## Storage Variables and Expressions ##
     if !isempty(_hybrids_with_storage)
         for v in [
             BatteryCharge,

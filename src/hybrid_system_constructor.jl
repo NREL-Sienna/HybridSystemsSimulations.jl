@@ -82,6 +82,9 @@ function PSI.construct_device!(
     return
 end
 
+###################################################################
+########## Argument Constructor for Hybrid with Reserves  #########
+###################################################################
 ### ModelConstruct Hybrid Only Energy ###
 function PSI.construct_device!(
     container::PSI.OptimizationContainer,
@@ -198,7 +201,9 @@ function PSI.construct_device!(
     return
 end
 
-# Argument Constructor for Hybrid with Reserves
+###################################################################
+########## Argument Constructor for Hybrid with Reserves  #########
+###################################################################
 function PSI.construct_device!(
     container::PSI.OptimizationContainer,
     sys::PSY.System,
@@ -540,7 +545,9 @@ function PSI.construct_device!(
     return
 end
 
-### ModelConstruct Hybrid with Reserves ###
+###################################################################
+########### Model Constructor for Hybrid with Reserves  ###########
+###################################################################
 function PSI.construct_device!(
     container::PSI.OptimizationContainer,
     sys::PSY.System,

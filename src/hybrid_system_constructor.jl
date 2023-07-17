@@ -46,7 +46,7 @@ function PSI.construct_device!(
     # Thermal
     if !isempty(_hybrids_with_thermal)
         PSI.add_variables!(container, ThermalPower, _hybrids_with_thermal, D())
-        PSI.add_variables!(container, ThermalStatus, _hybrids_with_thermal, D())
+        PSI.add_variables!(container, PSI.OnVariable, _hybrids_with_thermal, D())
     end
 
     # Renewable
@@ -328,7 +328,7 @@ function PSI.construct_device!(
     if !isempty(_hybrids_with_thermal)
         # Physical Variables
         PSI.add_variables!(container, ThermalPower, _hybrids_with_thermal, D())
-        PSI.add_variables!(container, ThermalStatus, _hybrids_with_thermal, D())
+        PSI.add_variables!(container, PSI.OnVariable, _hybrids_with_thermal, D())
         # Add reserve variables and expressions for thermal unit
         if PSI.has_service_model(model)
             PSI.add_variables!(

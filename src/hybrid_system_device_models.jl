@@ -105,7 +105,7 @@ PSI.get_variable_binary(
 ) = true
 
 ############### Asset Variables, HybridSystem #####################
-PSI.get_default_on_variable(::PSY.HybridSystem) = ThermalStatus()
+PSI.get_default_on_variable(::PSY.HybridSystem) = PSI.OnVariable()
 
 # Upper Bound
 PSI.get_variable_upper_bound(
@@ -139,7 +139,7 @@ PSI.get_variable_upper_bound(
 ) = PSY.get_state_of_charge_limits(PSY.get_storage(d)).max
 
 PSI.get_variable_upper_bound(
-    ::ThermalStatus,
+    ::PSI.OnVariable,
     d::PSY.HybridSystem,
     ::AbstractHybridFormulation,
 ) = nothing
@@ -182,7 +182,7 @@ PSI.get_variable_lower_bound(
 ) = PSY.get_state_of_charge_limits(PSY.get_storage(d)).min
 
 PSI.get_variable_lower_bound(
-    ::ThermalStatus,
+    ::PSI.OnVariable,
     d::PSY.HybridSystem,
     ::AbstractHybridFormulation,
 ) = nothing
@@ -200,7 +200,7 @@ PSI.get_variable_binary(
     ::AbstractHybridFormulation,
 ) = false
 PSI.get_variable_binary(
-    ::ThermalStatus,
+    ::PSI.OnVariable,
     ::Type{PSY.HybridSystem},
     ::AbstractHybridFormulation,
 ) = true
@@ -335,6 +335,11 @@ PSI.objective_function_multiplier(
     ::AbstractHybridFormulation,
 ) = PSI.OBJECTIVE_FUNCTION_POSITIVE
 
+PSI.objective_function_multiplier(
+    ::Union{BatteryCharge, BatteryDischarge},
+    ::Union{MerchantModelEnergyOnly, MerchantModelWithReserves},
+) = PSI.OBJECTIVE_FUNCTION_NEGATIVE
+
 PSI.proportional_cost(
     cost::PSY.OperationalCost,
     ::Union{BatteryCharge, BatteryDischarge},
@@ -368,13 +373,18 @@ end
 ############### Thermal costs, HybridSystem #######################
 
 PSI.objective_function_multiplier(
-    ::Union{ThermalPower, ThermalStatus},
+    ::Union{ThermalPower, PSI.OnVariable},
     ::AbstractHybridFormulation,
 ) = PSI.OBJECTIVE_FUNCTION_POSITIVE
 
+PSI.objective_function_multiplier(
+    ::Union{ThermalPower, PSI.OnVariable},
+    ::Union{MerchantModelEnergyOnly, MerchantModelWithReserves},
+) = PSI.OBJECTIVE_FUNCTION_NEGATIVE
+
 PSI.proportional_cost(
     cost::PSY.OperationalCost,
-    ::ThermalStatus,
+    ::PSI.OnVariable,
     ::PSY.HybridSystem,
     U::AbstractHybridFormulation,
 ) = PSY.get_fixed(cost)
@@ -397,7 +407,7 @@ function PSI.add_proportional_cost!(
     devices::U,
     ::W,
 ) where {
-    T <: ThermalStatus,
+    T <: PSI.OnVariable,
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     W <: AbstractHybridFormulation,
 } where {D <: PSY.HybridSystem}
@@ -436,6 +446,12 @@ end
 
 PSI.objective_function_multiplier(::RenewablePower, ::AbstractHybridFormulation) =
     PSI.OBJECTIVE_FUNCTION_NEGATIVE
+
+PSI.objective_function_multiplier(
+    ::RenewablePower,
+    ::Union{MerchantModelEnergyOnly, MerchantModelWithReserves},
+) = PSI.OBJECTIVE_FUNCTION_POSITIVE
+
 PSI.variable_cost(
     cost::PSY.OperationalCost,
     ::RenewablePower,
@@ -488,7 +504,7 @@ function PSI.objective_function!(
     # Add Thermal Cost
     if !isempty(_hybrids_with_thermal)
         PSI.add_variable_cost!(container, ThermalPower(), _hybrids_with_thermal, W())
-        PSI.add_proportional_cost!(container, ThermalStatus(), _hybrids_with_thermal, W())
+        PSI.add_proportional_cost!(container, PSI.OnVariable(), _hybrids_with_thermal, W())
     end
 
     # Add Renewable Cost
@@ -870,7 +886,7 @@ function _add_constraints_thermalon_variableon!(
 } where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
-    varon = PSI.get_variable(container, ThermalStatus(), D)
+    varon = PSI.get_variable(container, PSI.OnVariable(), D)
     p_th = PSI.get_variable(container, ThermalPower(), D)
     con_ub = PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="ub")
 
@@ -911,7 +927,7 @@ function _add_constraints_thermalon_variableoff!(
 } where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
-    varon = PSI.get_variable(container, ThermalStatus(), D)
+    varon = PSI.get_variable(container, PSI.OnVariable(), D)
     p_th = PSI.get_variable(container, ThermalPower(), D)
     con_lb = PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="lb")
 
@@ -1244,7 +1260,7 @@ function _add_thermallimit_withreserves!(
 } where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
-    varon = PSI.get_variable(container, ThermalStatus(), D)
+    varon = PSI.get_variable(container, PSI.OnVariable(), D)
     p_th = PSI.get_variable(container, ThermalPower(), D)
     reg_th_up = PSI.get_expression(container, ThermalReserveUpExpression(), D)
     reg_th_dn = PSI.get_expression(container, ThermalReserveDownExpression(), D)

@@ -9,7 +9,7 @@ PSI.get_variable_binary(
     ::HybridDecisionProblem,
 ) = true
 PSI.get_variable_binary(
-    ::ThermalStatus,
+    ::PSI.OnVariable,
     t::Type{PSY.HybridSystem},
     ::HybridDecisionProblem,
 ) = true
@@ -202,7 +202,10 @@ function PSI.add_variables!(
     ::Type{T},
     devices::Vector{PSY.HybridSystem},
     formulation::U,
-) where {T <: PSI.OnVariable, U <: AbstractHybridFormulation}
+) where {
+    T <: PSI.OnVariable,
+    U <: Union{MerchantHybridEnergyCase, MerchantModelWithReserves},
+}
     @assert !isempty(devices)
     time_steps = PSY.get_ext(first(devices))["T_da"]
     variable = PSI.add_variable_container!(
@@ -1445,7 +1448,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
         container,
         AncillaryServicePrice(),
         hybrids,
-        MerchantModelEnergyOnly(),
+        MerchantModelWithReserves(),
     )
 
     # DA costs
@@ -1505,22 +1508,31 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
     # RT costs
     eb_rt_out = PSI.get_variable(container, EnergyRTBidOut(), PSY.HybridSystem)
     eb_rt_in = PSI.get_variable(container, EnergyRTBidIn(), PSY.HybridSystem)
-    p_out = PSI.get_variable(container, PSI.ActivePowerOutVariable(), PSY.HybridSystem)
-    p_in = PSI.get_variable(container, PSI.ActivePowerInVariable(), PSY.HybridSystem)
-    status = PSI.get_variable(container, PSI.ReservationVariable(), PSY.HybridSystem)
+
+    # Thermal Variable Cost
     if !isempty(_hybrids_with_thermal)
         p_th = PSI.get_variable(container, ThermalPower(), PSY.HybridSystem)
     end
-    if !isempty(_hybrids_with_renewable)
-        p_re = PSI.get_variable(container, RenewablePower(), PSY.HybridSystem)
-    end
-    if !isempty(_hybrids_with_storage)
-        p_ch = PSI.get_variable(container, BatteryCharge(), PSY.HybridSystem)
-        p_ds = PSI.get_variable(container, BatteryDischarge(), PSY.HybridSystem)
-        e_st = PSI.get_variable(container, PSI.EnergyVariable(), PSY.HybridSystem)
-        status_st = PSI.get_variable(container, BatteryStatus(), PSY.HybridSystem)
-    end
+    # Implement Custom Next Function
+    # PSI.add_variable_cost!(container, ThermalPower(), _hybrids_with_thermal, MerchantModelWithReserves())
+    # Renewable Cost
+    # TODO: Decide if we include cost of curtailment or not
+    # PSI.add_variable_cost!(container, RenewablePower(), _hybrids_with_renewable, MerchantModelWithReserves())
+    # Battery Cost
+    PSI.add_proportional_cost!(
+        container,
+        BatteryCharge(),
+        _hybrids_with_storage,
+        MerchantModelWithReserves(),
+    )
+    PSI.add_proportional_cost!(
+        container,
+        BatteryDischarge(),
+        _hybrids_with_storage,
+        MerchantModelWithReserves(),
+    )
 
+    # RT bids and DART arbitrage
     for t in T_rt, dev in hybrids
         name = PSY.get_name(dev)
         lin_cost_rt_out = Δt_RT * λ_rt_pos[name, t] * eb_rt_out[name, t]
@@ -1541,13 +1553,6 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
             C_th_var = slope * 100.0 # Multiply by 100 to transform to $/pu
             lin_cost_p_th = -Δt_RT * C_th_var * p_th[name, t]
             PSI.add_to_objective_invariant_expression!(container, lin_cost_p_th)
-        end
-        if !isnothing(dev.storage)
-            VOM = dev.storage.operation_cost.variable.cost
-            lin_cost_p_ch = -Δt_RT * VOM * p_ch[name, t]
-            lin_cost_p_ds = -Δt_RT * VOM * p_ds[name, t]
-            PSI.add_to_objective_invariant_expression!(container, lin_cost_p_ch)
-            PSI.add_to_objective_invariant_expression!(container, lin_cost_p_ds)
         end
     end
     JuMP.@objective(

@@ -18,7 +18,6 @@ struct BidReserveVariableIn <: PSI.VariableType end
 # Component Variables
 abstract type HybridAssetVariableType <: PSI.VariableType end
 struct ThermalPower <: HybridAssetVariableType end
-struct ThermalStatus <: HybridAssetVariableType end
 struct RenewablePower <: HybridAssetVariableType end
 struct BatteryCharge <: HybridAssetVariableType end
 struct BatteryDischarge <: HybridAssetVariableType end

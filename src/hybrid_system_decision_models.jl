@@ -1200,7 +1200,78 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
         PSI.add_variables!(container, v, hybrids, MerchantModelWithReserves())
     end
 
-    #TODO next from here
+    # Add Reserve Up/Down Out/In Expression
+    PSI.lazy_container_addition!(
+        container,
+        TotalReserveOutUpExpression(),
+        T,
+        PSY.get_name.(hybrids),
+        T_da,
+    )
+
+    PSI.lazy_container_addition!(
+        container,
+        TotalReserveOutDownExpression(),
+        T,
+        PSY.get_name.(hybrids),
+        T_da,
+    )
+
+    PSI.lazy_container_addition!(
+        container,
+        TotalReserveInUpExpression(),
+        T,
+        PSY.get_name.(hybrids),
+        T_da,
+    )
+
+    PSI.lazy_container_addition!(
+        container,
+        TotalReserveInDownExpression(),
+        T,
+        PSY.get_name.(hybrids),
+        T_da,
+    )
+
+    # Out Total Up
+    add_to_expression_totalreserveup!(
+        container,
+        TotalReserveOutUpExpression,
+        BidReserveVariableOut,
+        hybrids,
+        MerchantModelWithReserves(),
+        T_da,
+    )
+
+    # Out Total Down
+    add_to_expression_totalreservedown!(
+        container,
+        TotalReserveOutDownExpression,
+        BidReserveVariableOut,
+        hybrids,
+        MerchantModelWithReserves(),
+        T_da,
+    )
+
+    # In Total Up
+    add_to_expression_totalreserveup!(
+        container,
+        TotalReserveInUpExpression,
+        BidReserveVariableIn,
+        hybrids,
+        MerchantModelWithReserves(),
+        T_da,
+    )
+
+    # In Total Down
+    add_to_expression_totalreservedown!(
+        container,
+        TotalReserveInDownExpression,
+        BidReserveVariableIn,
+        hybrids,
+        MerchantModelWithReserves(),
+        T_da,
+    )
 
     ###############################
     ####### Parameters ############
@@ -1295,6 +1366,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
             ChargingReserveVariable,
             _hybrids_with_storage,
             MerchantModelWithReserves(),
+            time_steps,
         )
 
         add_to_expression_componentreservedown!(
@@ -1303,6 +1375,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
             ChargingReserveVariable,
             _hybrids_with_storage,
             MerchantModelWithReserves(),
+            time_steps,
         )
 
         # Add reserve expressions for discharging unit
@@ -1328,6 +1401,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
             DischargingReserveVariable,
             _hybrids_with_storage,
             MerchantModelWithReserves(),
+            time_steps,
         )
 
         add_to_expression_componentreservedown!(
@@ -1336,6 +1410,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
             DischargingReserveVariable,
             _hybrids_with_storage,
             MerchantModelWithReserves(),
+            time_steps,
         )
     end
 
@@ -1371,6 +1446,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
             ThermalReserveVariable,
             _hybrids_with_thermal,
             MerchantModelWithReserves(),
+            time_steps,
         )
         add_to_expression_componentreservedown!(
             container,
@@ -1378,6 +1454,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
             ThermalReserveVariable,
             _hybrids_with_thermal,
             MerchantModelWithReserves(),
+            time_steps,
         )
     end
 

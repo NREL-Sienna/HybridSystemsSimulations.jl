@@ -5,10 +5,8 @@
 ###################
 
 ## DA Bid Limits ##
-struct BidOutDAUpperLimit <: PSI.ConstraintType end
-struct BidInDAUpperLimit <: PSI.ConstraintType end
-struct BidOutDALowerLimit <: PSI.ConstraintType end
-struct BidInDALowerLimit <: PSI.ConstraintType end
+struct DayAheadBidOutRangeLimit <: PSI.ConstraintType end
+struct DayAheadBidInRangeLimit <: PSI.ConstraintType end
 
 ## RT Bid Limits ##
 struct BidOutRTUpperLimit <: PSI.ConstraintType end

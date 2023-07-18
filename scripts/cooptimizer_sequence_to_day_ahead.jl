@@ -112,6 +112,7 @@ exprs = decision_optimizer_DA.internal.container.expressions
 
 cons[PSI.ConstraintKey{HSS.DayAheadBidInRangeLimit, HybridSystem}("lb")]["317_Hybrid", 1]
 cons[PSI.ConstraintKey{HSS.StatusOutOn, HybridSystem}("ub")]["317_Hybrid", 288]
+cons[PSI.ConstraintKey{HSS.RenewableReserveLimit, HybridSystem}("lb")]["317_Hybrid", 288]
 exprs[PSI.ExpressionKey{HSS.TotalReserveInUpExpression, HybridSystem}("")]["317_Hybrid", 1]
 
 vars[PSI.VariableKey{PSI.ReservationVariable, HybridSystem}("")]

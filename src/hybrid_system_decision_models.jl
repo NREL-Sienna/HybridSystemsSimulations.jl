@@ -782,6 +782,96 @@ function add_constraints_realtimelimit_in_withreserves!(
     return
 end
 
+# Thermal Reserve Limit with Merchant Model
+function _add_thermallimit_withreserves!(
+    container::PSI.OptimizationContainer,
+    T::Type{<:ThermalReserveLimit},
+    devices::U,
+    ::W,
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: MerchantModelWithReserves,
+} where {D <: PSY.HybridSystem}
+    time_steps = PSI.get_time_steps(container)
+    names = [PSY.get_name(d) for d in devices]
+    varon = PSI.get_variable(container, PSI.OnVariable(), D)
+    p_th = PSI.get_variable(container, ThermalPower(), D)
+    reg_th_up = PSI.get_expression(container, ThermalReserveUpExpression(), D)
+    reg_th_dn = PSI.get_expression(container, ThermalReserveDownExpression(), D)
+    con_ub = PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="ub")
+    con_lb = PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="lb")
+
+    for device in devices, t in time_steps
+        tmap = PSY.get_ext(device)["tmap"]
+        ci_name = PSY.get_name(device)
+        min_limit, max_limit = PSY.get_active_power_limits(PSY.get_thermal_unit(device))
+        con_ub[ci_name, t] = JuMP.@constraint(
+            PSI.get_jump_model(container),
+            p_th[ci_name, t] + reg_th_up[ci_name, t] <= max_limit * varon[ci_name, tmap[t]]
+        )
+        con_lb[ci_name, t] = JuMP.@constraint(
+            PSI.get_jump_model(container),
+            p_th[ci_name, t] - reg_th_dn[ci_name, t] >= min_limit * varon[ci_name, tmap[t]]
+        )
+    end
+end
+
+# Thermal Reserve Limit with Reserve Model
+function _add_constraints_thermalon_variableon!(
+    container::PSI.OptimizationContainer,
+    T::Type{<:ThermalOnVariableOn},
+    devices::U,
+    ::W,
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: MerchantModelWithReserves,
+} where {D <: PSY.HybridSystem}
+    time_steps = PSI.get_time_steps(container)
+    names = [PSY.get_name(d) for d in devices]
+    varon = PSI.get_variable(container, PSI.OnVariable(), D)
+    p_th = PSI.get_variable(container, ThermalPower(), D)
+    con_ub = PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="ub")
+
+    for device in devices, t in time_steps
+        tmap = PSY.get_ext(device)["tmap"]
+        ci_name = PSY.get_name(device)
+        max_limit = PSY.get_active_power_limits(PSY.get_thermal_unit(device)).max
+        con_ub[ci_name, t] = JuMP.@constraint(
+            PSI.get_jump_model(container),
+            p_th[ci_name, t] <= max_limit * varon[ci_name, tmap[t]]
+        )
+    end
+    return
+end
+
+# ThermalOn Variable OFF for Merchant Model
+function _add_constraints_thermalon_variableoff!(
+    container::PSI.OptimizationContainer,
+    T::Type{<:ThermalOnVariableOff},
+    devices::U,
+    ::W,
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: MerchantModelWithReserves,
+} where {D <: PSY.HybridSystem}
+    time_steps = PSI.get_time_steps(container)
+    names = [PSY.get_name(d) for d in devices]
+    varon = PSI.get_variable(container, PSI.OnVariable(), D)
+    p_th = PSI.get_variable(container, ThermalPower(), D)
+    con_lb = PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="lb")
+
+    for device in devices, t in time_steps
+        tmap = PSY.get_ext(device)["tmap"]
+        ci_name = PSY.get_name(device)
+        min_limit = PSY.get_active_power_limits(PSY.get_thermal_unit(device)).min
+        con_lb[ci_name, t] = JuMP.@constraint(
+            PSI.get_jump_model(container),
+            min_limit * varon[ci_name, tmap[t]] <= p_th[ci_name, t]
+        )
+    end
+    return
+end
+
 ###################################################################
 ########################## Builds #################################
 ###################################################################
@@ -1318,6 +1408,11 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
         PSY.get_ext(h)["tmap"] = tmap
     end
 
+    services = Set()
+    for h in hybrids
+        union!(services, PSY.get_services(h))
+    end
+
     ###############################
     ######## Variables ############
     ###############################
@@ -1442,6 +1537,42 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
             RenewableReserveVariable,
             _hybrids_with_renewable,
             MerchantModelWithReserves(),
+        )
+
+        # Create renewable total up reserves
+        PSI.lazy_container_addition!(
+            container,
+            RenewableReserveUpExpression(),
+            T,
+            PSY.get_name.(_hybrids_with_renewable),
+            time_steps,
+        )
+
+        # Create renewable total down reserves
+        PSI.lazy_container_addition!(
+            container,
+            RenewableReserveDownExpression(),
+            T,
+            PSY.get_name.(_hybrids_with_renewable),
+            time_steps,
+        )
+
+        add_to_expression_componentreserveup!(
+            container,
+            RenewableReserveUpExpression,
+            RenewableReserveVariable,
+            _hybrids_with_renewable,
+            MerchantModelWithReserves(),
+            time_steps,
+        )
+
+        add_to_expression_componentreservedown!(
+            container,
+            RenewableReserveDownExpression,
+            RenewableReserveVariable,
+            _hybrids_with_renewable,
+            MerchantModelWithReserves(),
+            time_steps,
         )
     end
 
@@ -1845,38 +1976,62 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
 
     # Thermal
     if !isempty(_hybrids_with_thermal)
-        constraint_thermal_on = PSI.add_constraints_container!(
+        # Thermal Limits with Reserves
+        _add_thermallimit_withreserves!(
             container,
-            ThermalOnVariableOn(),
-            PSY.HybridSystem,
-            h_names,
-            T_rt,
+            ThermalReserveLimit,
+            _hybrids_with_thermal,
+            MerchantModelWithReserves(),
         )
 
-        constraint_thermal_off = PSI.add_constraints_container!(
+        # Thermal Limit On without Reserves
+        _add_constraints_thermalon_variableon!(
             container,
-            ThermalOnVariableOff(),
-            PSY.HybridSystem,
-            h_names,
-            T_rt,
+            ThermalOnVariableOn,
+            _hybrids_with_thermal,
+            MerchantModelWithReserves(),
+        )
+
+        # Thermal Limit Off without Reserves
+        _add_constraints_thermalon_variableoff!(
+            container,
+            ThermalOnVariableOff,
+            _hybrids_with_thermal,
+            MerchantModelWithReserves(),
         )
     end
     # Battery Charging
     if !isempty(_hybrids_with_storage)
-        constraint_battery_charging = PSI.add_constraints_container!(
+        # Discharging Limits with Reserves
+        _add_constraints_discharging_reservelimit!(
             container,
-            BatteryStatusChargeOn(),
-            PSY.HybridSystem,
-            h_names,
-            T_rt,
+            DischargingReservePowerLimit,
+            _hybrids_with_storage,
+            MerchantModelWithReserves(),
         )
 
-        constraint_battery_discharging = PSI.add_constraints_container!(
+        # Discharging Limits without Reserves
+        _add_constraints_batterydischargeon!(
             container,
-            BatteryStatusDischargeOn(),
-            PSY.HybridSystem,
-            h_names,
-            T_rt,
+            BatteryStatusDischargeOn,
+            _hybrids_with_storage,
+            MerchantModelWithReserves(),
+        )
+
+        # Charging Limits with Reserves
+        _add_constraints_charging_reservelimit!(
+            container,
+            ChargingReservePowerLimit,
+            _hybrids_with_storage,
+            MerchantModelWithReserves(),
+        )
+
+        # Charging Limits without Reserve
+        _add_constraints_batterychargeon!(
+            container,
+            BatteryStatusChargeOn,
+            _hybrids_with_storage,
+            MerchantModelWithReserves(),
         )
 
         # Battery Balance
@@ -1903,20 +2058,34 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
                 MerchantModelWithReserves(),
             )
         end
+
+        # Reserve Coverage
+        for service in services
+            _add_constraints_reservecoverage_withreserves!(
+                container,
+                ReserveCoverageConstraint,
+                _hybrids_with_storage,
+                service,
+                MerchantModelWithReserves(),
+            )
+        end
     end
 
     if !isempty(_hybrids_with_renewable)
-        renewable_upper_bound = PSI.add_constraints_container!(
+        # Add Renewable Limit without Reserves
+        _add_constraints_renewablelimit!(
             container,
-            RenewableActivePowerLimitConstraint(),
-            PSY.HybridSystem,
-            h_names,
-            T_rt,
-            meta="ub",
+            RenewableActivePowerLimitConstraint,
+            _hybrids_with_renewable,
+            MerchantModelWithReserves(),
         )
-
-        re_param_container =
-            PSI.get_parameter(container, RenewablePowerTimeSeries(), PSY.HybridSystem)
+        # Add Renewable Limit with Reserves
+        _add_constraints_renewablereserve_limit!(
+            container,
+            RenewableReserveLimit,
+            _hybrids_with_renewable,
+            MerchantModelWithReserves(),
+        )
     end
 
     #= Old Constraints

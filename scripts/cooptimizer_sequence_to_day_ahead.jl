@@ -108,5 +108,10 @@ build!(decision_optimizer_DA; output_dir=pwd())
 cons = decision_optimizer_DA.internal.container.constraints
 vars = decision_optimizer_DA.internal.container.variables
 params = decision_optimizer_DA.internal.container.parameters
+exprs = decision_optimizer_DA.internal.container.expressions
 
-cons[PSI.ConstraintKey{HSS.BatteryBalance, HybridSystem}("")]["317_Hybrid", 2]
+cons[PSI.ConstraintKey{HSS.DayAheadBidInRangeLimit, HybridSystem}("lb")]["317_Hybrid", 1]
+cons[PSI.ConstraintKey{HSS.StatusOutOn, HybridSystem}("ub")]["317_Hybrid", 288]
+exprs[PSI.ExpressionKey{HSS.TotalReserveInUpExpression, HybridSystem}("")]["317_Hybrid", 1]
+
+vars[PSI.VariableKey{PSI.ReservationVariable, HybridSystem}("")]

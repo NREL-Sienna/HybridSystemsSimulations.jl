@@ -641,6 +641,148 @@ function _update_parameter_values!(
 end
 
 ###################################################################
+######################### Constraints #############################
+###################################################################
+
+# Day-Ahead Out Bid PCC Range Limits
+function add_constraints_dayaheadlimit_out_withreserves!(
+    container::PSI.OptimizationContainer,
+    T::Type{<:DayAheadBidOutRangeLimit},
+    devices::U,
+    ::W,
+    time_steps::UnitRange{Int64},
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: MerchantModelWithReserves,
+} where {D <: PSY.HybridSystem}
+    names = [PSY.get_name(d) for d in devices]
+    bid_out = PSI.get_variable(container, EnergyDABidOut(), D)
+    res_out_up = PSI.get_expression(container, TotalReserveOutUpExpression(), D)
+    res_out_down = PSI.get_expression(container, TotalReserveOutDownExpression(), D)
+    con_ub = PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="ub")
+    con_lb = PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="lb")
+
+    for device in devices, t in time_steps
+        ci_name = PSY.get_name(device)
+        max_limit = PSI.get_variable_upper_bound(PSI.ActivePowerOutVariable(), device, W())
+        @assert max_limit !== nothing ci_name
+        con_ub[ci_name, t] = JuMP.@constraint(
+            PSI.get_jump_model(container),
+            bid_out[ci_name, t] + res_out_up[ci_name, t] <= max_limit
+        )
+        con_lb[ci_name, t] = JuMP.@constraint(
+            PSI.get_jump_model(container),
+            bid_out[ci_name, t] - res_out_down[ci_name, t] >= 0.0
+        )
+    end
+    return
+end
+
+# Day-Ahead In Bid PCC Range Limits
+function add_constraints_dayaheadlimit_in_withreserves!(
+    container::PSI.OptimizationContainer,
+    T::Type{<:DayAheadBidInRangeLimit},
+    devices::U,
+    ::W,
+    time_steps::UnitRange{Int64},
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
+    names = [PSY.get_name(d) for d in devices]
+    bid_in = PSI.get_variable(container, EnergyDABidIn(), D)
+    res_in_up = PSI.get_expression(container, TotalReserveInUpExpression(), D)
+    res_in_down = PSI.get_expression(container, TotalReserveInDownExpression(), D)
+    con_ub = PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="ub")
+    con_lb = PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="lb")
+
+    for device in devices, t in time_steps
+        ci_name = PSY.get_name(device)
+        max_limit = PSI.get_variable_upper_bound(PSI.ActivePowerInVariable(), device, W())
+        @assert max_limit !== nothing ci_name
+        con_ub[ci_name, t] = JuMP.@constraint(
+            PSI.get_jump_model(container),
+            bid_in[ci_name, t] + res_in_down[ci_name, t] <= max_limit
+        )
+        con_lb[ci_name, t] = JuMP.@constraint(
+            PSI.get_jump_model(container),
+            bid_in[ci_name, t] - res_in_up[ci_name, t] >= 0.0
+        )
+    end
+    return
+end
+
+# Real-Time Out Bid PCC Range Limits
+function add_constraints_realtimelimit_out_withreserves!(
+    container::PSI.OptimizationContainer,
+    T::Type{<:StatusOutOn},
+    devices::U,
+    ::W,
+    time_steps::UnitRange{Int64},
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: MerchantModelWithReserves,
+} where {D <: PSY.HybridSystem}
+    names = [PSY.get_name(d) for d in devices]
+    bid_out = PSI.get_variable(container, EnergyRTBidOut(), D)
+    res_out_up = PSI.get_expression(container, TotalReserveOutUpExpression(), D)
+    res_out_down = PSI.get_expression(container, TotalReserveOutDownExpression(), D)
+    con_ub = PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="ub")
+    con_lb = PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="lb")
+
+    for device in devices, t in time_steps
+        tmap = PSY.get_ext(device)["tmap"]
+        ci_name = PSY.get_name(device)
+        max_limit = PSI.get_variable_upper_bound(PSI.ActivePowerOutVariable(), device, W())
+        @assert max_limit !== nothing ci_name
+        con_ub[ci_name, t] = JuMP.@constraint(
+            PSI.get_jump_model(container),
+            bid_out[ci_name, t] + res_out_up[ci_name, tmap[t]] <= max_limit
+        )
+        con_lb[ci_name, t] = JuMP.@constraint(
+            PSI.get_jump_model(container),
+            bid_out[ci_name, t] - res_out_down[ci_name, tmap[t]] >= 0.0
+        )
+    end
+    return
+end
+
+# Day-Ahead In Bid PCC Range Limits
+function add_constraints_realtimelimit_in_withreserves!(
+    container::PSI.OptimizationContainer,
+    T::Type{<:StatusInOn},
+    devices::U,
+    ::W,
+    time_steps::UnitRange{Int64},
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
+    names = [PSY.get_name(d) for d in devices]
+    bid_in = PSI.get_variable(container, EnergyRTBidIn(), D)
+    res_in_up = PSI.get_expression(container, TotalReserveInUpExpression(), D)
+    res_in_down = PSI.get_expression(container, TotalReserveInDownExpression(), D)
+    con_ub = PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="ub")
+    con_lb = PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="lb")
+
+    for device in devices, t in time_steps
+        tmap = PSY.get_ext(device)["tmap"]
+        ci_name = PSY.get_name(device)
+        max_limit = PSI.get_variable_upper_bound(PSI.ActivePowerInVariable(), device, W())
+        @assert max_limit !== nothing ci_name
+        con_ub[ci_name, t] = JuMP.@constraint(
+            PSI.get_jump_model(container),
+            bid_in[ci_name, t] + res_in_down[ci_name, tmap[t]] <= max_limit
+        )
+        con_lb[ci_name, t] = JuMP.@constraint(
+            PSI.get_jump_model(container),
+            bid_in[ci_name, t] - res_in_up[ci_name, tmap[t]] >= 0.0
+        )
+    end
+    return
+end
+
+###################################################################
 ########################## Builds #################################
 ###################################################################
 
@@ -1658,20 +1800,39 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
         T_rt,
     )
 
-    constraint_status_bid_in = PSI.add_constraints_container!(
+    # PCC Limits for Day-Ahead Bid Out
+    add_constraints_dayaheadlimit_out_withreserves!(
         container,
-        StatusInOn(),
-        PSY.HybridSystem,
-        h_names,
-        T_rt,
+        DayAheadBidOutRangeLimit,
+        hybrids,
+        MerchantModelWithReserves(),
+        T_da,
     )
 
-    constraint_status_bid_out = PSI.add_constraints_container!(
+    # PCC Limits for Day-Ahead Bid In
+    add_constraints_dayaheadlimit_in_withreserves!(
         container,
-        StatusOutOn(),
-        PSY.HybridSystem,
-        h_names,
-        T_rt,
+        DayAheadBidInRangeLimit,
+        hybrids,
+        MerchantModelWithReserves(),
+        T_da,
+    )
+
+    # PCC Limits for Real-Time Bid Out
+    add_constraints_realtimelimit_out_withreserves!(
+        container,
+        StatusOutOn,
+        hybrids,
+        MerchantModelWithReserves(),
+        time_steps,
+    )
+
+    add_constraints_realtimelimit_in_withreserves!(
+        container,
+        StatusInOn,
+        hybrids,
+        MerchantModelWithReserves(),
+        time_steps,
     )
 
     constraint_balance = PSI.add_constraints_container!(

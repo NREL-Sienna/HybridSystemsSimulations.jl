@@ -1534,15 +1534,14 @@ end
 
 ############## Renewable Constraints ReserveLimit, HybridSystem ###################
 
-function PSI.add_constraints!(
+function _add_constraints_renewablereserve_limit!(
     container::PSI.OptimizationContainer,
     T::Type{<:RenewableReserveLimit},
     devices::U,
-    ::PSI.DeviceModel{D, W},
-    network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
+    ::W,
 ) where {
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
-    W <: HybridDispatchWithReserves,
+    W <: AbstractHybridFormulation,
 } where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     P = RenewablePowerTimeSeries
@@ -1568,6 +1567,19 @@ function PSI.add_constraints!(
             )
         end
     end
+end
+
+function PSI.add_constraints!(
+    container::PSI.OptimizationContainer,
+    T::Type{<:RenewableReserveLimit},
+    devices::U,
+    ::PSI.DeviceModel{D, W},
+    network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: HybridDispatchWithReserves,
+} where {D <: PSY.HybridSystem}
+    _add_constraints_renewablereserve_limit!(container, T, devices, W())
     return
 end
 

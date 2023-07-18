@@ -9,6 +9,7 @@ function add_to_expression_totalreserveup!(
     ::Type{U},
     devices::Union{Vector{V}, IS.FlattenIteratorWrapper{V}},
     ::W,
+    time_steps::UnitRange{Int64},
 ) where {
     T <: TotalReserveUpExpression,
     U <: PSI.VariableType,
@@ -27,7 +28,7 @@ function add_to_expression_totalreserveup!(
             variable =
                 PSI.get_variable(container, U(), typeof(service), PSY.get_name(service))
             mult = PSI.get_variable_multiplier(U, d, W(), service)
-            for t in PSI.get_time_steps(container)
+            for t in time_steps
                 PSI._add_to_jump_expression!(expression[name, t], variable[name, t], mult)
             end
         end
@@ -49,7 +50,15 @@ function PSI.add_to_expression!(
     W <: HybridDispatchWithReserves,
     X <: PM.AbstractPowerModel,
 }
-    add_to_expression_totalreserveup!(container, expression, variable, devices, W())
+    time_steps = PSI.get_time_steps(container)
+    add_to_expression_totalreserveup!(
+        container,
+        expression,
+        variable,
+        devices,
+        W(),
+        time_steps,
+    )
     return
 end
 
@@ -60,6 +69,7 @@ function add_to_expression_totalreservedown!(
     ::Type{U},
     devices::Union{Vector{V}, IS.FlattenIteratorWrapper{V}},
     ::W,
+    time_steps::UnitRange{Int64},
 ) where {
     T <: TotalReserveDownExpression,
     U <: PSI.VariableType,
@@ -78,7 +88,7 @@ function add_to_expression_totalreservedown!(
             variable =
                 PSI.get_variable(container, U(), typeof(service), PSY.get_name(service))
             mult = PSI.get_variable_multiplier(U, d, W(), service)
-            for t in PSI.get_time_steps(container)
+            for t in time_steps
                 PSI._add_to_jump_expression!(expression[name, t], variable[name, t], mult)
             end
         end
@@ -100,7 +110,15 @@ function PSI.add_to_expression!(
     W <: HybridDispatchWithReserves,
     X <: PM.AbstractPowerModel,
 }
-    add_to_expression_totalreservedown!(container, expression, variable, devices, W())
+    time_steps = PSI.get_time_steps(container)
+    add_to_expression_totalreservedown!(
+        container,
+        expression,
+        variable,
+        devices,
+        W(),
+        time_steps,
+    )
     return
 end
 
@@ -111,6 +129,7 @@ function add_to_expression_componentreserveup!(
     ::Type{U},
     devices::Union{Vector{V}, IS.FlattenIteratorWrapper{V}},
     ::W,
+    time_steps::UnitRange{Int64},
 ) where {
     T <: ComponentReserveUpExpressionType,
     U <: PSI.VariableType,
@@ -129,7 +148,7 @@ function add_to_expression_componentreserveup!(
             variable =
                 PSI.get_variable(container, U(), typeof(service), PSY.get_name(service))
             mult = PSI.get_variable_multiplier(U, d, W(), service)
-            for t in PSI.get_time_steps(container)
+            for t in time_steps
                 PSI._add_to_jump_expression!(expression[name, t], variable[name, t], mult)
             end
         end
@@ -151,7 +170,15 @@ function PSI.add_to_expression!(
     W <: HybridDispatchWithReserves,
     X <: PM.AbstractPowerModel,
 }
-    add_to_expression_componentreserveup!(container, expression, variable, devices, W())
+    time_steps = PSI.get_time_steps(container)
+    add_to_expression_componentreserveup!(
+        container,
+        expression,
+        variable,
+        devices,
+        W(),
+        time_steps,
+    )
     return
 end
 
@@ -162,6 +189,7 @@ function add_to_expression_componentreservedown!(
     ::Type{U},
     devices::Union{Vector{V}, IS.FlattenIteratorWrapper{V}},
     ::W,
+    time_steps::UnitRange{Int64},
 ) where {
     T <: ComponentReserveDownExpressionType,
     U <: PSI.VariableType,
@@ -180,7 +208,7 @@ function add_to_expression_componentreservedown!(
             variable =
                 PSI.get_variable(container, U(), typeof(service), PSY.get_name(service))
             mult = PSI.get_variable_multiplier(U, d, W(), service)
-            for t in PSI.get_time_steps(container)
+            for t in time_steps
                 PSI._add_to_jump_expression!(expression[name, t], variable[name, t], mult)
             end
         end
@@ -202,7 +230,15 @@ function PSI.add_to_expression!(
     W <: HybridDispatchWithReserves,
     X <: PM.AbstractPowerModel,
 }
-    add_to_expression_componentreservedown!(container, expression, variable, devices, W())
+    time_steps = PSI.get_time_steps(container)
+    add_to_expression_componentreservedown!(
+        container,
+        expression,
+        variable,
+        devices,
+        W(),
+        time_steps,
+    )
     return
 end
 

@@ -1014,7 +1014,8 @@ function _add_constraints_out_marketconvergence!(
         ci_name = PSY.get_name(device)
         con[ci_name, t] = JuMP.@constraint(
             PSI.get_jump_model(container),
-            bid_out[ci_name, t] + SERVE_FRACTION * res_out_up[ci_name, tmap[t]] - SERVE_FRACTION * res_out_down[ci_name, tmap[t]] == p_out[ci_name, t]
+            bid_out[ci_name, t] + SERVE_FRACTION * res_out_up[ci_name, tmap[t]] -
+            SERVE_FRACTION * res_out_down[ci_name, tmap[t]] == p_out[ci_name, t]
         )
     end
     return
@@ -1042,7 +1043,8 @@ function _add_constraints_in_marketconvergence!(
         ci_name = PSY.get_name(device)
         con[ci_name, t] = JuMP.@constraint(
             PSI.get_jump_model(container),
-            bid_in[ci_name, t] + SERVE_FRACTION * res_in_down[ci_name, tmap[t]] - SERVE_FRACTION * res_in_up[ci_name, tmap[t]] == p_in[ci_name, t]
+            bid_in[ci_name, t] + SERVE_FRACTION * res_in_down[ci_name, tmap[t]] -
+            SERVE_FRACTION * res_in_up[ci_name, tmap[t]] == p_in[ci_name, t]
         )
     end
     return
@@ -2302,7 +2304,6 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
 
     # Status PCC Operation Out In
     _add_constraints_statusin!(container, StatusInOn, hybrids, MerchantModelWithReserves())
-
 
     # Market Convergence to Assets
 

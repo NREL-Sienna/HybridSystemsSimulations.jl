@@ -97,10 +97,8 @@ decision_optimizer_DA = DecisionModel(
     MerchantHybridCooptimizerCase,
     ProblemTemplate(CopperPlatePowerModel),
     sys,
-    optimizer=optimizer=optimizer_with_attributes(
-        Xpress.Optimizer,
-        "MIPRELSTOP" => 2e-2,
-    ),
+    optimizer=optimizer =
+        optimizer_with_attributes(Xpress.Optimizer, "MIPRELSTOP" => 2e-2),
     calculate_conflict=true,
     optimizer_solve_log_print=true,
     store_variable_names=true;

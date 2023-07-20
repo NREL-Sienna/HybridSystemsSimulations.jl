@@ -1275,9 +1275,7 @@ function objective_function!(
     return
 end
 
-
 ## BUILD IMPL
-
 
 #=
 function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyOnly})

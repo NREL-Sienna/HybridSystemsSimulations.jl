@@ -9,10 +9,8 @@ struct DayAheadBidOutRangeLimit <: PSI.ConstraintType end
 struct DayAheadBidInRangeLimit <: PSI.ConstraintType end
 
 ## RT Bid Limits ##
-struct BidOutRTUpperLimit <: PSI.ConstraintType end
-struct BidInRTUpperLimit <: PSI.ConstraintType end
-struct BidOutRTLowerLimit <: PSI.ConstraintType end
-struct BidInRTLowerLimit <: PSI.ConstraintType end
+struct RealTimeBidOutRangeLimit <: PSI.ConstraintType end
+struct RealTimeBidInRangeLimit <: PSI.ConstraintType end
 
 ## Battery AS State of Charge Coverage ##
 struct RegDownBatteryChargeCoverage <: PSI.ConstraintType end

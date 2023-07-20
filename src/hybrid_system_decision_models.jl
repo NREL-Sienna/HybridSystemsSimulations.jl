@@ -715,7 +715,7 @@ end
 # Real-Time Out Bid PCC Range Limits
 function add_constraints_realtimelimit_out_withreserves!(
     container::PSI.OptimizationContainer,
-    T::Type{<:StatusOutOn},
+    T::Type{<:RealTimeBidOutRangeLimit},
     devices::U,
     ::W,
     time_steps::UnitRange{Int64},
@@ -750,7 +750,7 @@ end
 # Day-Ahead In Bid PCC Range Limits
 function add_constraints_realtimelimit_in_withreserves!(
     container::PSI.OptimizationContainer,
-    T::Type{<:StatusInOn},
+    T::Type{<:RealTimeBidInRangeLimit},
     devices::U,
     ::W,
     time_steps::UnitRange{Int64},
@@ -868,6 +868,125 @@ function _add_constraints_thermalon_variableoff!(
             PSI.get_jump_model(container),
             min_limit * varon[ci_name, tmap[t]] <= p_th[ci_name, t]
         )
+    end
+    return
+end
+
+# Energy Bid Balance in RT
+function _add_constraints_energybidassetbalance!(
+    container::PSI.OptimizationContainer,
+    T::Type{<:EnergyBidAssetBalance},
+    devices::U,
+    ::W,
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
+    time_steps = PSI.get_time_steps(container)
+    names = [PSY.get_name(d) for d in devices]
+    bid_out = PSI.get_variable(container, EnergyRTBidOut(), D)
+    bid_in = PSI.get_variable(container, EnergyRTBidIn(), D)
+    con_bal = PSI.add_constraints_container!(container, T(), D, names, time_steps)
+
+    for device in devices
+        ci_name = PSY.get_name(device)
+        vars_pos = Set{JUMP_SET_TYPE}()
+        vars_neg = Set{JUMP_SET_TYPE}()
+        load_set = Set()
+
+        if !isnothing(PSY.get_thermal_unit(device))
+            bid_th = PSI.get_variable(container, EnergyThermalBid(), D)
+            push!(vars_pos, bid_th[ci_name, :])
+        end
+        if !isnothing(PSY.get_renewable_unit(device))
+            bid_re = PSI.get_variable(container, EnergyRenewableBid(), D)
+            push!(vars_pos, bid_re[ci_name, :])
+        end
+        if !isnothing(PSY.get_storage(device))
+            bid_ch = PSI.get_variable(container, EnergyBatteryChargeBid(), D)
+            bid_ds = PSI.get_variable(container, EnergyBatteryDischargeBid(), D)
+            push!(vars_pos, bid_ds[ci_name, :])
+            push!(vars_neg, bid_ch[ci_name, :])
+        end
+        if !isnothing(PSY.get_electric_load(device))
+            P = ElectricLoadTimeSeries
+            param_container = PSI.get_parameter(container, P(), D)
+            param = PSI.get_parameter_column_refs(param_container, ci_name).data
+            multiplier = PSY.get_max_active_power(PSY.get_electric_load(device))
+            push!(load_set, param * multiplier)
+        end
+        for t in time_steps
+            total_power = -bid_out[ci_name, t] + bid_in[ci_name, t]
+            for vp in vars_pos
+                JuMP.add_to_expression!(total_power, vp[t])
+            end
+            for vn in vars_neg
+                JuMP.add_to_expression!(total_power, -vn[t])
+            end
+            for load in load_set
+                JuMP.add_to_expression!(total_power, -load[t])
+            end
+            con_bal[ci_name, t] =
+                JuMP.@constraint(PSI.get_jump_model(container), total_power == 0.0)
+        end
+    end
+    return
+end
+
+# Product Ancillary Service Balance
+function _add_constraints_reservebalance!(
+    container::PSI.OptimizationContainer,
+    T::Type{<:ReserveBalance},
+    devices::U,
+    service::V,
+    ::W,
+    time_steps::UnitRange{Int64},
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    V <: PSY.Reserve,
+    W <: MerchantModelWithReserves,
+} where {D <: PSY.HybridSystem}
+    service_name = PSY.get_name(service)
+    res_out = PSI.get_variable(container, BidReserveVariableOut(), V, service_name)
+    res_in = PSI.get_variable(container, BidReserveVariableIn(), V, service_name)
+    names = [PSY.get_name(d) for d in devices]
+    con = PSI.add_constraints_container!(
+        container,
+        T(),
+        D,
+        names,
+        time_steps,
+        meta=service_name,
+    )
+    for device in devices
+        tmap = PSY.get_ext(device)["tmap"]
+        ci_name = PSY.get_name(device)
+        vars_pos = Set{JUMP_SET_TYPE}()
+
+        if !isnothing(PSY.get_thermal_unit(device))
+            res_th = PSI.get_variable(container, ThermalReserveVariable(), V, service_name)
+            push!(vars_pos, res_th[ci_name, :])
+        end
+        if !isnothing(PSY.get_renewable_unit(device))
+            res_re =
+                PSI.get_variable(container, RenewableReserveVariable(), V, service_name)
+            push!(vars_pos, res_re[ci_name, :])
+        end
+        if !isnothing(PSY.get_storage(device))
+            res_ch = PSI.get_variable(container, ChargingReserveVariable(), V, service_name)
+            res_ds =
+                PSI.get_variable(container, DischargingReserveVariable(), V, service_name)
+            push!(vars_pos, res_ds[ci_name, :])
+            push!(vars_pos, res_ch[ci_name, :])
+        end
+        for t in time_steps
+            total_reserve = -res_out[ci_name, tmap[t]] - res_in[ci_name, tmap[t]]
+            for vp in vars_pos
+                JuMP.add_to_expression!(total_reserve, vp[t])
+            end
+            con[ci_name, t] =
+                JuMP.@constraint(PSI.get_jump_model(container), total_reserve == 0.0)
+        end
     end
     return
 end
@@ -1527,6 +1646,12 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
             _hybrids_with_renewable,
             MerchantModelWithReserves(),
         )
+        PSI.add_variables!(
+            container,
+            EnergyRenewableBid,
+            _hybrids_with_renewable,
+            MerchantModelWithReserves(),
+        )
         add_time_series_parameters!(
             container,
             RenewablePowerTimeSeries(),
@@ -1601,6 +1726,8 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
             BatteryStatus,
             ChargingReserveVariable,
             DischargingReserveVariable,
+            EnergyBatteryChargeBid,
+            EnergyBatteryDischargeBid,
         ]
             PSI.add_variables!(
                 container,
@@ -1688,7 +1815,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
     end
 
     if !isempty(_hybrids_with_thermal)
-        for v in [ThermalPower, PSI.OnVariable, ThermalReserveVariable]
+        for v in [ThermalPower, PSI.OnVariable, ThermalReserveVariable, EnergyThermalBid]
             PSI.add_variables!(
                 container,
                 v,
@@ -1952,7 +2079,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
     # PCC Limits for Real-Time Bid Out
     add_constraints_realtimelimit_out_withreserves!(
         container,
-        StatusOutOn,
+        RealTimeBidOutRangeLimit,
         hybrids,
         MerchantModelWithReserves(),
         time_steps,
@@ -1960,18 +2087,10 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
 
     add_constraints_realtimelimit_in_withreserves!(
         container,
-        StatusInOn,
+        RealTimeBidInRangeLimit,
         hybrids,
         MerchantModelWithReserves(),
         time_steps,
-    )
-
-    constraint_balance = PSI.add_constraints_container!(
-        container,
-        EnergyAssetBalance(),
-        PSY.HybridSystem,
-        h_names,
-        T_rt,
     )
 
     # Thermal
@@ -2087,6 +2206,44 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
             MerchantModelWithReserves(),
         )
     end
+
+    # Asset Balance
+    _add_constraints_energyassetbalance!(
+        container,
+        EnergyAssetBalance,
+        hybrids,
+        MerchantModelWithReserves(),
+    )
+
+    # Energy Bid Balance
+    _add_constraints_energybidassetbalance!(
+        container,
+        EnergyBidAssetBalance,
+        hybrids,
+        MerchantModelWithReserves(),
+    )
+
+    # Reserve Bid Balance
+    for service in services
+        _add_constraints_reservebalance!(
+            container,
+            ReserveBalance,
+            hybrids,
+            service,
+            MerchantModelWithReserves(),
+            time_steps,
+        )
+    end
+
+    # Status PCC Operation
+    _add_constraints_statusout!(
+        container,
+        StatusOutOn,
+        hybrids,
+        MerchantModelWithReserves(),
+    )
+
+    _add_constraints_statusin!(container, StatusInOn, hybrids, MerchantModelWithReserves())
 
     #= Old Constraints
     for t in T_rt

@@ -97,7 +97,7 @@ decision_optimizer_DA = DecisionModel(
     MerchantHybridCooptimizerCase,
     ProblemTemplate(CopperPlatePowerModel),
     sys,
-    optimizer=optimizer =
+    optimizer=
         optimizer_with_attributes(Xpress.Optimizer, "MIPRELSTOP" => 1e-5),
     calculate_conflict=true,
     optimizer_solve_log_print=true,
@@ -106,7 +106,7 @@ decision_optimizer_DA = DecisionModel(
     name="MerchantHybridCooptimizerCase_DA",
 )
 
-build!(decision_optimizer_DA; output_dir=pwd())
+build!(decision_optimizer_DA; output_dir=mktempdir())
 
 #=
 cons = decision_optimizer_DA.internal.container.constraints

@@ -97,8 +97,12 @@ decision_optimizer_DA = DecisionModel(
     MerchantHybridCooptimizerCase,
     ProblemTemplate(CopperPlatePowerModel),
     sys,
-    optimizer=Xpress.Optimizer,
+    optimizer=optimizer=optimizer_with_attributes(
+        Xpress.Optimizer,
+        "MIPRELSTOP" => 2e-2,
+    ),
     calculate_conflict=true,
+    optimizer_solve_log_print=true,
     store_variable_names=true;
     name="MerchantHybridCooptimizerCase_DA",
 )
@@ -113,10 +117,12 @@ exprs = decision_optimizer_DA.internal.container.expressions
 cons[PSI.ConstraintKey{HSS.DayAheadBidInRangeLimit, HybridSystem}("lb")]["317_Hybrid", 1]
 cons[PSI.ConstraintKey{HSS.RealTimeBidOutRangeLimit, HybridSystem}("ub")]["317_Hybrid", 288]
 cons[PSI.ConstraintKey{HSS.StatusInOn, HybridSystem}("ub")]["317_Hybrid", 288]
-cons[PSI.ConstraintKey{HSS.EnergyBidAssetBalance, HybridSystem}("")]["317_Hybrid", 288]
+cons[PSI.ConstraintKey{HSS.MarketInConvergence, HybridSystem}("")]["317_Hybrid", 288]
 cons[PSI.ConstraintKey{HSS.ReserveBalance, HybridSystem}("Reg_Up")]["317_Hybrid", 288]
 exprs[PSI.ExpressionKey{HSS.TotalReserveInUpExpression, HybridSystem}("")]["317_Hybrid", 1]
 vars[PSI.VariableKey{HSS.ThermalReserveVariable, VariableReserve{ReserveUp}}("Reg_Up")]
 JuMP.upper_bound(
     vars[PSI.VariableKey{HSS.BatteryDischarge, HybridSystem}("")]["317_Hybrid", 1],
 )
+
+solve!(decision_optimizer_DA)

@@ -2042,8 +2042,8 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
     end
 
     # RT costs
-    eb_rt_out = PSI.get_variable(container, EnergyRTBidOut(), PSY.HybridSystem)
-    eb_rt_in = PSI.get_variable(container, EnergyRTBidIn(), PSY.HybridSystem)
+    p_out = PSI.get_variable(container, PSI.ActivePowerOutVariable(), PSY.HybridSystem)
+    p_in = PSI.get_variable(container, PSI.ActivePowerInVariable(), PSY.HybridSystem)
 
     # Thermal Variable Cost
     if !isempty(_hybrids_with_thermal)
@@ -2071,8 +2071,8 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
     # RT bids and DART arbitrage
     for t in T_rt, dev in hybrids
         name = PSY.get_name(dev)
-        lin_cost_rt_out = Δt_RT * λ_rt_pos[name, t] * eb_rt_out[name, t]
-        lin_cost_rt_in = -Δt_RT * λ_rt_neg[name, t] * eb_rt_in[name, t]
+        lin_cost_rt_out = Δt_RT * λ_rt_pos[name, t] * p_out[name, t]
+        lin_cost_rt_in = -Δt_RT * λ_rt_neg[name, t] * p_in[name, t]
         lin_cost_dart_out = -Δt_RT * λ_dart_neg[name, t] * eb_da_out[name, tmap[t]]
         lin_cost_dart_in = Δt_RT * λ_dart_pos[name, t] * eb_da_in[name, tmap[t]]
         PSI.add_to_objective_variant_expression!(container, lin_cost_rt_out)

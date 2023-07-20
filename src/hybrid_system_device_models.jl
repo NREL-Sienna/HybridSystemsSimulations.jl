@@ -109,25 +109,25 @@ PSI.get_default_on_variable(::PSY.HybridSystem) = PSI.OnVariable()
 
 # Upper Bound
 PSI.get_variable_upper_bound(
-    ::ThermalPower,
+    ::Union{ThermalPower, EnergyThermalBid},
     d::PSY.HybridSystem,
     ::AbstractHybridFormulation,
 ) = PSY.get_active_power_limits(PSY.get_thermal_unit(d)).max
 
 PSI.get_variable_upper_bound(
-    ::RenewablePower,
+    ::Union{RenewablePower, EnergyRenewableBid},
     d::PSY.HybridSystem,
     ::AbstractHybridFormulation,
 ) = PSY.get_max_active_power(PSY.get_renewable_unit(d))
 
 PSI.get_variable_upper_bound(
-    ::BatteryCharge,
+    ::Union{BatteryCharge, EnergyBatteryChargeBid},
     d::PSY.HybridSystem,
     ::AbstractHybridFormulation,
 ) = PSY.get_input_active_power_limits(PSY.get_storage(d)).max
 
 PSI.get_variable_upper_bound(
-    ::BatteryDischarge,
+    ::Union{BatteryDischarge, EnergyBatteryDischargeBid},
     d::PSY.HybridSystem,
     ::AbstractHybridFormulation,
 ) = PSY.get_output_active_power_limits(PSY.get_storage(d)).max
@@ -152,25 +152,25 @@ PSI.get_variable_upper_bound(
 
 # Lower Bound
 PSI.get_variable_lower_bound(
-    ::ThermalPower,
+    ::Union{ThermalPower, EnergyThermalBid},
     d::PSY.HybridSystem,
     ::AbstractHybridFormulation,
 ) = 0.0
 
 PSI.get_variable_lower_bound(
-    ::RenewablePower,
+    ::Union{RenewablePower, EnergyRenewableBid},
     d::PSY.HybridSystem,
     ::AbstractHybridFormulation,
 ) = 0.0
 
 PSI.get_variable_lower_bound(
-    ::BatteryCharge,
+    ::Union{BatteryCharge, EnergyBatteryChargeBid},
     d::PSY.HybridSystem,
     ::AbstractHybridFormulation,
 ) = 0.0
 
 PSI.get_variable_lower_bound(
-    ::BatteryDischarge,
+    ::Union{BatteryDischarge, EnergyBatteryDischargeBid},
     d::PSY.HybridSystem,
     ::AbstractHybridFormulation,
 ) = 0.0
@@ -195,7 +195,7 @@ PSI.get_variable_lower_bound(
 
 # Binaries
 PSI.get_variable_binary(
-    ::ThermalPower,
+    ::Union{ThermalPower, EnergyThermalBid},
     ::Type{PSY.HybridSystem},
     ::AbstractHybridFormulation,
 ) = false
@@ -205,17 +205,17 @@ PSI.get_variable_binary(
     ::AbstractHybridFormulation,
 ) = true
 PSI.get_variable_binary(
-    ::RenewablePower,
+    ::Union{RenewablePower, EnergyRenewableBid},
     ::Type{PSY.HybridSystem},
     ::AbstractHybridFormulation,
 ) = false
 PSI.get_variable_binary(
-    ::BatteryCharge,
+    ::Union{BatteryCharge, EnergyBatteryChargeBid},
     ::Type{PSY.HybridSystem},
     ::AbstractHybridFormulation,
 ) = false
 PSI.get_variable_binary(
-    ::BatteryDischarge,
+    ::Union{BatteryDischarge, EnergyBatteryDischargeBid},
     ::Type{PSY.HybridSystem},
     ::AbstractHybridFormulation,
 ) = false
@@ -798,7 +798,7 @@ const JUMP_SET_TYPE = JuMP.Containers.DenseAxisArray{
     Tuple{JuMP.Containers._AxisLookup{Tuple{Int64, Int64}}},
 }
 
-function _add_constrains_energyassetbalance!(
+function _add_constraints_energyassetbalance!(
     container::PSI.OptimizationContainer,
     T::Type{<:EnergyAssetBalance},
     devices::U,
@@ -868,7 +868,7 @@ function PSI.add_constraints!(
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     W <: AbstractHybridFormulation,
 } where {D <: PSY.HybridSystem}
-    _add_constrains_energyassetbalance!(container, T, devices, W())
+    _add_constraints_energyassetbalance!(container, T, devices, W())
     return
 end
 

@@ -1,5 +1,6 @@
 const CYCLES_PER_DAY = 1.37
 const HOURS_IN_DAY = 24
+const SERVE_FRACTION = 1.0
 
 struct RenewablePowerTimeSeries <: PSI.TimeSeriesParameter end
 struct ElectricLoadTimeSeries <: PSI.TimeSeriesParameter end

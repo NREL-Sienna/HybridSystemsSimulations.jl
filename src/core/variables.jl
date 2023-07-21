@@ -37,11 +37,11 @@ struct RenewableReserveVariable <: ComponentReserveVariableType end
 
 # Duals for Merchant Model
 """
-Internal Merchant Model Devices Power Balance Equation Upper Bound Dual
+Internal Merchant Model Devices EnergyAssetBalance Equation Upper Bound Dual
 """
 struct λUb <: PSI.VariableType end
 """
-Internal Merchant Model Devices Power Balance Equation Lower Bound Dual
+Internal Merchant Model Devices EnergyAssetBalance Equation Lower Bound Dual
 """
 struct λLb <: PSI.VariableType end
 """
@@ -100,6 +100,26 @@ struct κStDs <: PSI.VariableType end
 Storage Charging Cycling Limit Dual
 """
 struct κStCh <: PSI.VariableType end
+
+###############################################
+##### Complementaty Slackness Variables #####
+###############################################
+# Names track the constraint types and their Meta Ub and Lb
+struct ComplementarySlackVarEnergyAssetBalanceUb <: PSI.VariableType end
+struct ComplementarySlackVarEnergyAssetBalanceLb <: PSI.VariableType end
+struct ComplementarySlackVarThermalOnVariableOn <: PSI.VariableType end
+struct ComplementarySlackVarThermalOnVariableOff <: PSI.VariableType end
+struct ComplementarySlackVarRenewableActivePowerLimitConstraintUb <: PSI.VariableType end
+struct ComplementarySlackVarRenewableActivePowerLimitConstraintLb <: PSI.VariableType end
+struct ComplementarySlackVarBatteryStatusDischargeOnUb <: PSI.VariableType end
+struct ComplementarySlackVarBatteryStatusDischargeOnLb <: PSI.VariableType end
+struct ComplementarySlackVarBatteryStatusChargeOnUb <: PSI.VariableType end
+struct ComplementarySlackVarBatteryStatusChargeOnLb <: PSI.VariableType end
+struct ComplementarySlackVarBatteryBalanceUb <: PSI.VariableType end
+struct ComplementarySlackVarBatteryBalanceLb <: PSI.VariableType end
+struct ComplementarySlackVarCyclingCharge <: PSI.VariableType end
+struct ComplementarySlackVarCyclingDischarge <: PSI.VariableType end
+
 
 # implement below
 # convert_result_to_natural_units(::Type{<:VariableType}) = false

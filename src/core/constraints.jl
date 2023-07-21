@@ -62,3 +62,34 @@ struct BatteryBalance <: PSI.ConstraintType end
 struct CyclingCharge <: PSI.ConstraintType end
 struct CyclingDischarge <: PSI.ConstraintType end
 struct RenewableActivePowerLimitConstraint <: PSI.ConstraintType end
+
+##############################################
+### Dual Optimality Conditions Constraints ###
+##############################################
+# Names track the variable types in variables.jl
+struct OptConditionThermalPower <: PSI.ConstraintType end
+struct OptConditionRenewablePower <: PSI.ConstraintType end
+struct OptConditionBatteryCharge <: PSI.ConstraintType end
+struct OptConditionBatteryDischarge <: PSI.ConstraintType end
+# EnergyVariable is defined in PSI
+struct OptConditionEnergyVariable <: PSI.ConstraintType end
+
+###############################################
+##### Complementaty Slackness Constraints #####
+###############################################
+# Names track the constraint types and their Meta Ub and Lb
+struct ComplementarySlacknessEnergyAssetBalanceUb <: PSI.ConstraintType end
+struct ComplementarySlacknessEnergyAssetBalanceLb <: PSI.ConstraintType end
+struct ComplementarySlacknessThermalOnVariableOn <: PSI.ConstraintType end
+struct ComplementarySlacknessThermalOnVariableOff <: PSI.ConstraintType end
+struct ComplementarySlacknessRenewableActivePowerLimitConstraintUb <: PSI.ConstraintType end
+struct ComplementarySlacknessRenewableActivePowerLimitConstraintLb <: PSI.ConstraintType end
+struct ComplementarySlacknessBatteryStatusDischargeOnUb <: PSI.ConstraintType end
+struct ComplementarySlacknessBatteryStatusDischargeOnLb <: PSI.ConstraintType end
+struct ComplementarySlacknessBatteryStatusChargeOnUb <: PSI.ConstraintType end
+struct ComplementarySlacknessBatteryStatusChargeOnLb <: PSI.ConstraintType end
+struct ComplementarySlacknessBatteryBalanceUb <: PSI.ConstraintType end
+struct ComplementarySlacknessBatteryBalanceLb <: PSI.ConstraintType end
+struct ComplentarySlacknessCyclingCharge <: PSI.ConstraintType end
+struct ComplentarySlacknessCyclingDischarge <: PSI.ConstraintType end
+struct StrongDualityCut <: PSI.ConstraintType end

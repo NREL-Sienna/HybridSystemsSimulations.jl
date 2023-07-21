@@ -64,7 +64,6 @@ interval_RT = Minute(5)
 horizon_RT = 24
 transform_single_time_series!(sys_rts_rt, horizon_RT, interval_RT)
 
-
 ###############################
 ###### Create Templates #######
 ###############################

@@ -5,12 +5,10 @@ bus_to_add = "Chuhsi" # "Barton"
 modify_ren_curtailment_cost!(sys_fixDA)
 add_hybrid_to_chuhsi_bus!(sys_fixDA)
 
-
 h = first(get_components(HybridSystem, sys_fixDA))
 h.ext["DABids"] = bid_df
 
 transform_single_time_series!(sys_fixDA, horizon_fixDA, interval_fixDA)
-
 
 template_uc_copperplate = get_uc_copperplate_template(sys_fixDA)
 set_device_model!(

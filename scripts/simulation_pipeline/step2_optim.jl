@@ -1,8 +1,8 @@
 bus_name = "chuhsi"
 sys_rts_merchant = build_system(PSISystems, "modified_RTS_GMLC_RT_sys_noForecast")
-horizon_merchant_rt = 12*24*3
+horizon_merchant_rt = 12 * 24 * 3
 horizon_merchant_da = 72
-interval_merchant = Dates.Hour(24*3)
+interval_merchant = Dates.Hour(24 * 3)
 
 for sys in [sys_rts_merchant]
     bus_to_add = "Chuhsi" # "Barton"
@@ -35,7 +35,7 @@ m = DecisionModel(
     optimizer=Xpress.Optimizer,
     calculate_conflict=true,
     store_variable_names=true,
-    initial_time = starttime
+    initial_time=starttime,
 )
 PSI.build!(m, output_dir=pwd())
 PSI.solve!(m)

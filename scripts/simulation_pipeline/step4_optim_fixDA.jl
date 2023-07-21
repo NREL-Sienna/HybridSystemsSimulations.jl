@@ -1,8 +1,8 @@
 bus_to_add = "Chuhsi" # "Barton"
 sys_upd = build_system(PSISystems, "modified_RTS_GMLC_RT_sys_noForecast")
-horizon_merchant_rt = 12*24*3
+horizon_merchant_rt = 12 * 24 * 3
 horizon_merchant_da = 72
-interval_merchant = Dates.Hour(24*3)
+interval_merchant = Dates.Hour(24 * 3)
 
 for sys in [sys_upd]
     bus_to_add = "Chuhsi" # "Barton"

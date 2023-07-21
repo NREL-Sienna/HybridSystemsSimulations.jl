@@ -42,8 +42,8 @@
     for service in services
         serv_name = get_name(service)
         if contains(serv_name, "Spin_Up_R1") |
-        contains(serv_name, "Spin_Up_R2") |
-        contains(serv_name, "Flex")
+           contains(serv_name, "Spin_Up_R2") |
+           contains(serv_name, "Flex")
             continue
         else
             add_service!(hy_sys, service, sys)
@@ -71,11 +71,11 @@
     var_results = results.variable_values
     rt_bid_out = read_variable(results, "EnergyRTBidOut__HybridSystem")
     da_bid_out = var_results[PSI.VariableKey{HSS.EnergyDABidOut, HybridSystem}("")]
-    regup_bid_out = var_results[PSI.VariableKey{HSS.BidReserveVariableOut, VariableReserve{ReserveUp}}(
-        "Reg_Up",
-    )]
+    regup_bid_out =
+        var_results[PSI.VariableKey{HSS.BidReserveVariableOut, VariableReserve{ReserveUp}}(
+            "Reg_Up",
+        )]
     @test length(da_bid_out[!, 1]) == 24
     @test length(rt_bid_out[!, 1]) == 288
     @test length(regup_bid_out[!, 1]) == 24
-
 end

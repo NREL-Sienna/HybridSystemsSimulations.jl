@@ -239,3 +239,23 @@ plot(
         ),
     ),
 )
+
+
+#Day AHead
+da_bid_out =
+    var_res[PSI.VariableKey{HSS.EnergyDABidOut, HybridSystem}("")][
+        !,
+        "317_Hybrid",
+    ]
+da_bid_in = var_res[PSI.VariableKey{HSS.EnergyDABidIn, HybridSystem}("")][
+    !,
+    "317_Hybrid",
+]
+
+plot(
+    [
+        scatter(x=time_da, y=da_bid_out, name="DA Bid Out", line_shape="hv"),
+        scatter(x=time_da, y=-da_bid_in, name="DA Bid In", line_shape="hv"),
+        scatter(x=time_rt, y=DART, name="DART", line_shape="hv"),
+    ]
+)

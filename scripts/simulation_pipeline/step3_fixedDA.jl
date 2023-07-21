@@ -1,10 +1,14 @@
-sys_fixDA = PSB.build_RTS_GMLC_DA_sys(raw_data=PSB.RTS_DIR, horizon=72)
+sys_fixDA = build_system(PSISystems, "modified_RTS_GMLC_DA_sys_noForecast")
+horizon_fixDA = 72
+interval_fixDA = Hour(72)
 bus_to_add = "Chuhsi" # "Barton"
 modify_ren_curtailment_cost!(sys_fixDA)
 add_hybrid_to_chuhsi_bus!(sys_fixDA)
 
 h = first(get_components(HybridSystem, sys_fixDA))
 h.ext["DABids"] = bid_df
+
+transform_single_time_series!(sys_fixDA, horizon_fixDA, interval_fixDA)
 
 template_uc_copperplate = get_uc_copperplate_template(sys_fixDA)
 set_device_model!(

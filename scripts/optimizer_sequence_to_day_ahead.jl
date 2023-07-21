@@ -13,9 +13,11 @@ using InfrastructureSystems
 using PowerNetworkMatrices
 using HybridSystemsSimulations
 import OrderedCollections: OrderedDict
+using JuMP
 const PSY = PowerSystems
 const PSI = PowerSimulations
 const PSB = PowerSystemCaseBuilder
+const HSS = HybridSystemsSimulations
 
 # Load Optimization and Useful Packages
 using Xpress
@@ -84,9 +86,20 @@ decision_optimizer_DA = DecisionModel(
     name="MerchantHybridEnergyCase_DA",
 )
 
-# build!(decision_optimizer; output_dir=pwd())
-# solve!(decision_optimizer)
+build!(decision_optimizer_DA; output_dir=pwd())
+solve!(decision_optimizer_DA)
 
+results = ProblemResults(decision_optimizer_DA)
+var_results = results.variable_values
+rt_bid_out = read_variable(results, "EnergyRTBidOut__HybridSystem")
+da_bid_out = var_results[PSI.VariableKey{HSS.EnergyDABidOut, HybridSystem}("")]
+
+cons = decision_optimizer_DA.internal.container.constraints
+vars = decision_optimizer_DA.internal.container.variables
+cons[PSI.ConstraintKey{HSS.StatusOutOn, HybridSystem}("")]["317_Hybrid", 1]
+JuMP.upper_bound(
+    vars[PSI.VariableKey{HSS.EnergyRTBidOut, HybridSystem}("")]["317_Hybrid", 1],
+)
 mipgap = 0.01
 num_steps = 3
 start_time = DateTime("2020-10-03T00:00:00")

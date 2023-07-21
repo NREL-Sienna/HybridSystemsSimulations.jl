@@ -5,34 +5,19 @@
 ###################
 
 ## DA Bid Limits ##
-struct BidOutDAUpperLimit <: PSI.ConstraintType end
-struct BidInDAUpperLimit <: PSI.ConstraintType end
-struct BidOutDALowerLimit <: PSI.ConstraintType end
-struct BidInDALowerLimit <: PSI.ConstraintType end
+struct DayAheadBidOutRangeLimit <: PSI.ConstraintType end
+struct DayAheadBidInRangeLimit <: PSI.ConstraintType end
 
 ## RT Bid Limits ##
-struct BidOutRTUpperLimit <: PSI.ConstraintType end
-struct BidInRTUpperLimit <: PSI.ConstraintType end
-struct BidOutRTLowerLimit <: PSI.ConstraintType end
-struct BidInRTLowerLimit <: PSI.ConstraintType end
-
-## Battery AS State of Charge Coverage ##
-struct RegDownBatteryChargeCoverage <: PSI.ConstraintType end
-struct RegUpBatteryDischargeCoverage <: PSI.ConstraintType end
-struct SpinBatteryDischargeCoverage <: PSI.ConstraintType end
+struct RealTimeBidOutRangeLimit <: PSI.ConstraintType end
+struct RealTimeBidInRangeLimit <: PSI.ConstraintType end
 
 ## Energy Market Asset Balance ##
 struct EnergyBidAssetBalance <: PSI.ConstraintType end
 
 ## AS Market Convergence ##
-struct RegUpBidMarketConvergence <: PSI.ConstraintType end
-struct RegDownBidMarketConvergence <: PSI.ConstraintType end
-struct SpinBidMarketConvergence <: PSI.ConstraintType end
-
-## AS Market Asset Balance ##
-struct RegUpBidAssetBalance <: PSI.ConstraintType end
-struct RegDownBidAssetBalance <: PSI.ConstraintType end
-struct SpinBidAssetBalance <: PSI.ConstraintType end
+struct MarketOutConvergence <: PSI.ConstraintType end
+struct MarketInConvergence <: PSI.ConstraintType end
 
 ## Internal Asset Bidding with AS ##
 # Thermal

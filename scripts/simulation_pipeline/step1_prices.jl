@@ -12,10 +12,12 @@ using PowerSystemCaseBuilder
 using InfrastructureSystems
 using PowerNetworkMatrices
 using HybridSystemsSimulations
+using StorageSystemsSimulations
 import OrderedCollections: OrderedDict
 const PSY = PowerSystems
 const PSI = PowerSimulations
 const PSB = PowerSystemCaseBuilder
+const HSS = HybridSystemsSimulations
 
 # Load Optimization and Useful Packages
 using Xpress
@@ -39,8 +41,8 @@ include("../utils.jl")
 ######## Load Systems #########
 ###############################
 
-sys_rts_da = build_system(PSISystems, "modified_RTS_GMLC_DA_sys")
-sys_rts_rt = build_system(PSISystems, "modified_RTS_GMLC_RT_sys")
+sys_rts_da = build_system(PSISystems, "modified_RTS_GMLC_DA_sys_noForecast")
+sys_rts_rt = build_system(PSISystems, "modified_RTS_GMLC_RT_sys_noForecast")
 
 # There is no Wind + Thermal in a Single Bus.
 # We will try to pick the Wind in 317 bus Chuhsi
@@ -54,6 +56,13 @@ for sys in [sys_rts_da, sys_rts_rt]
     #    set_max_active_power!(l, get_max_active_power(l) * 1.3)
     #end
 end
+
+interval_DA = Hour(24)
+horizon_DA = 48
+transform_single_time_series!(sys_rts_da, horizon_DA, interval_DA)
+interval_RT = Minute(5)
+horizon_RT = 24
+transform_single_time_series!(sys_rts_rt, horizon_RT, interval_RT)
 
 ###############################
 ###### Create Templates #######

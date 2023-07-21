@@ -1,7 +1,19 @@
-sys_upd = build_system(PSISystems, "modified_RTS_GMLC_RT_sys")
 bus_to_add = "Chuhsi" # "Barton"
-modify_ren_curtailment_cost!(sys_upd)
-add_hybrid_to_chuhsi_bus!(sys_upd)
+sys_upd = build_system(PSISystems, "modified_RTS_GMLC_RT_sys_noForecast")
+horizon_merchant_rt = 12 * 24 * 3
+horizon_merchant_da = 72
+interval_merchant = Dates.Hour(24 * 3)
+
+for sys in [sys_upd]
+    bus_to_add = "Chuhsi" # "Barton"
+    modify_ren_curtailment_cost!(sys)
+    add_hybrid_to_chuhsi_bus!(sys)
+    #for l in get_components(PowerLoad, sys)
+    #    set_max_active_power!(l, get_max_active_power(l) * 1.3)
+    #end
+end
+
+transform_single_time_series!(sys_upd, horizon_merchant_rt, interval_merchant)
 
 sys_upd.internal.ext = Dict{String, DataFrame}()
 dic_upd = PSY.get_ext(sys_upd)
@@ -15,6 +27,11 @@ dic_upd["λ_rt_df"] =
     CSV.read("scripts/simulation_pipeline/inputs/$(bus_name)_RT_prices.csv", DataFrame)
 dic_upd["bid_df"] =
     CSV.read("scripts/simulation_pipeline/inputs/$(bus_name)_bid_fixed.csv", DataFrame)
+dic_upd["horizon_RT"] = horizon_merchant_rt
+dic_upd["horizon_DA"] = horizon_merchant_da
+
+hy_sys = first(get_components(HybridSystem, sys_upd))
+PSY.set_ext!(hy_sys, deepcopy(dic_upd))
 
 m_upd = DecisionModel(
     MerchantHybridEnergyFixedDA,

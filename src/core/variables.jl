@@ -35,5 +35,71 @@ struct DischargingReserveVariable <: ComponentReserveVariableType end
 struct ThermalReserveVariable <: ComponentReserveVariableType end
 struct RenewableReserveVariable <: ComponentReserveVariableType end
 
+# Duals for Merchant Model
+"""
+Internal Merchant Model Devices Power Balance Equation Upper Bound Dual
+"""
+struct λUb <: PSI.VariableType end
+"""
+Internal Merchant Model Devices Power Balance Equation Lower Bound Dual
+"""
+struct λLb <: PSI.VariableType end
+"""
+ThermalGeneration Upper Bound Dual
+"""
+struct μThUb <: PSI.VariableType end
+"""
+ThermalGeneration Lower Bound Dual
+"""
+struct μThLb <: PSI.VariableType end
+"""
+RenewableGeneration Upper Bound Dual
+"""
+struct μReUb <: PSI.VariableType end
+"""
+RenewableGeneration Lower Bound Dual
+"""
+struct μReLb <: PSI.VariableType end
+"""
+Storage Charge Variable Upper Bound Dual
+"""
+struct μChUb <: PSI.VariableType end
+"""
+Storage Charge Variable Lower Bound Dual
+"""
+struct μChLb <: PSI.VariableType end
+"""
+Storage Discharge Variable Upper Bound Dual
+"""
+struct μDsUb <: PSI.VariableType end
+"""
+Storage Discharge Variable Lower Bound Dual
+"""
+struct μDsLb <: PSI.VariableType end
+"""
+Storage Energy Balance Equation Upper Bound Dual
+"""
+struct γStBalLb <: PSI.VariableType end
+"""
+Storage Energy Balance Equation Lower Bound Dual
+"""
+struct γStBalUb <: PSI.VariableType end
+"""
+Storage Energy Variable Upper Bound Dual
+"""
+struct νStUb <: PSI.VariableType end
+"""
+Storage Energy Variable Lower Bound Dual
+"""
+struct νStLb <: PSI.VariableType end
+"""
+Storage Discharging Cycling Limit Dual
+"""
+struct κStDs <: PSI.VariableType end
+"""
+Storage Charging Cycling Limit Dual
+"""
+struct κStCh <: PSI.VariableType end
+
 # implement below
 # convert_result_to_natural_units(::Type{<:VariableType}) = false

@@ -3672,7 +3672,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridBilevel
             μChUb,
             μChLb,
             μDsUb,
-            μDsUb,
+            μDsLb,
             γStBalLb,
             γStBalUb,
             νStUb,

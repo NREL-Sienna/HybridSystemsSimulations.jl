@@ -36,90 +36,93 @@ struct ThermalReserveVariable <: ComponentReserveVariableType end
 struct RenewableReserveVariable <: ComponentReserveVariableType end
 
 # Duals for Merchant Model
+abstract type MerchantModelDualVariable <: PSI.VariableType end
 """
 Internal Merchant Model Devices EnergyAssetBalance Equation Upper Bound Dual
 """
-struct λUb <: PSI.VariableType end
+struct λUb <: MerchantModelDualVariable end
 """
 Internal Merchant Model Devices EnergyAssetBalance Equation Lower Bound Dual
 """
-struct λLb <: PSI.VariableType end
+struct λLb <: MerchantModelDualVariable end
 """
 ThermalGeneration Upper Bound Dual
 """
-struct μThUb <: PSI.VariableType end
+struct μThUb <: MerchantModelDualVariable end
 """
 ThermalGeneration Lower Bound Dual
 """
-struct μThLb <: PSI.VariableType end
+struct μThLb <: MerchantModelDualVariable end
 """
 RenewableGeneration Upper Bound Dual
 """
-struct μReUb <: PSI.VariableType end
+struct μReUb <: MerchantModelDualVariable end
 """
 RenewableGeneration Lower Bound Dual
 """
-struct μReLb <: PSI.VariableType end
+struct μReLb <: MerchantModelDualVariable end
 """
 Storage Charge Variable Upper Bound Dual
 """
-struct μChUb <: PSI.VariableType end
+struct μChUb <: MerchantModelDualVariable end
 """
 Storage Charge Variable Lower Bound Dual
 """
-struct μChLb <: PSI.VariableType end
+struct μChLb <: MerchantModelDualVariable end
 """
 Storage Discharge Variable Upper Bound Dual
 """
-struct μDsUb <: PSI.VariableType end
+struct μDsUb <: MerchantModelDualVariable end
 """
 Storage Discharge Variable Lower Bound Dual
 """
-struct μDsLb <: PSI.VariableType end
+struct μDsLb <: MerchantModelDualVariable end
 """
 Storage Energy Balance Equation Upper Bound Dual
 """
-struct γStBalLb <: PSI.VariableType end
+struct γStBalLb <: MerchantModelDualVariable end
 """
 Storage Energy Balance Equation Lower Bound Dual
 """
-struct γStBalUb <: PSI.VariableType end
+struct γStBalUb <: MerchantModelDualVariable end
 """
 Storage Energy Variable Upper Bound Dual
 """
-struct νStUb <: PSI.VariableType end
+struct νStUb <: MerchantModelDualVariable end
 """
 Storage Energy Variable Lower Bound Dual
 """
-struct νStLb <: PSI.VariableType end
+struct νStLb <: MerchantModelDualVariable end
 """
 Storage Discharging Cycling Limit Dual
 """
-struct κStDs <: PSI.VariableType end
+struct κStDs <: MerchantModelDualVariable end
 """
 Storage Charging Cycling Limit Dual
 """
-struct κStCh <: PSI.VariableType end
+struct κStCh <: MerchantModelDualVariable end
 
 ###############################################
 ##### Complementaty Slackness Variables #####
 ###############################################
 # Names track the constraint types and their Meta Ub and Lb
-struct ComplementarySlackVarEnergyAssetBalanceUb <: PSI.VariableType end
-struct ComplementarySlackVarEnergyAssetBalanceLb <: PSI.VariableType end
-struct ComplementarySlackVarThermalOnVariableOn <: PSI.VariableType end
-struct ComplementarySlackVarThermalOnVariableOff <: PSI.VariableType end
-struct ComplementarySlackVarRenewableActivePowerLimitConstraintUb <: PSI.VariableType end
-struct ComplementarySlackVarRenewableActivePowerLimitConstraintLb <: PSI.VariableType end
-struct ComplementarySlackVarBatteryStatusDischargeOnUb <: PSI.VariableType end
-struct ComplementarySlackVarBatteryStatusDischargeOnLb <: PSI.VariableType end
-struct ComplementarySlackVarBatteryStatusChargeOnUb <: PSI.VariableType end
-struct ComplementarySlackVarBatteryStatusChargeOnLb <: PSI.VariableType end
-struct ComplementarySlackVarBatteryBalanceUb <: PSI.VariableType end
-struct ComplementarySlackVarBatteryBalanceLb <: PSI.VariableType end
-struct ComplementarySlackVarCyclingCharge <: PSI.VariableType end
-struct ComplementarySlackVarCyclingDischarge <: PSI.VariableType end
-
+#! format: off
+abstract type MerchantModelComplementarySlackVariable <: PSI.VariableType end
+struct ComplementarySlackVarEnergyAssetBalanceUb <: MerchantModelComplementarySlackVariable end
+struct ComplementarySlackVarEnergyAssetBalanceLb <: MerchantModelComplementarySlackVariable end
+struct ComplementarySlackVarThermalOnVariableOn <: MerchantModelComplementarySlackVariable end
+struct ComplementarySlackVarThermalOnVariableOff <: MerchantModelComplementarySlackVariable end
+struct ComplementarySlackVarRenewableActivePowerLimitConstraintUb <: MerchantModelComplementarySlackVariable end
+struct ComplementarySlackVarRenewableActivePowerLimitConstraintLb <: MerchantModelComplementarySlackVariable end
+struct ComplementarySlackVarBatteryStatusDischargeOnUb <: MerchantModelComplementarySlackVariable end
+struct ComplementarySlackVarBatteryStatusDischargeOnLb <: MerchantModelComplementarySlackVariable end
+struct ComplementarySlackVarBatteryStatusChargeOnUb <: MerchantModelComplementarySlackVariable end
+struct ComplementarySlackVarBatteryStatusChargeOnLb <: MerchantModelComplementarySlackVariable end
+struct ComplementarySlackVarBatteryBalanceUb <: MerchantModelComplementarySlackVariable end
+struct ComplementarySlackVarBatteryBalanceLb <: MerchantModelComplementarySlackVariable end
+struct ComplementarySlackVarCyclingCharge <: MerchantModelComplementarySlackVariable end
+struct ComplementarySlackVarCyclingDischarge <: MerchantModelComplementarySlackVariable end
+#! format: on
 
 # implement below
 # convert_result_to_natural_units(::Type{<:VariableType}) = false

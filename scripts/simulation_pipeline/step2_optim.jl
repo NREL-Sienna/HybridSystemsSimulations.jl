@@ -1,6 +1,20 @@
 bus_name = "chuhsi"
+sys_rts_merchant = build_system(PSISystems, "modified_RTS_GMLC_RT_sys_noForecast")
+horizon_merchant_rt = 12*24*3
+horizon_merchant_da = 72
+interval_merchant = Dates.Hour(24*3)
 
-sys = sys_rts_rt
+for sys in [sys_rts_merchant]
+    bus_to_add = "Chuhsi" # "Barton"
+    modify_ren_curtailment_cost!(sys)
+    add_hybrid_to_chuhsi_bus!(sys)
+    #for l in get_components(PowerLoad, sys)
+    #    set_max_active_power!(l, get_max_active_power(l) * 1.3)
+    #end
+end
+
+transform_single_time_series!(sys_rts_merchant, horizon_merchant_rt, interval_merchant)
+sys = sys_rts_merchant
 sys.internal.ext = Dict{String, DataFrame}()
 dic = PSY.get_ext(sys)
 
@@ -8,6 +22,11 @@ dic["λ_da_df"] =
     CSV.read("scripts/simulation_pipeline/inputs/$(bus_name)_DA_prices.csv", DataFrame)
 dic["λ_rt_df"] =
     CSV.read("scripts/simulation_pipeline/inputs/$(bus_name)_RT_prices.csv", DataFrame)
+dic["horizon_RT"] = horizon_merchant_rt
+dic["horizon_DA"] = horizon_merchant_da
+
+hy_sys = first(get_components(HybridSystem, sys))
+PSY.set_ext!(hy_sys, deepcopy(dic))
 
 m = DecisionModel(
     MerchantHybridEnergyCase,
@@ -16,6 +35,7 @@ m = DecisionModel(
     optimizer=Xpress.Optimizer,
     calculate_conflict=true,
     store_variable_names=true,
+    initial_time = starttime
 )
 PSI.build!(m, output_dir=pwd())
 PSI.solve!(m)

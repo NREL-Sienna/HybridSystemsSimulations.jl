@@ -9,6 +9,7 @@ export HybridDispatchWithReserves
 export MerchantHybridEnergyCase
 export MerchantHybridEnergyFixedDA
 export MerchantHybridCooptimizerCase
+export MerchantHybridBilevelCase
 
 # Variables
 export EnergyDABidOut

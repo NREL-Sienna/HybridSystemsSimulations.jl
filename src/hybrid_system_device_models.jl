@@ -858,6 +858,72 @@ function _add_constraints_energyassetbalance!(
     return
 end
 
+function add_expressions!(
+    container::PSI.OptimizationContainer,
+    ::Type{T},
+    devices::U,
+) where {
+    T <: AssetPowerBalance,
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+} where {D <: PSY.HybridSystem}
+    names = PSY.get_name.(devices)
+    time_steps = PSI.get_time_steps(container)
+    exp_container = PSI.add_expression_container!(container, T(), D, names, time_steps)
+    for device in devices
+        ci_name = PSY.get_name(device)
+        vars_pos = Set{JUMP_SET_TYPE}()
+        vars_neg = Set{JUMP_SET_TYPE}()
+        load_set = Set()
+
+        if !isnothing(PSY.get_thermal_unit(device))
+            p_th = PSI.get_variable(container, ThermalPower(), D)
+            push!(vars_pos, p_th[ci_name, :])
+        end
+        if !isnothing(PSY.get_renewable_unit(device))
+            p_re = PSI.get_variable(container, RenewablePower(), D)
+            push!(vars_pos, p_re[ci_name, :])
+        end
+        if !isnothing(PSY.get_storage(device))
+            p_ch = PSI.get_variable(container, BatteryCharge(), D)
+            p_ds = PSI.get_variable(container, BatteryDischarge(), D)
+            push!(vars_pos, p_ds[ci_name, :])
+            push!(vars_neg, p_ch[ci_name, :])
+        end
+        if !isnothing(PSY.get_electric_load(device))
+            P = ElectricLoadTimeSeries
+            param_container = PSI.get_parameter(container, P(), D)
+            param = PSI.get_parameter_column_refs(param_container, ci_name).data
+            multiplier = PSY.get_max_active_power(PSY.get_electric_load(device))
+            push!(load_set, param * multiplier)
+        end
+        for t in time_steps
+            for vp in vars_pos
+                JuMP.add_to_expression!(exp_container[ci_name, t], vp[t])
+            end
+            for vn in vars_neg
+                JuMP.add_to_expression!(exp_container[ci_name, t], -vn[t])
+            end
+            for load in load_set
+                JuMP.add_to_expression!(exp_container[ci_name, t], -load[t])
+            end
+        end
+    end
+    return
+end
+
+function PSI.add_expressions!(
+    container::PSI.OptimizationContainer,
+    ::Type{T},
+    devices::U,
+    model::PSI.DeviceModel{D, W},
+) where {
+    T <: AssetPowerBalance,
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
+    add_expressions!(container, T, devices)
+end
+
 function PSI.add_constraints!(
     container::PSI.OptimizationContainer,
     T::Type{<:EnergyAssetBalance},

@@ -1074,8 +1074,26 @@ function add_constraints!(
 } where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
-
-    @show T
+    con = PSI.add_constraints_container!(container, T(), D, names, time_steps)
+    λUb_var = PSI.get_variable(container, λUb(), D)
+    λLb_var = PSI.get_variable(container, λLb(), D)
+    μReUb_var = PSI.get_variable(container, μReUb(), D)
+    μReLb_var = PSI.get_variable(container, μReLb(), D)
+    jm = PSI.get_jump_model(container)
+    for dev in devices
+        n = PSY.get_name(dev)
+        t_gen = dev.thermal_unit
+        three_cost = PSY.get_operation_cost(t_gen)
+        C_th_fix = three_cost.fixed # $/h
+        for t in time_steps
+            # Written to match latex model
+            con[n, t] = JuMP.@constraint(
+                jm,
+                C_th_fix - λUb_var[n, t] + λLb_var[n, t] - μReUb_var[n, t] +
+                μReLb_var[n, t] == 0.0
+            )
+        end
+    end
     return
 end
 

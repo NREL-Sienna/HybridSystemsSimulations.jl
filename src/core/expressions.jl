@@ -21,3 +21,5 @@ struct TotalReserveOutUpExpression <: TotalReserveUpExpression end
 struct TotalReserveOutDownExpression <: TotalReserveDownExpression end
 struct TotalReserveInUpExpression <: TotalReserveUpExpression end
 struct TotalReserveInDownExpression <: TotalReserveDownExpression end
+
+struct AssetPowerBalance <: PSI.ExpressionType end

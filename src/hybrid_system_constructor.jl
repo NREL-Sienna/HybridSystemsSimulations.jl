@@ -134,14 +134,14 @@ function PSI.construct_device!(
     if !isempty(_hybrids_with_thermal)
         PSI.add_constraints!(
             container,
-            ThermalOnVariableOn,
+            ThermalOnVariableUb,
             _hybrids_with_thermal,
             model,
             network_model,
         )
         PSI.add_constraints!(
             container,
-            ThermalOnVariableOff,
+            ThermalOnVariableLb,
             _hybrids_with_thermal,
             model,
             network_model,
@@ -605,14 +605,14 @@ function PSI.construct_device!(
         else
             PSI.add_constraints!(
                 container,
-                ThermalOnVariableOn,
+                ThermalOnVariableUb,
                 _hybrids_with_thermal,
                 model,
                 network_model,
             )
             PSI.add_constraints!(
                 container,
-                ThermalOnVariableOff,
+                ThermalOnVariableLb,
                 _hybrids_with_thermal,
                 model,
                 network_model,

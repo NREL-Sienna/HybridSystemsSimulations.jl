@@ -110,17 +110,22 @@ struct κStCh <: MerchantModelDualVariable end
 abstract type MerchantModelComplementarySlackVariable <: PSI.VariableType end
 struct ComplementarySlackVarEnergyAssetBalanceUb <: MerchantModelComplementarySlackVariable end
 struct ComplementarySlackVarEnergyAssetBalanceLb <: MerchantModelComplementarySlackVariable end
-struct ComplementarySlackVarThermalOnVariableOn <: MerchantModelComplementarySlackVariable end
-struct ComplementarySlackVarThermalOnVariableOff <: MerchantModelComplementarySlackVariable end
+struct ComplementarySlackVarThermalOnVariableUb <: MerchantModelComplementarySlackVariable end
+struct ComplementarySlackVarThermalOnVariableLb <: MerchantModelComplementarySlackVariable end
 struct ComplementarySlackVarRenewableActivePowerLimitConstraintUb <: MerchantModelComplementarySlackVariable end
 # Not required since RenewableActivePower is lower bounded by 0.0
 #struct ComplementarySlackVarRenewableActivePowerLimitConstraintLb <: MerchantModelComplementarySlackVariable end
 struct ComplementarySlackVarBatteryStatusDischargeOnUb <: MerchantModelComplementarySlackVariable end
-struct ComplementarySlackVarBatteryStatusDischargeOnLb <: MerchantModelComplementarySlackVariable end
+# Not required since RenewableActivePower is lower bounded by 0.0
+#struct ComplementarySlackVarBatteryStatusDischargeOnLb <: MerchantModelComplementarySlackVariable end
 struct ComplementarySlackVarBatteryStatusChargeOnUb <: MerchantModelComplementarySlackVariable end
-struct ComplementarySlackVarBatteryStatusChargeOnLb <: MerchantModelComplementarySlackVariable end
+# Not required since RenewableActivePower is lower bounded by 0.0
+#struct ComplementarySlackVarBatteryStatusChargeOnLb <: MerchantModelComplementarySlackVariable end
 struct ComplementarySlackVarBatteryBalanceUb <: MerchantModelComplementarySlackVariable end
 struct ComplementarySlackVarBatteryBalanceLb <: MerchantModelComplementarySlackVariable end
+struct ComplementarySlackVarEnergyLimitUb <: MerchantModelComplementarySlackVariable end
+# Not required since RenewableActivePower is lower bounded by 0.0
+# struct ComplementarySlackVarEnergyLimitsLb <: MerchantModelComplementarySlackVariable end
 struct ComplementarySlackVarCyclingCharge <: MerchantModelComplementarySlackVariable end
 struct ComplementarySlackVarCyclingDischarge <: MerchantModelComplementarySlackVariable end
 #! format: on

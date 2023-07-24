@@ -943,7 +943,7 @@ end
 # ThermalOn Variable ON
 function _add_constraints_thermalon_variableon!(
     container::PSI.OptimizationContainer,
-    T::Type{<:ThermalOnVariableOn},
+    T::Type{<:ThermalOnVariableUb},
     devices::U,
     ::W,
 ) where {
@@ -969,7 +969,7 @@ end
 
 function PSI.add_constraints!(
     container::PSI.OptimizationContainer,
-    T::Type{<:ThermalOnVariableOn},
+    T::Type{<:ThermalOnVariableUb},
     devices::U,
     ::PSI.DeviceModel{D, W},
     network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
@@ -984,7 +984,7 @@ end
 # ThermalOn Variable OFF
 function _add_constraints_thermalon_variableoff!(
     container::PSI.OptimizationContainer,
-    T::Type{<:ThermalOnVariableOff},
+    T::Type{<:ThermalOnVariableLb},
     devices::U,
     ::W,
 ) where {
@@ -1010,7 +1010,7 @@ end
 
 function PSI.add_constraints!(
     container::PSI.OptimizationContainer,
-    T::Type{<:ThermalOnVariableOff},
+    T::Type{<:ThermalOnVariableLb},
     devices::U,
     ::PSI.DeviceModel{D, W},
     network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},

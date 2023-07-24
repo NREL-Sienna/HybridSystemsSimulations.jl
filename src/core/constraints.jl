@@ -54,8 +54,8 @@ struct ReserveBalance <: PSI.ConstraintType end
 ###################
 
 struct EnergyAssetBalance <: PSI.ConstraintType end
-struct ThermalOnVariableOn <: PSI.ConstraintType end
-struct ThermalOnVariableOff <: PSI.ConstraintType end
+struct ThermalOnVariableUb <: PSI.ConstraintType end
+struct ThermalOnVariableLb <: PSI.ConstraintType end
 struct BatteryStatusChargeOn <: PSI.ConstraintType end
 struct BatteryStatusDischargeOn <: PSI.ConstraintType end
 struct BatteryBalance <: PSI.ConstraintType end
@@ -80,8 +80,8 @@ struct OptConditionEnergyVariable <: PSI.ConstraintType end
 # Names track the constraint types and their Meta Ub and Lb
 struct ComplementarySlacknessEnergyAssetBalanceUb <: PSI.ConstraintType end
 struct ComplementarySlacknessEnergyAssetBalanceLb <: PSI.ConstraintType end
-struct ComplementarySlacknessThermalOnVariableOn <: PSI.ConstraintType end
-struct ComplementarySlacknessThermalOnVariableOff <: PSI.ConstraintType end
+struct ComplementarySlacknessThermalOnVariableUb <: PSI.ConstraintType end
+struct ComplementarySlacknessThermalOnVariableLb <: PSI.ConstraintType end
 struct ComplementarySlacknessRenewableActivePowerLimitConstraintUb <: PSI.ConstraintType end
 struct ComplementarySlacknessRenewableActivePowerLimitConstraintLb <: PSI.ConstraintType end
 struct ComplementarySlacknessBatteryStatusDischargeOnUb <: PSI.ConstraintType end
@@ -92,4 +92,6 @@ struct ComplementarySlacknessBatteryBalanceUb <: PSI.ConstraintType end
 struct ComplementarySlacknessBatteryBalanceLb <: PSI.ConstraintType end
 struct ComplentarySlacknessCyclingCharge <: PSI.ConstraintType end
 struct ComplentarySlacknessCyclingDischarge <: PSI.ConstraintType end
+struct ComplementarySlacknessEnergyLimitUb <: PSI.ConstraintType end
+struct ComplementarySlacknessEnergyLimitLb <: PSI.ConstraintType end
 struct StrongDualityCut <: PSI.ConstraintType end

@@ -1442,14 +1442,14 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyO
     # Thermal
     constraint_thermal_on = PSI.add_constraints_container!(
         container,
-        ThermalOnVariableOn(),
+        ThermalOnVariableUb(),
         PSY.HybridSystem,
         T_rt,
     )
 
     constraint_thermal_off = PSI.add_constraints_container!(
         container,
-        ThermalOnVariableOff(),
+        ThermalOnVariableLb(),
         PSY.HybridSystem,
         T_rt,
     )
@@ -1949,13 +1949,13 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
     # Thermal
     constraint_thermal_on = PSI.add_constraints_container!(
         container,
-        ThermalOnVariableOn(),
+        ThermalOnVariableUb(),
         PSY.HybridSystem,
         T_rt,
     )
     constraint_thermal_off = PSI.add_constraints_container!(
         container,
-        ThermalOnVariableOff(),
+        ThermalOnVariableLb(),
         PSY.HybridSystem,
         T_rt,
     )

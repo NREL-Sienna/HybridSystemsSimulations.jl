@@ -1090,7 +1090,19 @@ function add_constraints!(
 } where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
-    @show T
+    con = PSI.add_constraints_container!(container, T(), D, names, time_steps)
+    λUb_var = PSI.get_variable(container, λUb(), D)
+    λLb_var = PSI.get_variable(container, λLb(), D)
+    μReUb_var = PSI.get_variable(container, μReUb(), D)
+    μReLb_var = PSI.get_variable(container, μReLb(), D)
+    jm = PSI.get_jump_model(container)
+    for n in names, t in time_steps
+        # Written to match latex model
+        con[n, t] = JuMP.@constraint(
+            jm,
+            -λUb_var[n, t] + λLb_var[n, t] - μReUb_var[n, t] + μReLb_var[n, t] == 0.0
+        )
+    end
     return
 end
 
@@ -1103,9 +1115,35 @@ function add_constraints!(
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     W <: MerchantModelWithReserves,
 } where {D <: PSY.HybridSystem}
+    # Temp fix
+    Δt_RT = 1 / 12
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
-    @show T
+    con = PSI.add_constraints_container!(container, T(), D, names, time_steps)
+    λUb_var = PSI.get_variable(container, λUb(), D)
+    λLb_var = PSI.get_variable(container, λLb(), D)
+    μChUb_var = PSI.get_variable(container, μChUb(), D)
+    μChLb_var = PSI.get_variable(container, μChLb(), D)
+    γStBalLb_var = PSI.get_variable(container, γStBalLb(), D)
+    γStBalUb_var = PSI.get_variable(container, γStBalUb(), D)
+    κStCh_var = PSI.get_variable(container, κStCh(), D)
+
+    jm = PSI.get_jump_model(container)
+    for dev in devices
+        n = PSY.get_name(dev)
+        storage = PSY.get_storage(dev)
+        VOM = storage.operation_cost.variable.cost
+        η_ch = storage.efficiency.in * Δt_RT
+        for t in time_steps
+            con[n, t] = JuMP.@constraint(
+                jm,
+                VOM + λUb_var[n, t] - λLb_var[n, t] - μChUb_var[n, t] +
+                μChLb_var[n, t] +
+                η_ch * (-γStBalUb_var[n, t] + γStBalLb_var[n, t] - κStCh_var[n, t]) ==
+                0.0
+            )
+        end
+    end
     return
 end
 
@@ -1118,9 +1156,38 @@ function add_constraints!(
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     W <: MerchantModelWithReserves,
 } where {D <: PSY.HybridSystem}
+    # Temp Fix
+    Δt_RT = 1 / 12
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
-    @show T
+    time_steps = PSI.get_time_steps(container)
+    names = [PSY.get_name(d) for d in devices]
+    con = PSI.add_constraints_container!(container, T(), D, names, time_steps)
+    λUb_var = PSI.get_variable(container, λUb(), D)
+    λLb_var = PSI.get_variable(container, λLb(), D)
+    μDsUb_var = PSI.get_variable(container, μDsUb(), D)
+    μDsLb_var = PSI.get_variable(container, μDsLb(), D)
+    γStBalLb_var = PSI.get_variable(container, γStBalLb(), D)
+    γStBalUb_var = PSI.get_variable(container, γStBalUb(), D)
+    κStDs_var = PSI.get_variable(container, κStDs(), D)
+
+    jm = PSI.get_jump_model(container)
+    for dev in devices
+        n = PSY.get_name(dev)
+        storage = PSY.get_storage(dev)
+        VOM = storage.operation_cost.variable.cost
+        inv_η_ds = Δt_RT / storage.efficiency.out
+        # Written to match latex model
+        for t in time_steps
+            con[n, t] = JuMP.@constraint(
+                jm,
+                VOM - λUb_var[n, t] + λLb_var[n, t] - μDsUb_var[n, t] +
+                μDsLb_var[n, t] +
+                inv_η_ds * (γStBalUb_var[n, t] - γStBalLb_var[n, t] - κStDs_var[n, t]) ==
+                0.0
+            )
+        end
+    end
     return
 end
 
@@ -1236,7 +1303,34 @@ function add_constraints!(
 } where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
-    @show T
+    k_variable = PSI.get_variable(
+        container,
+        ComplementarySlackVarRenewableActivePowerLimitConstraintUb(),
+        D,
+    )
+    dual_var = PSI.get_variable(container, λUb(), D)
+    primal_var = PSI.get_variable(container, RenewablePower(), D)
+    re_param_container = PSI.get_parameter(container, RenewablePowerTimeSeries(), D)
+    assignment_constraint =
+        PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="eq")
+    sos_constraint =
+        PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="sos")
+    jm = PSI.get_jump_model(container)
+    for d in devices
+        name = PSY.get_name(d)
+        multiplier = PSY.get_max_active_power(d.renewable_unit)
+        param = PSI.get_parameter_column_refs(re_param_container, name)
+        for t in time_steps
+            assignment_constraint[name, t] = JuMP.@constraint(
+                jm,
+                k_variable[name, t] == primal_var[name, t] - param[t] * multiplier
+            )
+            sos_constraint[name, t] = JuMP.@constraint(
+                jm,
+                [k_variable[name, t], dual_var[name, t]] in JuMP.SOS1()
+            )
+        end
+    end
     return
 end
 
@@ -1251,7 +1345,19 @@ function add_constraints!(
 } where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
-    @show T
+    # Lower Bound is 0.0
+    # k_variable = PSI.get_variable(container, xComplementarySlacknessRenewableActivePowerLimitConstraintLb(), D)
+    dual_var = PSI.get_variable(container, λLb(), D)
+    primal_var = PSI.get_variable(container, RenewablePower(), D)
+    sos_constraint =
+        PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="sos")
+    jm = PSI.get_jump_model(container)
+    for n in names, t in time_steps
+        #assignment_constraint[n, t] =
+        # JuMP.@constraint(jm, k_variable[n, t] == primal_var[n, t] - param[t] * multiplier)
+        sos_constraint[n, t] =
+            JuMP.@constraint(jm, [primal_var[n, t], dual_var[n, t]] in JuMP.SOS1())
+    end
     return
 end
 
@@ -1401,10 +1507,10 @@ end
 function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyCase})
     container = PSI.get_optimization_container(decision_model)
     model = container.JuMPmodel
-    sys = PSI.get_system(decision_model)
     # Resolution
-    RT_resolution = PSY.get_time_series_resolution(sys)
     Δt_DA = 1.0
+    RT_resolution = PSY.get_time_series_resolution(sys)
+    sys = PSI.get_system(decision_model)
     Δt_RT = Dates.value(Dates.Minute(RT_resolution)) / PSI.MINUTES_IN_HOUR
     # Initialize Container
     PSI.init_optimization_container!(container, PSI.CopperPlatePowerModel, sys)
@@ -1832,7 +1938,6 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
             η_ch = storage.efficiency.in
             η_ds = storage.efficiency.out
             inv_η_ds = 1.0 / η_ds
-            E_min, E_max = PSY.get_state_of_charge_limits(storage)
             for t in T_rt
                 # Battery Constraints
                 constraint_battery_charging[name, t] = JuMP.@constraint(
@@ -3966,7 +4071,8 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridBilevel
             μReUb,
             μReLb,
             ComplementarySlackVarRenewableActivePowerLimitConstraintUb,
-            ComplementarySlackVarRenewableActivePowerLimitConstraintLb,
+            # Not needed due to 0.0 lower bound
+            # ComplementarySlackVarRenewableActivePowerLimitConstraintLb,
         ]
             PSI.add_variables!(
                 container,

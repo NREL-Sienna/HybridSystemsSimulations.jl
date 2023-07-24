@@ -80,7 +80,6 @@ PSI.get_variable_binary(
     ::AbstractHybridFormulation,
 ) = false
 
-
 # UBs and LowerBounds Decision Problem
 PSI.get_variable_lower_bound(
     ::EnergyDABidOut,
@@ -184,7 +183,7 @@ function PSI.add_variables!(
     ::Type{T},
     devices::Vector{PSY.HybridSystem},
     formulation::U,
-) where {T<:Union{EnergyDABidOut,EnergyDABidIn},U<:AbstractHybridFormulation}
+) where {T <: Union{EnergyDABidOut, EnergyDABidIn}, U <: AbstractHybridFormulation}
     @assert !isempty(devices)
     time_steps = PSY.get_ext(first(devices))["T_da"]
     variable = PSI.add_variable_container!(
@@ -216,8 +215,8 @@ function PSI.add_variables!(
     devices::Vector{PSY.HybridSystem},
     formulation::U,
 ) where {
-    T<:PSI.OnVariable,
-    U<:Union{MerchantHybridEnergyCase,MerchantModelWithReserves},
+    T <: PSI.OnVariable,
+    U <: Union{MerchantHybridEnergyCase, MerchantModelWithReserves},
 }
     @assert !isempty(devices)
     time_steps = PSY.get_ext(first(devices))["T_da"]
@@ -246,7 +245,7 @@ function PSI.add_variables!(
     ::Type{W},
     devices::Vector{PSY.HybridSystem},
     formulation::MerchantModelWithReserves,
-) where {W<:Union{BidReserveVariableOut,BidReserveVariableIn}}
+) where {W <: Union{BidReserveVariableOut, BidReserveVariableIn}}
     @assert !isempty(devices)
     time_steps = PSY.get_ext(first(devices))["T_da"]
     # TODO
@@ -263,7 +262,7 @@ function PSI.add_variables!(
             typeof(service),
             PSY.get_name.(devices),
             time_steps;
-            meta=PSY.get_name(service)
+            meta=PSY.get_name(service),
         )
 
         for d in devices, t in time_steps
@@ -283,9 +282,9 @@ end
 function PSI.add_variables!(
     container::PSI.OptimizationContainer,
     ::Type{W},
-    devices::Union{Vector{U},IS.FlattenIteratorWrapper{U}},
+    devices::Union{Vector{U}, IS.FlattenIteratorWrapper{U}},
     formulation::MerchantHybridCooptimizerCase,
-) where {U<:PSY.HybridSystem,W<:ComponentReserveVariableType}
+) where {U <: PSY.HybridSystem, W <: ComponentReserveVariableType}
     time_steps = PSI.get_time_steps(container)
     # TODO
     # Best way to create this variable? We need to have all services and its type.
@@ -301,7 +300,7 @@ function PSI.add_variables!(
             typeof(service),
             PSY.get_name.(devices),
             time_steps;
-            meta=PSY.get_name(service)
+            meta=PSY.get_name(service),
         )
 
         for d in devices, t in time_steps
@@ -331,7 +330,7 @@ function _add_time_series_parameters(
     time_steps = PSI.get_time_steps(container)
 
     device_names = String[]
-    initial_values = Dict{String,AbstractArray}()
+    initial_values = Dict{String, AbstractArray}()
     for device in devices
         push!(device_names, PSY.get_name(device))
         ts_uuid = PSI.get_time_series_uuid(ts_type, device, ts_name)
@@ -388,7 +387,7 @@ _get_multiplier(::Type{BidReserveVariableIn}, ::AncillaryServicePrice) = 1.0
 # DA and RT Prices
 function _add_price_time_series_parameters(
     container::PSI.OptimizationContainer,
-    param::Union{RealTimeEnergyPrice,DayAheadEnergyPrice},
+    param::Union{RealTimeEnergyPrice, DayAheadEnergyPrice},
     ts_key::String,
     devices::Vector{PSY.HybridSystem},
     time_step_string::String,
@@ -409,7 +408,7 @@ function _add_price_time_series_parameters(
             Float64,
             device_names,
             time_steps;
-            meta="$var"
+            meta="$var",
         )
 
         for device in devices
@@ -467,7 +466,7 @@ function _add_price_time_series_parameters(
                 Float64,
                 device_names,
                 time_steps;
-                meta="$(var)_$(service_name)"
+                meta="$(var)_$(service_name)",
             )
 
             for device in devices
@@ -522,8 +521,8 @@ function PSI.add_parameters!(
     devices::Vector{PSY.HybridSystem},
     ::W,
 ) where {
-    T<:Union{DayAheadEnergyPrice,RealTimeEnergyPrice,AncillaryServicePrice},
-    W<:Union{MerchantModelEnergyOnly,MerchantModelWithReserves},
+    T <: Union{DayAheadEnergyPrice, RealTimeEnergyPrice, AncillaryServicePrice},
+    W <: Union{MerchantModelEnergyOnly, MerchantModelWithReserves},
 }
     add_time_series_parameters!(container, param, devices)
 end
@@ -563,9 +562,9 @@ end
 
 function PSI.update_parameter_values!(
     model::PSI.DecisionModel{T},
-    key::PSI.ParameterKey{U,PSY.HybridSystem},
+    key::PSI.ParameterKey{U, PSY.HybridSystem},
     ::PSI.DatasetContainer{PSI.DataFrameDataset},
-) where {T<:HybridDecisionProblem,U<:Union{DayAheadEnergyPrice,RealTimeEnergyPrice}}
+) where {T <: HybridDecisionProblem, U <: Union{DayAheadEnergyPrice, RealTimeEnergyPrice}}
     container = PSI.get_optimization_container(model)
     @assert !PSI.is_synchronized(container)
     _update_parameter_values!(model, key)
@@ -574,8 +573,8 @@ end
 
 function _update_parameter_values!(
     model::PSI.DecisionModel{T},
-    key::PSI.ParameterKey{DayAheadEnergyPrice,PSY.HybridSystem},
-) where {T<:HybridDecisionProblem}
+    key::PSI.ParameterKey{DayAheadEnergyPrice, PSY.HybridSystem},
+) where {T <: HybridDecisionProblem}
     initial_forecast_time = PSI.get_current_time(model)
     container = PSI.get_optimization_container(model)
     parameter_array = PSI.get_parameter_array(container, key)
@@ -589,7 +588,7 @@ function _update_parameter_values!(
         horizon = ext["horizon_DA"]
         bus_name = PSY.get_name(PSY.get_bus(component))
         ix = PSI.find_timestamp_index(ext["λ_da_df"][!, "DateTime"], initial_forecast_time)
-        λ = ext["λ_da_df"][!, bus_name][ix:(ix+horizon-1)]
+        λ = ext["λ_da_df"][!, bus_name][ix:(ix + horizon - 1)]
         name = PSY.get_name(component)
         for (t, value) in enumerate(λ)
             # Since the DA variables are hourly, this will revert the dt multiplication
@@ -612,8 +611,8 @@ end
 # want to expose this level of detail to users wanting to make extensions
 function _update_parameter_values!(
     model::PSI.DecisionModel{T},
-    key::PSI.ParameterKey{RealTimeEnergyPrice,PSY.HybridSystem},
-) where {T<:HybridDecisionProblem}
+    key::PSI.ParameterKey{RealTimeEnergyPrice, PSY.HybridSystem},
+) where {T <: HybridDecisionProblem}
     initial_forecast_time = PSI.get_current_time(model)
     container = PSI.get_optimization_container(model)
     resolution = PSI.get_resolution(container)
@@ -630,7 +629,7 @@ function _update_parameter_values!(
         horizon = ext["horizon_RT"]
         bus_name = PSY.get_name(PSY.get_bus(component))
         ix = PSI.find_timestamp_index(ext["λ_rt_df"][!, "DateTime"], initial_forecast_time)
-        λ = ext["λ_rt_df"][!, bus_name][ix:(ix+horizon-1)]
+        λ = ext["λ_rt_df"][!, bus_name][ix:(ix + horizon - 1)]
         name = PSY.get_name(component)
         for (t, value) in enumerate(λ)
             mul_ = parameter_multiplier[name, t] * 100.0
@@ -665,9 +664,9 @@ function add_constraints_dayaheadlimit_out_withreserves!(
     ::W,
     time_steps::UnitRange{Int64},
 ) where {
-    U<:Union{Vector{D},IS.FlattenIteratorWrapper{D}},
-    W<:MerchantModelWithReserves,
-} where {D<:PSY.HybridSystem}
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: MerchantModelWithReserves,
+} where {D <: PSY.HybridSystem}
     names = [PSY.get_name(d) for d in devices]
     bid_out = PSI.get_variable(container, EnergyDABidOut(), D)
     res_out_up = PSI.get_expression(container, TotalReserveOutUpExpression(), D)
@@ -699,9 +698,9 @@ function add_constraints_dayaheadlimit_in_withreserves!(
     ::W,
     time_steps::UnitRange{Int64},
 ) where {
-    U<:Union{Vector{D},IS.FlattenIteratorWrapper{D}},
-    W<:AbstractHybridFormulation,
-} where {D<:PSY.HybridSystem}
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
     names = [PSY.get_name(d) for d in devices]
     bid_in = PSI.get_variable(container, EnergyDABidIn(), D)
     res_in_up = PSI.get_expression(container, TotalReserveInUpExpression(), D)
@@ -733,9 +732,9 @@ function add_constraints_realtimelimit_out_withreserves!(
     ::W,
     time_steps::UnitRange{Int64},
 ) where {
-    U<:Union{Vector{D},IS.FlattenIteratorWrapper{D}},
-    W<:MerchantModelWithReserves,
-} where {D<:PSY.HybridSystem}
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: MerchantModelWithReserves,
+} where {D <: PSY.HybridSystem}
     names = [PSY.get_name(d) for d in devices]
     bid_out = PSI.get_variable(container, EnergyRTBidOut(), D)
     res_out_up = PSI.get_expression(container, TotalReserveOutUpExpression(), D)
@@ -768,9 +767,9 @@ function add_constraints_realtimelimit_in_withreserves!(
     ::W,
     time_steps::UnitRange{Int64},
 ) where {
-    U<:Union{Vector{D},IS.FlattenIteratorWrapper{D}},
-    W<:AbstractHybridFormulation,
-} where {D<:PSY.HybridSystem}
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
     names = [PSY.get_name(d) for d in devices]
     bid_in = PSI.get_variable(container, EnergyRTBidIn(), D)
     res_in_up = PSI.get_expression(container, TotalReserveInUpExpression(), D)
@@ -802,9 +801,9 @@ function _add_thermallimit_withreserves!(
     devices::U,
     ::W,
 ) where {
-    U<:Union{Vector{D},IS.FlattenIteratorWrapper{D}},
-    W<:MerchantModelWithReserves,
-} where {D<:PSY.HybridSystem}
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: MerchantModelWithReserves,
+} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     varon = PSI.get_variable(container, PSI.OnVariable(), D)
@@ -836,9 +835,9 @@ function _add_constraints_thermalon_variableon!(
     devices::U,
     ::W,
 ) where {
-    U<:Union{Vector{D},IS.FlattenIteratorWrapper{D}},
-    W<:MerchantModelWithReserves,
-} where {D<:PSY.HybridSystem}
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: MerchantModelWithReserves,
+} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     varon = PSI.get_variable(container, PSI.OnVariable(), D)
@@ -864,9 +863,9 @@ function _add_constraints_thermalon_variableoff!(
     devices::U,
     ::W,
 ) where {
-    U<:Union{Vector{D},IS.FlattenIteratorWrapper{D}},
-    W<:MerchantModelWithReserves,
-} where {D<:PSY.HybridSystem}
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: MerchantModelWithReserves,
+} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     varon = PSI.get_variable(container, PSI.OnVariable(), D)
@@ -892,9 +891,9 @@ function _add_constraints_energybidassetbalance!(
     devices::U,
     ::W,
 ) where {
-    U<:Union{Vector{D},IS.FlattenIteratorWrapper{D}},
-    W<:AbstractHybridFormulation,
-} where {D<:PSY.HybridSystem}
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     bid_out = PSI.get_variable(container, EnergyRTBidOut(), D)
@@ -956,10 +955,10 @@ function _add_constraints_reservebalance!(
     ::W,
     time_steps::UnitRange{Int64},
 ) where {
-    U<:Union{Vector{D},IS.FlattenIteratorWrapper{D}},
-    V<:PSY.Reserve,
-    W<:MerchantModelWithReserves,
-} where {D<:PSY.HybridSystem}
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    V <: PSY.Reserve,
+    W <: MerchantModelWithReserves,
+} where {D <: PSY.HybridSystem}
     service_name = PSY.get_name(service)
     res_out = PSI.get_variable(container, BidReserveVariableOut(), V, service_name)
     res_in = PSI.get_variable(container, BidReserveVariableIn(), V, service_name)
@@ -1012,9 +1011,9 @@ function _add_constraints_out_marketconvergence!(
     devices::U,
     ::W,
 ) where {
-    U<:Union{Vector{D},IS.FlattenIteratorWrapper{D}},
-    W<:MerchantModelWithReserves,
-} where {D<:PSY.HybridSystem}
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: MerchantModelWithReserves,
+} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     bid_out = PSI.get_variable(container, EnergyRTBidOut(), D)
@@ -1041,9 +1040,9 @@ function _add_constraints_in_marketconvergence!(
     devices::U,
     ::W,
 ) where {
-    U<:Union{Vector{D},IS.FlattenIteratorWrapper{D}},
-    W<:MerchantModelWithReserves,
-} where {D<:PSY.HybridSystem}
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: MerchantModelWithReserves,
+} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     bid_in = PSI.get_variable(container, EnergyRTBidIn(), D)
@@ -1070,9 +1069,9 @@ function add_constraints!(
     devices::U,
     ::W,
 ) where {
-    U<:Union{Vector{D},IS.FlattenIteratorWrapper{D}},
-    W<:MerchantModelWithReserves,
-} where {D<:PSY.HybridSystem}
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: MerchantModelWithReserves,
+} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
 
@@ -1086,9 +1085,9 @@ function add_constraints!(
     devices::U,
     ::W,
 ) where {
-    U<:Union{Vector{D},IS.FlattenIteratorWrapper{D}},
-    W<:MerchantModelWithReserves,
-} where {D<:PSY.HybridSystem}
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: MerchantModelWithReserves,
+} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     @show T
@@ -1101,9 +1100,9 @@ function add_constraints!(
     devices::U,
     ::W,
 ) where {
-    U<:Union{Vector{D},IS.FlattenIteratorWrapper{D}},
-    W<:MerchantModelWithReserves,
-} where {D<:PSY.HybridSystem}
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: MerchantModelWithReserves,
+} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     @show T
@@ -1116,9 +1115,9 @@ function add_constraints!(
     devices::U,
     ::W,
 ) where {
-    U<:Union{Vector{D},IS.FlattenIteratorWrapper{D}},
-    W<:MerchantModelWithReserves,
-} where {D<:PSY.HybridSystem}
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: MerchantModelWithReserves,
+} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     @show T
@@ -1131,9 +1130,9 @@ function add_constraints!(
     devices::U,
     ::W,
 ) where {
-    U<:Union{Vector{D},IS.FlattenIteratorWrapper{D}},
-    W<:MerchantModelWithReserves,
-} where {D<:PSY.HybridSystem}
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: MerchantModelWithReserves,
+} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     @show T
@@ -1146,12 +1145,12 @@ function add_constraints!(
     devices::U,
     ::W,
 ) where {
-    U<:Union{Vector{D},IS.FlattenIteratorWrapper{D}},
-    W<:MerchantModelWithReserves,
-} where {D<:PSY.HybridSystem}
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: MerchantModelWithReserves,
+} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
-    @show T
+    expression = PSI.get_expression(container)
     return
 end
 
@@ -1161,9 +1160,9 @@ function add_constraints!(
     devices::U,
     ::W,
 ) where {
-    U<:Union{Vector{D},IS.FlattenIteratorWrapper{D}},
-    W<:MerchantModelWithReserves,
-} where {D<:PSY.HybridSystem}
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: MerchantModelWithReserves,
+} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     @show T
@@ -1176,9 +1175,9 @@ function add_constraints!(
     devices::U,
     ::W,
 ) where {
-    U<:Union{Vector{D},IS.FlattenIteratorWrapper{D}},
-    W<:MerchantModelWithReserves,
-} where {D<:PSY.HybridSystem}
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: MerchantModelWithReserves,
+} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     @show T
@@ -1191,9 +1190,9 @@ function add_constraints!(
     devices::U,
     ::W,
 ) where {
-    U<:Union{Vector{D},IS.FlattenIteratorWrapper{D}},
-    W<:MerchantModelWithReserves,
-} where {D<:PSY.HybridSystem}
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: MerchantModelWithReserves,
+} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     @show T
@@ -1206,9 +1205,9 @@ function add_constraints!(
     devices::U,
     ::W,
 ) where {
-    U<:Union{Vector{D},IS.FlattenIteratorWrapper{D}},
-    W<:MerchantModelWithReserves,
-} where {D<:PSY.HybridSystem}
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: MerchantModelWithReserves,
+} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     @show T
@@ -1221,9 +1220,9 @@ function add_constraints!(
     devices::U,
     ::W,
 ) where {
-    U<:Union{Vector{D},IS.FlattenIteratorWrapper{D}},
-    W<:MerchantModelWithReserves,
-} where {D<:PSY.HybridSystem}
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: MerchantModelWithReserves,
+} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     @show T
@@ -1236,9 +1235,9 @@ function add_constraints!(
     devices::U,
     ::W,
 ) where {
-    U<:Union{Vector{D},IS.FlattenIteratorWrapper{D}},
-    W<:MerchantModelWithReserves,
-} where {D<:PSY.HybridSystem}
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: MerchantModelWithReserves,
+} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     @show T
@@ -1251,9 +1250,9 @@ function add_constraints!(
     devices::U,
     ::W,
 ) where {
-    U<:Union{Vector{D},IS.FlattenIteratorWrapper{D}},
-    W<:MerchantModelWithReserves,
-} where {D<:PSY.HybridSystem}
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: MerchantModelWithReserves,
+} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     @show T
@@ -1266,9 +1265,9 @@ function add_constraints!(
     devices::U,
     ::W,
 ) where {
-    U<:Union{Vector{D},IS.FlattenIteratorWrapper{D}},
-    W<:MerchantModelWithReserves,
-} where {D<:PSY.HybridSystem}
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: MerchantModelWithReserves,
+} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     @show T
@@ -1281,9 +1280,9 @@ function add_constraints!(
     devices::U,
     ::W,
 ) where {
-    U<:Union{Vector{D},IS.FlattenIteratorWrapper{D}},
-    W<:MerchantModelWithReserves,
-} where {D<:PSY.HybridSystem}
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: MerchantModelWithReserves,
+} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     @show T
@@ -1296,9 +1295,9 @@ function add_constraints!(
     devices::U,
     ::W,
 ) where {
-    U<:Union{Vector{D},IS.FlattenIteratorWrapper{D}},
-    W<:MerchantModelWithReserves,
-} where {D<:PSY.HybridSystem}
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: MerchantModelWithReserves,
+} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     @show T
@@ -1311,9 +1310,9 @@ function add_constraints!(
     devices::U,
     ::W,
 ) where {
-    U<:Union{Vector{D},IS.FlattenIteratorWrapper{D}},
-    W<:MerchantModelWithReserves,
-} where {D<:PSY.HybridSystem}
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: MerchantModelWithReserves,
+} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     @show T
@@ -1326,9 +1325,9 @@ function add_constraints!(
     devices::U,
     ::W,
 ) where {
-    U<:Union{Vector{D},IS.FlattenIteratorWrapper{D}},
-    W<:MerchantModelWithReserves,
-} where {D<:PSY.HybridSystem}
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: MerchantModelWithReserves,
+} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     @show T
@@ -1341,9 +1340,9 @@ function add_constraints!(
     devices::U,
     ::W,
 ) where {
-    U<:Union{Vector{D},IS.FlattenIteratorWrapper{D}},
-    W<:MerchantModelWithReserves,
-} where {D<:PSY.HybridSystem}
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: MerchantModelWithReserves,
+} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     @show T
@@ -1356,16 +1355,14 @@ function add_constraints!(
     devices::U,
     ::W,
 ) where {
-    U<:Union{Vector{D},IS.FlattenIteratorWrapper{D}},
-    W<:MerchantModelWithReserves,
-} where {D<:PSY.HybridSystem}
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: MerchantModelWithReserves,
+} where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     @show T
     return
 end
-
-
 
 ###################################################################
 ########################## Builds #################################
@@ -1829,7 +1826,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
                 else
                     constraint_battery_balance[name, t] = JuMP.@constraint(
                         model,
-                        e_st[name, t-1] +
+                        e_st[name, t - 1] +
                         Δt_RT * (p_ch[name, t] * η_ch - p_ds[name, t] * inv_η_ds) ==
                         e_st[name, t]
                     )
@@ -2321,7 +2318,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyF
                 else
                     constraint_battery_balance[name, t] = JuMP.@constraint(
                         model,
-                        e_st[name, t-1] +
+                        e_st[name, t - 1] +
                         Δt_RT * (p_ch[name, t] * η_ch - p_ds[name, t] * inv_η_ds) ==
                         e_st[name, t]
                     )
@@ -3690,6 +3687,8 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridBilevel
         end
     end
 
+    add_expressions!(container, AssetPowerBalance, hybrids)
+
     ###############################
     ######## Constraints ##########
     ###############################
@@ -3919,23 +3918,20 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridBilevel
     ################################################
 
     # Add Duals for the EnergyBalance
-    for v in [λUb,
+    for v in [
+        λUb,
         λLb,
         ComplementarySlackVarEnergyAssetBalanceUb,
-        ComplementarySlackVarEnergyAssetBalanceLb]
+        ComplementarySlackVarEnergyAssetBalanceLb,
+    ]
         PSI.add_variables!(container, v, hybrids, MerchantModelWithReserves())
     end
 
     for c in [
         ComplementarySlacknessEnergyAssetBalanceUb,
-        ComplementarySlacknessEnergyAssetBalanceLb
+        ComplementarySlacknessEnergyAssetBalanceLb,
     ]
-        add_constraints!(
-            container,
-            c,
-            hybrids,
-            MerchantModelWithReserves()
-        )
+        add_constraints!(container, c, hybrids, MerchantModelWithReserves())
     end
 
     ## Renewable Variables and Expressions ##
@@ -3944,7 +3940,8 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridBilevel
             μReUb,
             μReLb,
             ComplementarySlackVarRenewableActivePowerLimitConstraintUb,
-            ComplementarySlackVarRenewableActivePowerLimitConstraintLb]
+            ComplementarySlackVarRenewableActivePowerLimitConstraintLb,
+        ]
             PSI.add_variables!(
                 container,
                 v,
@@ -3956,14 +3953,9 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridBilevel
         for c in [
             OptConditionRenewablePower,
             ComplementarySlacknessRenewableActivePowerLimitConstraintUb,
-            ComplementarySlacknessRenewableActivePowerLimitConstraintLb
+            ComplementarySlacknessRenewableActivePowerLimitConstraintLb,
         ]
-            add_constraints!(
-                container,
-                c,
-                hybrids,
-                MerchantModelWithReserves()
-            )
+            add_constraints!(container, c, hybrids, MerchantModelWithReserves())
         end
     end
 
@@ -3987,7 +3979,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridBilevel
             ComplementarySlackVarBatteryBalanceUb,
             ComplementarySlackVarBatteryBalanceLb,
             ComplementarySlackVarCyclingCharge,
-            ComplementarySlackVarCyclingDischarge
+            ComplementarySlackVarCyclingDischarge,
         ]
             PSI.add_variables!(
                 container,
@@ -4007,21 +3999,19 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridBilevel
             ComplementarySlacknessBatteryBalanceUb,
             ComplementarySlacknessBatteryBalanceLb,
             ComplentarySlacknessCyclingCharge,
-            ComplentarySlacknessCyclingDischarge
+            ComplentarySlacknessCyclingDischarge,
         ]
-            add_constraints!(
-                container,
-                c,
-                hybrids,
-                MerchantModelWithReserves()
-            )
+            add_constraints!(container, c, hybrids, MerchantModelWithReserves())
         end
     end
 
     if !isempty(_hybrids_with_thermal)
-        for v in [μThUb, μThLb,
+        for v in [
+            μThUb,
+            μThLb,
             ComplementarySlackVarThermalOnVariableOn,
-            ComplementarySlackVarThermalOnVariableOff]
+            ComplementarySlackVarThermalOnVariableOff,
+        ]
             PSI.add_variables!(
                 container,
                 v,
@@ -4035,21 +4025,11 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridBilevel
             ComplementarySlacknessThermalOnVariableOn,
             ComplementarySlacknessThermalOnVariableOff,
         ]
-            add_constraints!(
-                container,
-                c,
-                hybrids,
-                MerchantModelWithReserves()
-            )
+            add_constraints!(container, c, hybrids, MerchantModelWithReserves())
         end
     end
 
-    add_constraints!(
-        container,
-        StrongDualityCut,
-        hybrids,
-        MerchantModelWithReserves()
-    )
+    add_constraints!(container, StrongDualityCut, hybrids, MerchantModelWithReserves())
 
     #JuMP.@objective(
     #    model,
@@ -4058,8 +4038,6 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridBilevel
     #)
 
     PSI.serialize_metadata!(container, PSI.get_output_dir(decision_model))
-
-
 
     return
 end

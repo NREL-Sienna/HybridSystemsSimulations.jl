@@ -1150,7 +1150,20 @@ function add_constraints!(
 } where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
-    expression = PSI.get_expression(container)
+    expression = PSI.get_expression(container, AssetPowerBalance(), D)
+    variable = PSI.get_variable(container, ComplementarySlackVarEnergyAssetBalanceUb(), D)
+    dual_var = PSI.get_variable(container, λUb(), D)
+    assignment_constraint =
+        PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="eq")
+    sos_constraint =
+        PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="sos")
+    jm = PSI.get_jump_model(container)
+    for n in names, t in time_steps
+        assignment_constraint[n, t] =
+            JuMP.@constraint(jm, variable[n, t] == expression[n, t])
+        sos_constraint[n, t] =
+            JuMP.@constraint(jm, [variable[n, t], dual_var[n, t]] in JuMP.SOS1())
+    end
     return
 end
 
@@ -1165,7 +1178,20 @@ function add_constraints!(
 } where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
-    @show T
+    expression = PSI.get_expression(container, AssetPowerBalance(), D)
+    variable = PSI.get_variable(container, ComplementarySlackVarEnergyAssetBalanceLb(), D)
+    dual_var = PSI.get_variable(container, λLb(), D)
+    assignment_constraint =
+        PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="eq")
+    sos_constraint =
+        PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="sos")
+    jm = PSI.get_jump_model(container)
+    for n in names, t in time_steps
+        assignment_constraint[n, t] =
+            JuMP.@constraint(jm, variable[n, t] == expression[n, t])
+        sos_constraint[n, t] =
+            JuMP.@constraint(jm, [variable[n, t], dual_var[n, t]] in JuMP.SOS1())
+    end
     return
 end
 

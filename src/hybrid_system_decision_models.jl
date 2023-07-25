@@ -4209,6 +4209,12 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridBilevel
         end
     end
 
+    JuMP.@objective(
+        container.JuMPmodel,
+        MOI.MAX_SENSE,
+        PSI.get_objective_function(container.objective_function)
+    )
+
     add_expressions!(container, AssetPowerBalance, hybrids)
 
     ###############################
@@ -4561,12 +4567,6 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridBilevel
     end
 
     add_constraints!(container, StrongDualityCut, hybrids, MerchantModelWithReserves())
-
-    JuMP.@objective(
-        model,
-        MOI.MAX_SENSE,
-        PSI.get_objective_function(container.objective_function)
-    )
 
     PSI.serialize_metadata!(container, PSI.get_output_dir(decision_model))
 

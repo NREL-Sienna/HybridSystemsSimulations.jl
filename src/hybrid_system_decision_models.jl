@@ -316,6 +316,45 @@ function PSI.add_variables!(
     return
 end
 
+function PSI.add_variables!(
+    container::PSI.OptimizationContainer,
+    ::Type{W},
+    devices::Union{Vector{U}, IS.FlattenIteratorWrapper{U}},
+    formulation::MerchantModelWithReserves,
+) where {
+    U <: PSY.HybridSystem,
+    W <: Union{ComplementarySlackVarCyclingCharge, ComplementarySlackVarCyclingDischarge},
+}
+    variable = PSI.add_variable_container!(container, W(), U, PSY.get_name.(devices))
+
+    for d in devices
+        name = PSY.get_name(d)
+        variable[name] = JuMP.@variable(
+            PSI.get_jump_model(container),
+            base_name = "$(W)_{$(PSY.get_name(d))}",
+        )
+    end
+    return
+end
+
+function PSI.add_variables!(
+    container::PSI.OptimizationContainer,
+    ::Type{W},
+    devices::Union{Vector{U}, IS.FlattenIteratorWrapper{U}},
+    formulation::MerchantModelWithReserves,
+) where {U <: PSY.HybridSystem, W <: Union{κStCh, κStDs}}
+    variable = PSI.add_variable_container!(container, W(), U, PSY.get_name.(devices))
+
+    for d in devices
+        name = PSY.get_name(d)
+        variable[name] = JuMP.@variable(
+            PSI.get_jump_model(container),
+            base_name = "$(W)_{$(PSY.get_name(d))}",
+        )
+    end
+    return
+end
+
 ###################################################################
 ######################## Parameters ###############################
 ###################################################################
@@ -1133,8 +1172,9 @@ function add_constraints!(
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     W <: MerchantModelWithReserves,
 } where {D <: PSY.HybridSystem}
-    # Temp fix
-    Δt_RT = 1 / 12
+    time_steps = PSI.get_time_steps(container)
+    resolution = PSI.get_resolution(container)
+    Δt_RT = Dates.value(Dates.Minute(resolution)) / PSI.MINUTES_IN_HOUR
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     con = PSI.add_constraints_container!(container, T(), D, names, time_steps)
@@ -1157,8 +1197,7 @@ function add_constraints!(
                 jm,
                 VOM + λUb_var[n, t] - λLb_var[n, t] - μChUb_var[n, t] +
                 μChLb_var[n, t] +
-                η_ch * (-γStBalUb_var[n, t] + γStBalLb_var[n, t] - κStCh_var[n, t]) ==
-                0.0
+                η_ch * (-γStBalUb_var[n, t] + γStBalLb_var[n, t] - κStCh_var[n]) == 0.0
             )
         end
     end
@@ -1167,7 +1206,7 @@ end
 
 function add_constraints!(
     container::PSI.OptimizationContainer,
-    T::Type{OptConditionBatteryDischarge},
+    T::Type{OptConditionEnergyVariable},
     devices::U,
     ::W,
 ) where {
@@ -1201,7 +1240,7 @@ end
 
 function add_constraints!(
     container::PSI.OptimizationContainer,
-    T::Type{OptConditionEnergyVariable},
+    T::Type{OptConditionBatteryDischarge},
     devices::U,
     ::W,
 ) where {
@@ -1233,7 +1272,7 @@ function add_constraints!(
                 jm,
                 VOM - λUb_var[n, t] + λLb_var[n, t] - μDsUb_var[n, t] +
                 μDsLb_var[n, t] +
-                inv_η_ds * (γStBalUb_var[n, t] - γStBalLb_var[n, t] - κStDs_var[n, t]) ==
+                inv_η_ds * (γStBalUb_var[n, t] - γStBalLb_var[n, t] - κStDs_var[n]) ==
                 0.0
             )
         end
@@ -1641,8 +1680,55 @@ function add_constraints!(
     W <: MerchantModelWithReserves,
 } where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
+    resolution = PSI.get_resolution(container)
+    fraction_of_hour = Dates.value(Dates.Minute(resolution)) / PSI.MINUTES_IN_HOUR
     names = [PSY.get_name(d) for d in devices]
-    @show T
+    k_variable = PSI.get_variable(container, ComplementarySlackVarBatteryBalanceUb(), D)
+    energy_var = PSI.get_variable(container, PSI.EnergyVariable(), D)
+    charge_var = PSI.get_variable(container, BatteryCharge(), D)
+    discharge_var = PSI.get_variable(container, BatteryDischarge(), D)
+    dual_var = PSI.get_variable(container, γStBalUb(), D)
+    assignment_constraint =
+        PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="eq")
+    sos_constraint =
+        PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="sos")
+    initial_conditions = PSI.get_initial_condition(container, PSI.InitialEnergyLevel(), D)
+    jm = PSI.get_jump_model(container)
+    for ic in initial_conditions
+        device = PSI.get_component(ic)
+        ci_name = PSY.get_name(device)
+        storage = PSY.get_storage(device)
+        efficiency = PSY.get_efficiency(storage)
+        assignment_constraint[ci_name, 1] = JuMP.@constraint(
+            jm,
+            k_variable[ci_name, 1] ==
+            PSI.get_value(ic) +
+            fraction_of_hour * (
+                charge_var[ci_name, 1] * efficiency.in -
+                (discharge_var[ci_name, 1] / efficiency.out)
+            ) - energy_var[ci_name, 1]
+        )
+        sos_constraint[ci_name, 1] = JuMP.@constraint(
+            jm,
+            [k_variable[ci_name, 1], dual_var[ci_name, 1]] in JuMP.SOS1()
+        )
+
+        for t in time_steps[2:end]
+            assignment_constraint[ci_name, 1] = JuMP.@constraint(
+                jm,
+                k_variable[ci_name, 1] ==
+                energy_var[ci_name, t - 1] +
+                fraction_of_hour * (
+                    charge_var[ci_name, t] * efficiency.in -
+                    (discharge_var[ci_name, t] / efficiency.out)
+                ) - energy_var[ci_name, t]
+            )
+            sos_constraint[ci_name, t] = JuMP.@constraint(
+                jm,
+                [k_variable[ci_name, t], dual_var[ci_name, t]] in JuMP.SOS1()
+            )
+        end
+    end
     return
 end
 
@@ -1656,8 +1742,55 @@ function add_constraints!(
     W <: MerchantModelWithReserves,
 } where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
+    resolution = PSI.get_resolution(container)
+    fraction_of_hour = Dates.value(Dates.Minute(resolution)) / PSI.MINUTES_IN_HOUR
     names = [PSY.get_name(d) for d in devices]
-    @show T
+    k_variable = PSI.get_variable(container, ComplementarySlackVarBatteryBalanceLb(), D)
+    energy_var = PSI.get_variable(container, PSI.EnergyVariable(), D)
+    charge_var = PSI.get_variable(container, BatteryCharge(), D)
+    discharge_var = PSI.get_variable(container, BatteryDischarge(), D)
+    dual_var = PSI.get_variable(container, γStBalLb(), D)
+    assignment_constraint =
+        PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="eq")
+    sos_constraint =
+        PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="sos")
+    initial_conditions = PSI.get_initial_condition(container, PSI.InitialEnergyLevel(), D)
+    jm = PSI.get_jump_model(container)
+    for ic in initial_conditions
+        device = PSI.get_component(ic)
+        ci_name = PSY.get_name(device)
+        storage = PSY.get_storage(device)
+        efficiency = PSY.get_efficiency(storage)
+        assignment_constraint[ci_name, 1] = JuMP.@constraint(
+            jm,
+            k_variable[ci_name, 1] ==
+            PSI.get_value(ic) +
+            fraction_of_hour * (
+                charge_var[ci_name, 1] * efficiency.in -
+                (discharge_var[ci_name, 1] / efficiency.out)
+            ) - energy_var[ci_name, 1]
+        )
+        sos_constraint[ci_name, 1] = JuMP.@constraint(
+            jm,
+            [k_variable[ci_name, 1], dual_var[ci_name, 1]] in JuMP.SOS1()
+        )
+
+        for t in time_steps[2:end]
+            assignment_constraint[ci_name, 1] = JuMP.@constraint(
+                jm,
+                k_variable[ci_name, 1] ==
+                energy_var[ci_name, t - 1] +
+                fraction_of_hour * (
+                    charge_var[ci_name, t] * efficiency.in -
+                    (discharge_var[ci_name, t] / efficiency.out)
+                ) - energy_var[ci_name, t]
+            )
+            sos_constraint[ci_name, t] = JuMP.@constraint(
+                jm,
+                [k_variable[ci_name, t], dual_var[ci_name, t]] in JuMP.SOS1()
+            )
+        end
+    end
     return
 end
 
@@ -1672,7 +1805,29 @@ function add_constraints!(
 } where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
-    @show T
+    k_variable = PSI.get_variable(container, ComplementarySlackVarCyclingCharge(), D)
+    charge_var = PSI.get_variable(container, BatteryCharge(), D)
+    dual_var = PSI.get_variable(container, κStCh(), D)
+    assignment_constraint =
+        PSI.add_constraints_container!(container, T(), D, names, meta="eq")
+    sos_constraint = PSI.add_constraints_container!(container, T(), D, names, meta="sos")
+    jm = PSI.get_jump_model(container)
+    resolution = PSI.get_resolution(container)
+    Δt_RT = Dates.value(Dates.Minute(resolution)) / PSI.MINUTES_IN_HOUR
+    Cycles = CYCLES_PER_DAY * Δt_RT * length(time_steps) / HOURS_IN_DAY
+    for dev in devices
+        name = PSY.get_name(dev)
+        storage = PSY.get_storage(dev)
+        _, E_max = PSY.get_state_of_charge_limits(storage)
+        η_ch = storage.efficiency.in * Δt_RT
+        assignment_constraint[name] = JuMP.@constraint(
+            jm,
+            k_variable[name] ==
+            sum(charge_var[name, t] * η_ch for t in time_steps) - Cycles * E_max
+        )
+        sos_constraint[name] =
+            JuMP.@constraint(jm, [k_variable[name], dual_var[name]] in JuMP.SOS1())
+    end
     return
 end
 
@@ -1687,7 +1842,29 @@ function add_constraints!(
 } where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
-    @show T
+    k_variable = PSI.get_variable(container, ComplementarySlackVarCyclingDischarge(), D)
+    charge_var = PSI.get_variable(container, BatteryDischarge(), D)
+    dual_var = PSI.get_variable(container, κStDs(), D)
+    assignment_constraint =
+        PSI.add_constraints_container!(container, T(), D, names, meta="eq")
+    sos_constraint = PSI.add_constraints_container!(container, T(), D, names, meta="sos")
+    jm = PSI.get_jump_model(container)
+    resolution = PSI.get_resolution(container)
+    Δt_RT = Dates.value(Dates.Minute(resolution)) / PSI.MINUTES_IN_HOUR
+    Cycles = CYCLES_PER_DAY * Δt_RT * length(time_steps) / HOURS_IN_DAY
+    for dev in devices
+        name = PSY.get_name(dev)
+        storage = PSY.get_storage(dev)
+        _, E_max = PSY.get_state_of_charge_limits(storage)
+        η_ch = storage.efficiency.in * Δt_RT
+        assignment_constraint[name] = JuMP.@constraint(
+            jm,
+            k_variable[name] ==
+            sum(charge_var[name, t] * η_ch for t in time_steps) - Cycles * E_max
+        )
+        sos_constraint[name] =
+            JuMP.@constraint(jm, [k_variable[name], dual_var[name]] in JuMP.SOS1())
+    end
     return
 end
 
@@ -2177,6 +2354,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
 
         # Cycling Constraints
         # Same Cycles for each Storage
+
         Cycles = CYCLES_PER_DAY * Δt_RT * length(T_rt) / HOURS_IN_DAY
         for dev in _hybrids_with_storage
             name = PSY.get_name(dev)
@@ -4323,6 +4501,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridBilevel
             ComplementarySlackVarBatteryBalanceUb,
             ComplementarySlackVarBatteryBalanceLb,
             ComplementarySlackVarEnergyLimitUb,
+            # Not required since RenewableActivePower is lower bounded by 0.0
             # ComplementarySlackVarEnergyLimitLb,
             ComplementarySlackVarCyclingCharge,
             ComplementarySlackVarCyclingDischarge,

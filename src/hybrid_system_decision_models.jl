@@ -1066,7 +1066,8 @@ function _add_constraints_out_marketconvergence!(
         ci_name = PSY.get_name(device)
         con[ci_name, t] = JuMP.@constraint(
             PSI.get_jump_model(container),
-            bid_out[ci_name, t] + res_out_up[ci_name, tmap[t]] - res_out_down[ci_name, tmap[t]] == p_out[ci_name, t]
+            bid_out[ci_name, t] + res_out_up[ci_name, tmap[t]] -
+            res_out_down[ci_name, tmap[t]] == p_out[ci_name, t]
         )
     end
     return
@@ -1094,7 +1095,8 @@ function _add_constraints_in_marketconvergence!(
         ci_name = PSY.get_name(device)
         con[ci_name, t] = JuMP.@constraint(
             PSI.get_jump_model(container),
-            bid_in[ci_name, t] + res_in_down[ci_name, tmap[t]] - res_in_up[ci_name, tmap[t]] == p_in[ci_name, t]
+            bid_in[ci_name, t] + res_in_down[ci_name, tmap[t]] -
+            res_in_up[ci_name, tmap[t]] == p_in[ci_name, t]
         )
     end
     return
@@ -2986,7 +2988,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
     )
 
     # Out Total Up
-    add_to_expression_totalreserveup!(
+    add_to_expression!(
         container,
         TotalReserveOutUpExpression,
         BidReserveVariableOut,
@@ -2996,7 +2998,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
     )
 
     # Out Total Down
-    add_to_expression_totalreservedown!(
+    add_to_expression!(
         container,
         TotalReserveOutDownExpression,
         BidReserveVariableOut,
@@ -3006,7 +3008,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
     )
 
     # In Total Up
-    add_to_expression_totalreserveup!(
+    add_to_expression!(
         container,
         TotalReserveInUpExpression,
         BidReserveVariableIn,
@@ -3016,9 +3018,82 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
     )
 
     # In Total Down
-    add_to_expression_totalreservedown!(
+    add_to_expression!(
         container,
         TotalReserveInDownExpression,
+        BidReserveVariableIn,
+        hybrids,
+        MerchantModelWithReserves(),
+        T_da,
+    )
+
+    # Add Served Reserve Up/Down Out/In Expression
+    PSI.lazy_container_addition!(
+        container,
+        ServedReserveOutUpExpression(),
+        T,
+        PSY.get_name.(hybrids),
+        T_da,
+    )
+
+    PSI.lazy_container_addition!(
+        container,
+        ServedReserveOutDownExpression(),
+        T,
+        PSY.get_name.(hybrids),
+        T_da,
+    )
+
+    PSI.lazy_container_addition!(
+        container,
+        ServedReserveInUpExpression(),
+        T,
+        PSY.get_name.(hybrids),
+        T_da,
+    )
+
+    PSI.lazy_container_addition!(
+        container,
+        ServedReserveInDownExpression(),
+        T,
+        PSY.get_name.(hybrids),
+        T_da,
+    )
+
+    # Out Total Up
+    add_to_expression!(
+        container,
+        ServedReserveOutUpExpression,
+        BidReserveVariableOut,
+        hybrids,
+        MerchantModelWithReserves(),
+        T_da,
+    )
+
+    # Out Total Down
+    add_to_expression!(
+        container,
+        ServedReserveOutDownExpression,
+        BidReserveVariableOut,
+        hybrids,
+        MerchantModelWithReserves(),
+        T_da,
+    )
+
+    # In Total Up
+    add_to_expression!(
+        container,
+        ServedReserveInUpExpression,
+        BidReserveVariableIn,
+        hybrids,
+        MerchantModelWithReserves(),
+        T_da,
+    )
+
+    # In Total Down
+    add_to_expression!(
+        container,
+        ServedReserveInDownExpression,
         BidReserveVariableIn,
         hybrids,
         MerchantModelWithReserves(),
@@ -3765,7 +3840,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridBilevel
     )
 
     # Out Total Up
-    add_to_expression_totalreserveup!(
+    add_to_expression!(
         container,
         TotalReserveOutUpExpression,
         BidReserveVariableOut,
@@ -3775,7 +3850,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridBilevel
     )
 
     # Out Total Down
-    add_to_expression_totalreservedown!(
+    add_to_expression!(
         container,
         TotalReserveOutDownExpression,
         BidReserveVariableOut,
@@ -3785,7 +3860,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridBilevel
     )
 
     # In Total Up
-    add_to_expression_totalreserveup!(
+    add_to_expression!(
         container,
         TotalReserveInUpExpression,
         BidReserveVariableIn,
@@ -3795,9 +3870,82 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridBilevel
     )
 
     # In Total Down
-    add_to_expression_totalreservedown!(
+    add_to_expression!(
         container,
         TotalReserveInDownExpression,
+        BidReserveVariableIn,
+        hybrids,
+        MerchantModelWithReserves(),
+        T_da,
+    )
+
+    # Add Served Reserve Up/Down Out/In Expression
+    PSI.lazy_container_addition!(
+        container,
+        ServedReserveOutUpExpression(),
+        T,
+        PSY.get_name.(hybrids),
+        T_da,
+    )
+
+    PSI.lazy_container_addition!(
+        container,
+        ServedReserveOutDownExpression(),
+        T,
+        PSY.get_name.(hybrids),
+        T_da,
+    )
+
+    PSI.lazy_container_addition!(
+        container,
+        ServedReserveInUpExpression(),
+        T,
+        PSY.get_name.(hybrids),
+        T_da,
+    )
+
+    PSI.lazy_container_addition!(
+        container,
+        ServedReserveInDownExpression(),
+        T,
+        PSY.get_name.(hybrids),
+        T_da,
+    )
+
+    # Out Total Up
+    add_to_expression!(
+        container,
+        ServedReserveOutUpExpression,
+        BidReserveVariableOut,
+        hybrids,
+        MerchantModelWithReserves(),
+        T_da,
+    )
+
+    # Out Total Down
+    add_to_expression!(
+        container,
+        ServedReserveOutDownExpression,
+        BidReserveVariableOut,
+        hybrids,
+        MerchantModelWithReserves(),
+        T_da,
+    )
+
+    # In Total Up
+    add_to_expression!(
+        container,
+        ServedReserveInUpExpression,
+        BidReserveVariableIn,
+        hybrids,
+        MerchantModelWithReserves(),
+        T_da,
+    )
+
+    # In Total Down
+    add_to_expression!(
+        container,
+        ServedReserveInDownExpression,
         BidReserveVariableIn,
         hybrids,
         MerchantModelWithReserves(),

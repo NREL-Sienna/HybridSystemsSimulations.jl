@@ -80,8 +80,20 @@ dic["horizon_DA"] = horizon_merchant_da
 
 hy_sys = first(get_components(HybridSystem, sys))
 services = get_components(VariableReserve, sys)
+served_fraction_map = Dict(
+    "Spin_Up_R2" => 0.0,
+    "Spin_Up_R3" => 0.0,
+    "Reg_Up" => 0.3,
+    "Spin_Up_R1" => 0.0,
+    "Flex_Up" => 0.1,
+    "Reg_Down" => 0.3,
+    "Flex_Down" => 0.1,
+)
+
 for service in services
     serv_name = get_name(service)
+    serv_ext = get_ext(service)
+    serv_ext["served_fraction"] = served_fraction_map[serv_name]
     if contains(serv_name, "Spin_Up_R1") |
        contains(serv_name, "Spin_Up_R2") |
        contains(serv_name, "Flex")
@@ -314,10 +326,10 @@ plot([
 ],  Layout(
     xaxis_title="Time",
     yaxis_title="Power and Bids [pu]",
-), 
+),
 )
 
-# IN 
+# IN
 bid_rt_in = read_variable(res, "EnergyRTBidIn__HybridSystem")[!, "317_Hybrid"]
 res_in_regup =
     var_res[PSI.VariableKey{HSS.BidReserveVariableIn, VariableReserve{ReserveUp}}("Reg_Up")][
@@ -348,7 +360,7 @@ plot([
 ],  Layout(
     xaxis_title="Time",
     yaxis_title="Power and Bids [pu]",
-), 
+),
 )
 
 # Assets
@@ -415,7 +427,7 @@ plot([
 ],  Layout(
     xaxis_title="Time",
     yaxis_title="Power and Bids [pu]",
-), 
+),
 )
 
 plot([
@@ -424,7 +436,7 @@ plot([
 ],  Layout(
     xaxis_title="Time",
     yaxis_title="Power and Bids [pu]",
-), 
+),
 )
 
 plot([
@@ -436,7 +448,7 @@ plot([
 ],  Layout(
     xaxis_title="Time",
     yaxis_title="Bids [pu]",
-), 
+),
 )
 
 #=
@@ -448,7 +460,7 @@ plot([
 ],  Layout(
     xaxis_title="Time",
     yaxis_title="Power and Bids [pu]",
-), 
+),
 )
 =#
 
@@ -457,9 +469,9 @@ reg_down_served = [res_out_down[tmap[t]] for t in 1:length(time_rt)]
 plot([
     scatter(x=time_rt, y=p_out, name="Output Power", line_shape="hv", stackgroup="one", mode="lines", hoverinfo="x+y"),
     scatter(x=time_rt, y=0.25*reg_down_served, name="RegDown Served Energy", line_shape="hv", stackgroup="one", mode="lines", hoverinfo="x+y"),
-    scatter(x=time_rt, y=bid_rt_out, name="Bid Out", line_shape="hv", line=attr(color="black", dash="dash"), ),    
+    scatter(x=time_rt, y=bid_rt_out, name="Bid Out", line_shape="hv", line=attr(color="black", dash="dash"), ),
 ],  Layout(
     xaxis_title="Time",
     yaxis_title="Power and Bids [pu]",
-), 
+),
 )

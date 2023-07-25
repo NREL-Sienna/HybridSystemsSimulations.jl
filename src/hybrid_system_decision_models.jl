@@ -1057,8 +1057,8 @@ function _add_constraints_out_marketconvergence!(
     names = [PSY.get_name(d) for d in devices]
     bid_out = PSI.get_variable(container, EnergyRTBidOut(), D)
     p_out = PSI.get_variable(container, PSI.ActivePowerOutVariable(), D)
-    res_out_up = PSI.get_expression(container, TotalReserveOutUpExpression(), D)
-    res_out_down = PSI.get_expression(container, TotalReserveOutDownExpression(), D)
+    res_out_up = PSI.get_expression(container, ServedReserveOutUpExpression(), D)
+    res_out_down = PSI.get_expression(container, ServedReserveOutDownExpression(), D)
     con = PSI.add_constraints_container!(container, T(), D, names, time_steps)
 
     for device in devices, t in time_steps
@@ -1066,8 +1066,7 @@ function _add_constraints_out_marketconvergence!(
         ci_name = PSY.get_name(device)
         con[ci_name, t] = JuMP.@constraint(
             PSI.get_jump_model(container),
-            bid_out[ci_name, t] + SERVE_FRACTION * res_out_up[ci_name, tmap[t]] -
-            SERVE_FRACTION * res_out_down[ci_name, tmap[t]] == p_out[ci_name, t]
+            bid_out[ci_name, t] + res_out_up[ci_name, tmap[t]] - res_out_down[ci_name, tmap[t]] == p_out[ci_name, t]
         )
     end
     return
@@ -1086,8 +1085,8 @@ function _add_constraints_in_marketconvergence!(
     names = [PSY.get_name(d) for d in devices]
     bid_in = PSI.get_variable(container, EnergyRTBidIn(), D)
     p_in = PSI.get_variable(container, PSI.ActivePowerInVariable(), D)
-    res_in_up = PSI.get_expression(container, TotalReserveInUpExpression(), D)
-    res_in_down = PSI.get_expression(container, TotalReserveInDownExpression(), D)
+    res_in_up = PSI.get_expression(container, ServedReserveInUpExpression(), D)
+    res_in_down = PSI.get_expression(container, ServedReserveInDownExpression(), D)
     con = PSI.add_constraints_container!(container, T(), D, names, time_steps)
 
     for device in devices, t in time_steps
@@ -1095,8 +1094,7 @@ function _add_constraints_in_marketconvergence!(
         ci_name = PSY.get_name(device)
         con[ci_name, t] = JuMP.@constraint(
             PSI.get_jump_model(container),
-            bid_in[ci_name, t] + SERVE_FRACTION * res_in_down[ci_name, tmap[t]] -
-            SERVE_FRACTION * res_in_up[ci_name, tmap[t]] == p_in[ci_name, t]
+            bid_in[ci_name, t] + res_in_down[ci_name, tmap[t]] - res_in_up[ci_name, tmap[t]] == p_in[ci_name, t]
         )
     end
     return

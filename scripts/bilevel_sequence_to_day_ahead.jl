@@ -101,12 +101,14 @@ decision_optimizer_DA = DecisionModel(
     calculate_conflict=true,
     optimizer_solve_log_print=true,
     store_variable_names=true,
+    check_numerical_bounds=false,
+    direct_mode_optimizer=true,
     initial_time=DateTime("2020-10-03T00:00:00"),
     name="MerchantHybridCooptimizerCase_DA",
 )
 
-build!(decision_optimizer_DA; output_dir=mktempdir())
-
+build!(decision_optimizer_DA; output_dir=pwd())
+solve!(decision_optimizer_DA)
 #=
 cons = decision_optimizer_DA.internal.container.constraints
 vars = decision_optimizer_DA.internal.container.variables

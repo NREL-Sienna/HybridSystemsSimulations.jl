@@ -1116,20 +1116,23 @@ function add_constraints!(
     con = PSI.add_constraints_container!(container, T(), D, names, time_steps)
     λUb_var = PSI.get_variable(container, λUb(), D)
     λLb_var = PSI.get_variable(container, λLb(), D)
-    μReUb_var = PSI.get_variable(container, μReUb(), D)
-    μReLb_var = PSI.get_variable(container, μReLb(), D)
+    μThUb_var = PSI.get_variable(container, μThUb(), D)
+    μThLb_var = PSI.get_variable(container, μThLb(), D)
     jm = PSI.get_jump_model(container)
     for dev in devices
         n = PSY.get_name(dev)
         t_gen = dev.thermal_unit
         three_cost = PSY.get_operation_cost(t_gen)
-        C_th_fix = three_cost.fixed # $/h
+        first_part = three_cost.variable[1]
+        second_part = three_cost.variable[2]
+        slope = (second_part[1] - first_part[1]) / (second_part[2] - first_part[2]) # $/MWh
+        C_th_var = slope * 100.0 # Multiply by 100 to transform to $/pu
         for t in time_steps
             # Written to match latex model
             con[n, t] = JuMP.@constraint(
                 jm,
-                C_th_fix - λUb_var[n, t] + λLb_var[n, t] - μReUb_var[n, t] +
-                μReLb_var[n, t] == 0.0
+                C_th_var - λUb_var[n, t] + λLb_var[n, t] - μThUb_var[n, t] +
+                μThLb_var[n, t] == 0.0
             )
         end
     end
@@ -4559,11 +4562,11 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridBilevel
 
     add_constraints!(container, StrongDualityCut, hybrids, MerchantModelWithReserves())
 
-    #JuMP.@objective(
-    #    model,
-    #    MOI.MAX_SENSE,
-    #    PSI.get_objective_function(container.objective_function)
-    #)
+    JuMP.@objective(
+        model,
+        MOI.MAX_SENSE,
+        PSI.get_objective_function(container.objective_function)
+    )
 
     PSI.serialize_metadata!(container, PSI.get_output_dir(decision_model))
 

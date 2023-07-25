@@ -46,6 +46,8 @@ end
 function add_hybrid_to_chuhsi_bus!(sys::System)
     bus = get_component(Bus, sys, "Chuhsi")
     bat = _build_battery(bus, 4.0, 2.0, 0.93, 0.93)
+    op_cost = get_operation_cost(bat)
+    op_cost.variable = VariableCost(2.0)
     # Wind is taken from Bus 317: Chuhsi
     # Thermal and Load is taken from adjacent bus 318: Clark
     ren_name = "317_WIND_1"
@@ -54,6 +56,7 @@ function add_hybrid_to_chuhsi_bus!(sys::System)
     renewable = get_component(StaticInjection, sys, ren_name)
     thermal = get_component(StaticInjection, sys, thermal_name)
     load = get_component(PowerLoad, sys, load_name)
+    load = nothing
     # Create the Hybrid
     hybrid_name = string(bus.number) * "_Hybrid"
     hybrid = PSY.HybridSystem(

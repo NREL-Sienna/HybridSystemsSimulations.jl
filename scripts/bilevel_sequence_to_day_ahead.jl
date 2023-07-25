@@ -69,22 +69,28 @@ dic["λ_da_df"] =
     CSV.read("scripts/simulation_pipeline/inputs/$(bus_name)_DA_prices.csv", DataFrame)
 dic["λ_rt_df"] =
     CSV.read("scripts/simulation_pipeline/inputs/$(bus_name)_RT_prices.csv", DataFrame)
-dic["λ_Reg_Up"] =
-    CSV.read("scripts/simulation_pipeline/inputs/$(bus_name)_RegUp_prices.csv", DataFrame)
-dic["λ_Reg_Down"] =
-    CSV.read("scripts/simulation_pipeline/inputs/$(bus_name)_RegDown_prices.csv", DataFrame)
-dic["λ_Spin_Up_R3"] =
-    CSV.read("scripts/simulation_pipeline/inputs/$(bus_name)_Spin_prices.csv", DataFrame)
+dic["λ_Reg_Up"] = CSV.read(
+    "scripts/simulation_pipeline/inputs/$(bus_name)_RegUp_prices_new.csv",
+    DataFrame,
+)
+dic["λ_Reg_Down"] = CSV.read(
+    "scripts/simulation_pipeline/inputs/$(bus_name)_RegDown_prices_new.csv",
+    DataFrame,
+)
+dic["λ_Spin_Up_R3"] = CSV.read(
+    "scripts/simulation_pipeline/inputs/$(bus_name)_Spin_prices_new.csv",
+    DataFrame,
+)
 dic["horizon_RT"] = horizon_merchant_rt
 dic["horizon_DA"] = horizon_merchant_da
 
 hy_sys = first(get_components(HybridSystem, sys))
 services = get_components(VariableReserve, sys)
 served_fraction_map = Dict(
-    "Spin_Up_R2" => 0.0,
-    "Spin_Up_R3" => 0.0,
+    "Spin_Up_R2" => 0.00,
+    "Spin_Up_R3" => 0.00,
     "Reg_Up" => 0.3,
-    "Spin_Up_R1" => 0.0,
+    "Spin_Up_R1" => 0.00,
     "Flex_Up" => 0.1,
     "Reg_Down" => 0.3,
     "Flex_Down" => 0.1,
@@ -120,6 +126,8 @@ decision_optimizer_DA = DecisionModel(
 )
 
 build!(decision_optimizer_DA; output_dir=pwd())
+#bid_regup_out = decision_optimizer_DA.internal.container.variables[PSI.VariableKey{HSS.BidReserveVariableOut, VariableReserve{ReserveUp}}("Reg_Up")]
+#JuMP.fix(bid_regup_out["317_Hybrid", 12], 1.0; force = true)
 solve!(decision_optimizer_DA)
 #=
 cons = decision_optimizer_DA.internal.container.constraints
@@ -149,6 +157,40 @@ res = ProblemResults(decision_optimizer_DA)
 λ_regdown = dic["λ_Reg_Down"][!, 2][1:24]
 λ_spin = dic["λ_Spin_Up_R3"][!, 2][1:24]
 DART = [λ_da[tmap[t]] - λ_rt[t] for t in 1:288]
+
+#=
+time_da_long = dic["λ_da_df"][!, 1]
+services = collect(get_components(Service, sys_rts_da))
+regdown = services[1]
+regup = services[5]
+spin = services[4]
+average_price = mean(λ_da)
+regup_req = values(get_time_series(SingleTimeSeries, regup, "requirement")[time_da_long].data) * average_price / 3
+regdown_req = values(get_time_series(SingleTimeSeries, regdown, "requirement")[time_da_long].data) * average_price / 5
+spin_req = values(get_time_series(SingleTimeSeries, spin, "requirement")[time_da_long].data) * average_price / 3.5
+regup_req[11] = 35.0
+regup_req[12] = 35.0
+regup_req[13] = 35.0
+using CSV
+df_spin = DataFrame("DateTime" => time_da_long, "Chuhsi" => spin_req)
+df_up = DataFrame("DateTime" => time_da_long, "Chuhsi" => regup_req)
+df_dn = DataFrame("DateTime" => time_da_long, "Chuhsi" => regdown_req)
+
+CSV.write("scripts/simulation_pipeline/inputs/chuhsi_RegUp_prices_new.csv", df_up)
+CSV.write("scripts/simulation_pipeline/inputs/chuhsi_RegDown_prices_new.csv", df_dn)
+CSV.write("scripts/simulation_pipeline/inputs/chuhsi_Spin_prices_new.csv", df_spin)
+
+plot([
+    #scatter(x = time_da, y = λ_da, name = "Day-Ahead", line_shape="hv"),
+    #scatter(x = time_rt, y = λ_rt, name = "Real-Time", line_shape="hv"),
+    scatter(x = time_da, y = λ_regup, name = "Reg-Up Price", line_shape = "hv"),
+    scatter(x = time_da, y = λ_regdown, name = "Reg-Down Price", line_shape = "hv"),
+    scatter(x = time_da, y = λ_spin, name = "Spin Price", line_shape = "hv"),
+    scatter(x = time_da, y = regup_req, name = "Reg-Up Req", line_shape = "hv"),
+    scatter(x = time_da, y = regdown_req, name = "Reg-Down Req", line_shape = "hv"),
+    scatter(x = time_da, y = spin_req, name = "Spin Req", line_shape = "hv"),
+])
+=#
 
 # OUT
 time_rt = read_variable(res, "ReservationVariable__HybridSystem")[!, 1]
@@ -258,8 +300,17 @@ da_bid_in = var_res[PSI.VariableKey{HSS.EnergyDABidIn, HybridSystem}("")][!, "31
 
 plot([
     scatter(x=time_da, y=da_bid_out, name="DA Bid Out", line_shape="hv"),
+    scatter(x=time_da, y=res_out_regup, name="RegUp Out", line_shape="hv"),
+    scatter(
+        x=time_da,
+        y=res_out_down,
+        name="RegDown Out",
+        line_shape="hv",
+        line=attr(dash="dash"),
+    ),
+    scatter(x=time_da, y=res_out_spin, name="Spin Out", line_shape="hv"),
     scatter(x=time_da, y=-da_bid_in, name="DA Bid In", line_shape="hv"),
-    scatter(x=time_rt, y=DART, name="DART", line_shape="hv"),
+    #scatter(x=time_rt, y=DART, name="DART", line_shape="hv"),
 ])
 
 ##############################
@@ -276,6 +327,12 @@ res = ProblemResults(decision_optimizer_DA)
 λ_regdown = dic["λ_Reg_Down"][!, 2][1:24]
 λ_spin = dic["λ_Spin_Up_R3"][!, 2][1:24]
 DART = [λ_da[tmap[t]] - λ_rt[t] for t in 1:288]
+
+plot([
+    scatter(x=time_da, y=λ_da, name="DA", line_shape="hv"),
+    scatter(x=time_rt, y=λ_rt, name="RT", line_shape="hv"),
+    scatter(x=time_rt, y=DART, name="DART", line_shape="hv"),
+])
 
 # OUT
 time_rt = read_variable(res, "ReservationVariable__HybridSystem")[!, 1]

@@ -3478,6 +3478,12 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
         MerchantModelWithReserves(),
     )
 
+    # Storage Variable Cost
+    if !isempty(_hybrids_with_storage)
+        p_ch = PSI.get_variable(container, BatteryCharge(), PSY.HybridSystem)
+        p_ds = PSI.get_variable(container, BatteryDischarge(), PSY.HybridSystem)
+    end
+
     # RT bids and DART arbitrage
     for t in T_rt, dev in hybrids
         name = PSY.get_name(dev)
@@ -3500,6 +3506,13 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
             C_th_var = slope * 100.0 # Multiply by 100 to transform to $/pu
             lin_cost_p_th = -Δt_RT * C_th_var * p_th[name, t]
             PSI.add_to_objective_invariant_expression!(container, lin_cost_p_th)
+        end
+        if !isnothing(dev.storage)
+            VOM = dev.storage.operation_cost.variable.cost
+            lin_cost_p_ch = -Δt_RT * VOM * p_ch[name, t]
+            lin_cost_p_ds = -Δt_RT * VOM * p_ds[name, t]
+            PSI.add_to_objective_invariant_expression!(container, lin_cost_p_ch)
+            PSI.add_to_objective_invariant_expression!(container, lin_cost_p_ds)
         end
     end
     JuMP.@objective(
@@ -4351,7 +4364,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridBilevel
             fix_cost = three_cost.fixed # $/h
             C_th_var = slope * 100.0 # Multiply by 100 to transform to $/pu
             lin_cost_p_th = -Δt_RT * C_th_var * p_th[name, t]
-            PSI.add_to_objective_invariant_expression!(container, lin_cost_p_th)
+            #PSI.add_to_objective_invariant_expression!(container, lin_cost_p_th)
         end
     end
 

@@ -38,14 +38,14 @@ end
 
 function add_battery_to_bus!(sys::System, bus_name::String)
     bus = get_component(Bus, sys, bus_name)
-    bat = _build_battery(bus, 4.0, 2.0, 0.93, 0.93)
+    bat = _build_battery(bus, 8.0, 4.0, 0.93, 0.93)
     add_component!(sys, bat)
     return
 end
 
 function add_hybrid_to_chuhsi_bus!(sys::System)
     bus = get_component(Bus, sys, "Chuhsi")
-    bat = _build_battery(bus, 4.0, 2.0, 0.93, 0.93)
+    bat = _build_battery(bus, 8.0, 4.0, 0.93, 0.93)
     op_cost = get_operation_cost(bat)
     op_cost.variable = VariableCost(2.0)
     # Wind is taken from Bus 317: Chuhsi

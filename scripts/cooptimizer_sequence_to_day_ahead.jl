@@ -69,19 +69,36 @@ dic["λ_da_df"] =
     CSV.read("scripts/simulation_pipeline/inputs/$(bus_name)_DA_prices.csv", DataFrame)
 dic["λ_rt_df"] =
     CSV.read("scripts/simulation_pipeline/inputs/$(bus_name)_RT_prices.csv", DataFrame)
-dic["λ_Reg_Up"] =
-    CSV.read("scripts/simulation_pipeline/inputs/$(bus_name)_RegUp_prices.csv", DataFrame)
-dic["λ_Reg_Down"] =
-    CSV.read("scripts/simulation_pipeline/inputs/$(bus_name)_RegDown_prices.csv", DataFrame)
-dic["λ_Spin_Up_R3"] =
-    CSV.read("scripts/simulation_pipeline/inputs/$(bus_name)_Spin_prices.csv", DataFrame)
+dic["λ_Reg_Up"] = CSV.read(
+    "scripts/simulation_pipeline/inputs/$(bus_name)_RegUp_prices_new.csv",
+    DataFrame,
+)
+dic["λ_Reg_Down"] = CSV.read(
+    "scripts/simulation_pipeline/inputs/$(bus_name)_RegDown_prices_new.csv",
+    DataFrame,
+)
+dic["λ_Spin_Up_R3"] = CSV.read(
+    "scripts/simulation_pipeline/inputs/$(bus_name)_Spin_prices_new.csv",
+    DataFrame,
+)
 dic["horizon_RT"] = horizon_merchant_rt
 dic["horizon_DA"] = horizon_merchant_da
 
 hy_sys = first(get_components(HybridSystem, sys))
 services = get_components(VariableReserve, sys)
+served_fraction_map = Dict(
+    "Spin_Up_R2" => 0.00,
+    "Spin_Up_R3" => 0.00,
+    "Reg_Up" => 0.3,
+    "Spin_Up_R1" => 0.00,
+    "Flex_Up" => 0.1,
+    "Reg_Down" => 0.3,
+    "Flex_Down" => 0.1,
+)
 for service in services
     serv_name = get_name(service)
+    serv_ext = get_ext(service)
+    serv_ext["served_fraction"] = served_fraction_map[serv_name]
     if contains(serv_name, "Spin_Up_R1") |
        contains(serv_name, "Spin_Up_R2") |
        contains(serv_name, "Flex")
@@ -93,7 +110,7 @@ end
 PSY.set_ext!(hy_sys, deepcopy(dic))
 
 # Set decision model for Optimizer
-decision_optimizer_DA = DecisionModel(
+decision_optimizer_DA_c = DecisionModel(
     MerchantHybridCooptimizerCase,
     ProblemTemplate(CopperPlatePowerModel),
     sys,
@@ -105,7 +122,7 @@ decision_optimizer_DA = DecisionModel(
     name="MerchantHybridCooptimizerCase_DA",
 )
 
-build!(decision_optimizer_DA; output_dir=mktempdir())
+build!(decision_optimizer_DA_c; output_dir=mktempdir())
 
 #=
 cons = decision_optimizer_DA.internal.container.constraints
@@ -125,10 +142,10 @@ JuMP.upper_bound(
 )
 =#
 
-solve!(decision_optimizer_DA)
+solve!(decision_optimizer_DA_c)
 hy_sys = first(get_components(HybridSystem, sys))
 tmap = get_ext(hy_sys)["tmap"]
-res = ProblemResults(decision_optimizer_DA)
+res = ProblemResults(decision_optimizer_DA_c)
 
 λ_rt = dic["λ_rt_df"][!, 2][1:288]
 λ_da = dic["λ_da_df"][!, 2][1:24]
@@ -167,14 +184,17 @@ res_out_down =
         "317_Hybrid",
     ]
 
-plot([
-    scatter(x=time_rt, y=p_out, name="Output Power", line_shape="hv"),
-    scatter(x=time_rt, y=bid_rt_out, name="Bid Out", line_shape="hv"),
-    scatter(x=time_da, y=res_out_regup, name="RegUp Bid Out", line_shape="hv"),
-    scatter(x=time_da, y=res_out_spin, name="Spin Bid Out", line_shape="hv"),
-    scatter(x=time_da, y=res_out_down, name="RegDown Bid Out", line_shape="hv"),
-    scatter(x=time_rt, y=-p_in, name="Input Power", line_shape="hv"),
-])
+plot(
+    [
+        scatter(x=time_rt, y=p_out, name="Output Power", line_shape="hv"),
+        scatter(x=time_rt, y=bid_rt_out, name="Bid Out", line_shape="hv"),
+        scatter(x=time_da, y=res_out_regup, name="RegUp Bid Out", line_shape="hv"),
+        scatter(x=time_da, y=res_out_spin, name="Spin Bid Out", line_shape="hv"),
+        scatter(x=time_da, y=res_out_down, name="RegDown Bid Out", line_shape="hv"),
+        scatter(x=time_rt, y=-p_in, name="Input Power", line_shape="hv"),
+    ],
+    Layout(title="Co-Opt"),
+)
 
 # IN 
 bid_rt_in = read_variable(res, "EnergyRTBidIn__HybridSystem")[!, "317_Hybrid"]
@@ -197,18 +217,21 @@ res_in_down =
         "317_Hybrid",
     ]
 
-plot([
-    scatter(x=time_rt, y=p_in, name="Input Power", line_shape="hv"),
-    scatter(x=time_rt, y=bid_rt_in, name="Bid In", line_shape="hv"),
-    scatter(x=time_da, y=res_in_regup, name="RegUp Bid In", line_shape="hv"),
-    scatter(x=time_da, y=res_in_spin, name="Spin Bid In", line_shape="hv"),
-    scatter(x=time_da, y=res_in_down, name="RegDown Bid In", line_shape="hv"),
-    #scatter(x = time_rt, y = -p_in, name = "Input Power", line_shape = "hv")
-])
+plot(
+    [
+        scatter(x=time_rt, y=p_in, name="Input Power", line_shape="hv"),
+        scatter(x=time_rt, y=bid_rt_in, name="Bid In", line_shape="hv"),
+        scatter(x=time_da, y=res_in_regup, name="RegUp Bid In", line_shape="hv"),
+        scatter(x=time_da, y=res_in_spin, name="Spin Bid In", line_shape="hv"),
+        scatter(x=time_da, y=res_in_down, name="RegDown Bid In", line_shape="hv"),
+        #scatter(x = time_rt, y = -p_in, name = "Input Power", line_shape = "hv")
+    ],
+    Layout(title="Co-Opt"),
+)
 
 # Assets
 p_re_asset = read_parameter(res, "RenewablePowerTimeSeries__HybridSystem")[!, "317_Hybrid"]
-p_load = read_parameter(res, "ElectricLoadTimeSeries__HybridSystem")[!, "317_Hybrid"]
+#p_load = read_parameter(res, "ElectricLoadTimeSeries__HybridSystem")[!, "317_Hybrid"]
 p_re = read_variable(res, "RenewablePower__HybridSystem")[!, "317_Hybrid"]
 p_th = read_variable(res, "ThermalPower__HybridSystem")[!, "317_Hybrid"]
 p_ch = read_variable(res, "BatteryCharge__HybridSystem")[!, "317_Hybrid"]
@@ -216,19 +239,21 @@ p_ds = read_variable(res, "BatteryDischarge__HybridSystem")[!, "317_Hybrid"]
 soc = read_variable(res, "EnergyVariable__HybridSystem")[!, "317_Hybrid"] / 100.0
 plot(
     [
-        scatter(x=time_rt, y=-p_in, name="Input Power", line_shape="hv"),
+        #scatter(x=time_rt, y=-p_in, name="Input Power", line_shape="hv"),
         scatter(x=time_rt, y=p_out, name="Output Power", line_shape="hv"),
-        scatter(x=time_rt, y=p_th, name="Thermal Power", line_shape="hv"),
-        scatter(x=time_rt, y=p_re, name="Renewable Power", line_shape="hv"),
-        scatter(x=time_rt, y=p_re_asset, name="Renewable Available", line_shape="hv"),
+        #scatter(x=time_rt, y=p_th, name="Thermal Power", line_shape="hv"),
+        #scatter(x=time_rt, y=p_re, name="Renewable Power", line_shape="hv"),
+        #scatter(x=time_rt, y=p_re_asset, name="Renewable Available", line_shape="hv"),
         scatter(x=time_rt, y=-p_ch, name="Charge Power", line_shape="hv"),
         scatter(x=time_rt, y=p_ds, name="Discharge Power", line_shape="hv"),
         scatter(x=time_rt, y=soc, name="State of Charge", line_shape="hv"),
-        scatter(x=time_rt, y=λ_rt, name="RT Price", yaxis="y2", line_shape="hv"),
+        #scatter(x=time_rt, y=λ_rt, name="RT Price", yaxis="y2", line_shape="hv"),
     ],
     Layout(
+        title="Co-Opt",
         xaxis_title="Time",
         yaxis_title="Power [pu]",
+        #=
         yaxis2=attr(
             title="Price [\$/MWh]",
             overlaying="y",
@@ -236,6 +261,7 @@ plot(
             autorange=false,
             range=[-35, 35],
         ),
+        =#
     ),
 )
 

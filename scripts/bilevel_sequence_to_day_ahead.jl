@@ -60,6 +60,7 @@ for s in [sys_rts_da, sys_rts_merchant]
 end
 
 sys = sys_rts_merchant
+
 sys.internal.ext = Dict{String, DataFrame}()
 dic = PSY.get_ext(sys)
 
@@ -149,7 +150,7 @@ JuMP.upper_bound(
 
 hy_sys = first(get_components(HybridSystem, sys))
 tmap = get_ext(hy_sys)["tmap"]
-res = ProblemResults(decision_optimizer_DA)
+res_b = ProblemResults(decision_optimizer_DA)
 
 λ_rt = dic["λ_rt_df"][!, 2][1:288]
 λ_da = dic["λ_da_df"][!, 2][1:24]
@@ -193,97 +194,110 @@ plot([
 =#
 
 # OUT
-time_rt = read_variable(res, "ReservationVariable__HybridSystem")[!, 1]
-hybrid_on = read_variable(res, "ReservationVariable__HybridSystem")[!, "317_Hybrid"]
-bid_rt_out = read_variable(res, "EnergyRTBidOut__HybridSystem")[!, "317_Hybrid"]
-p_out = read_variable(res, "ActivePowerOutVariable__HybridSystem")[!, "317_Hybrid"] / 100.0
-p_in = read_variable(res, "ActivePowerInVariable__HybridSystem")[!, "317_Hybrid"] / 100.0
-var_res = res.variable_values
+time_rt = read_variable(res_b, "ReservationVariable__HybridSystem")[!, 1]
+hybrid_on = read_variable(res_b, "ReservationVariable__HybridSystem")[!, "317_Hybrid"]
+bid_rt_out = read_variable(res_b, "EnergyRTBidOut__HybridSystem")[!, "317_Hybrid"]
+p_out =
+    read_variable(res_b, "ActivePowerOutVariable__HybridSystem")[!, "317_Hybrid"] / 100.0
+p_in = read_variable(res_b, "ActivePowerInVariable__HybridSystem")[!, "317_Hybrid"] / 100.0
+var_res_b = res_b.variable_values
 time_da = dic["λ_da_df"][!, "DateTime"][1:24]
 res_out_regup =
-    var_res[PSI.VariableKey{HSS.BidReserveVariableOut, VariableReserve{ReserveUp}}(
+    var_res_b[PSI.VariableKey{HSS.BidReserveVariableOut, VariableReserve{ReserveUp}}(
         "Reg_Up",
     )][
         !,
         "317_Hybrid",
     ]
 res_out_spin =
-    var_res[PSI.VariableKey{HSS.BidReserveVariableOut, VariableReserve{ReserveUp}}(
+    var_res_b[PSI.VariableKey{HSS.BidReserveVariableOut, VariableReserve{ReserveUp}}(
         "Spin_Up_R3",
     )][
         !,
         "317_Hybrid",
     ]
 res_out_down =
-    var_res[PSI.VariableKey{HSS.BidReserveVariableOut, VariableReserve{ReserveDown}}(
+    var_res_b[PSI.VariableKey{HSS.BidReserveVariableOut, VariableReserve{ReserveDown}}(
         "Reg_Down",
     )][
         !,
         "317_Hybrid",
     ]
 
-plot([
-    scatter(x=time_rt, y=p_out, name="Output Power", line_shape="hv"),
-    scatter(x=time_rt, y=bid_rt_out, name="Bid Out", line_shape="hv"),
-    scatter(x=time_da, y=res_out_regup, name="RegUp Bid Out", line_shape="hv"),
-    scatter(x=time_da, y=res_out_spin, name="Spin Bid Out", line_shape="hv"),
-    scatter(x=time_da, y=res_out_down, name="RegDown Bid Out", line_shape="hv"),
-    scatter(x=time_rt, y=-p_in, name="Input Power", line_shape="hv"),
-])
-
-# IN
-bid_rt_in = read_variable(res, "EnergyRTBidIn__HybridSystem")[!, "317_Hybrid"]
-res_in_regup =
-    var_res[PSI.VariableKey{HSS.BidReserveVariableIn, VariableReserve{ReserveUp}}("Reg_Up")][
-        !,
-        "317_Hybrid",
-    ]
-res_in_spin = var_res[PSI.VariableKey{HSS.BidReserveVariableIn, VariableReserve{ReserveUp}}(
-    "Spin_Up_R3",
-)][
-    !,
-    "317_Hybrid",
-]
-res_in_down =
-    var_res[PSI.VariableKey{HSS.BidReserveVariableIn, VariableReserve{ReserveDown}}(
-        "Reg_Down",
-    )][
-        !,
-        "317_Hybrid",
-    ]
-
-plot([
-    scatter(x=time_rt, y=p_in, name="Input Power", line_shape="hv"),
-    scatter(x=time_rt, y=bid_rt_in, name="Bid In", line_shape="hv"),
-    scatter(x=time_da, y=res_in_regup, name="RegUp Bid In", line_shape="hv"),
-    scatter(x=time_da, y=res_in_spin, name="Spin Bid In", line_shape="hv"),
-    scatter(x=time_da, y=res_in_down, name="RegDown Bid In", line_shape="hv"),
-    #scatter(x = time_rt, y = -p_in, name = "Input Power", line_shape = "hv")
-])
-
-# Assets
-p_re_asset = read_parameter(res, "RenewablePowerTimeSeries__HybridSystem")[!, "317_Hybrid"]
-p_load = read_parameter(res, "ElectricLoadTimeSeries__HybridSystem")[!, "317_Hybrid"]
-p_re = read_variable(res, "RenewablePower__HybridSystem")[!, "317_Hybrid"]
-p_th = read_variable(res, "ThermalPower__HybridSystem")[!, "317_Hybrid"]
-p_ch = read_variable(res, "BatteryCharge__HybridSystem")[!, "317_Hybrid"]
-p_ds = read_variable(res, "BatteryDischarge__HybridSystem")[!, "317_Hybrid"]
-soc = read_variable(res, "EnergyVariable__HybridSystem")[!, "317_Hybrid"] / 100.0
 plot(
     [
-        scatter(x=time_rt, y=-p_in, name="Input Power", line_shape="hv"),
         scatter(x=time_rt, y=p_out, name="Output Power", line_shape="hv"),
-        scatter(x=time_rt, y=p_th, name="Thermal Power", line_shape="hv"),
-        scatter(x=time_rt, y=p_re, name="Renewable Power", line_shape="hv"),
-        scatter(x=time_rt, y=p_re_asset, name="Renewable Available", line_shape="hv"),
+        scatter(x=time_rt, y=bid_rt_out, name="Bid Out", line_shape="hv"),
+        scatter(x=time_da, y=res_out_regup, name="RegUp Bid Out", line_shape="hv"),
+        scatter(x=time_da, y=res_out_spin, name="Spin Bid Out", line_shape="hv"),
+        scatter(x=time_da, y=res_out_down, name="RegDown Bid Out", line_shape="hv"),
+        scatter(x=time_rt, y=-p_in, name="Input Power", line_shape="hv"),
+    ],
+    Layout(title="BiLevel"),
+)
+
+# IN
+bid_rt_in = read_variable(res_b, "EnergyRTBidIn__HybridSystem")[!, "317_Hybrid"]
+res_in_regup =
+    var_res_b[PSI.VariableKey{HSS.BidReserveVariableIn, VariableReserve{ReserveUp}}(
+        "Reg_Up",
+    )][
+        !,
+        "317_Hybrid",
+    ]
+res_in_spin =
+    var_res_b[PSI.VariableKey{HSS.BidReserveVariableIn, VariableReserve{ReserveUp}}(
+        "Spin_Up_R3",
+    )][
+        !,
+        "317_Hybrid",
+    ]
+res_in_down =
+    var_res_b[PSI.VariableKey{HSS.BidReserveVariableIn, VariableReserve{ReserveDown}}(
+        "Reg_Down",
+    )][
+        !,
+        "317_Hybrid",
+    ]
+
+plot(
+    [
+        scatter(x=time_rt, y=p_in, name="Input Power", line_shape="hv"),
+        scatter(x=time_rt, y=bid_rt_in, name="Bid In", line_shape="hv"),
+        scatter(x=time_da, y=res_in_regup, name="RegUp Bid In", line_shape="hv"),
+        scatter(x=time_da, y=res_in_spin, name="Spin Bid In", line_shape="hv"),
+        scatter(x=time_da, y=res_in_down, name="RegDown Bid In", line_shape="hv"),
+        #scatter(x = time_rt, y = -p_in, name = "Input Power", line_shape = "hv")
+    ],
+    Layout(title="BiLevel"),
+)
+
+# Assets
+p_re_asset =
+    read_parameter(res_b, "RenewablePowerTimeSeries__HybridSystem")[!, "317_Hybrid"]
+#p_load = read_parameter(res_b, "ElectricLoadTimeSeries__HybridSystem")[!, "317_Hybrid"]
+p_re = read_variable(res_b, "RenewablePower__HybridSystem")[!, "317_Hybrid"]
+p_th = read_variable(res_b, "ThermalPower__HybridSystem")[!, "317_Hybrid"]
+p_ch = read_variable(res_b, "BatteryCharge__HybridSystem")[!, "317_Hybrid"]
+p_ds = read_variable(res_b, "BatteryDischarge__HybridSystem")[!, "317_Hybrid"]
+soc = read_variable(res_b, "EnergyVariable__HybridSystem")[!, "317_Hybrid"] / 100.0
+plot(
+    [
+        #scatter(x=time_rt, y=-p_in, name="Input Power", line_shape="hv"),
+        scatter(x=time_rt, y=p_out, name="Output Power", line_shape="hv"),
+        #scatter(x=time_rt, y=p_th, name="Thermal Power", line_shape="hv"),
+        #scatter(x=time_rt, y=p_re, name="Renewable Power", line_shape="hv"),
+        #scatter(x=time_rt, y=p_re_asset, name="Renewable Available", line_shape="hv"),
         scatter(x=time_rt, y=-p_ch, name="Charge Power", line_shape="hv"),
         scatter(x=time_rt, y=p_ds, name="Discharge Power", line_shape="hv"),
         scatter(x=time_rt, y=soc, name="State of Charge", line_shape="hv"),
-        scatter(x=time_rt, y=λ_rt, name="RT Price", yaxis="y2", line_shape="hv"),
+        #scatter(x=time_rt, y=λ_rt, name="RT Price", yaxis="y2", line_shape="hv"),
     ],
     Layout(
+        title="BiLevel",
         xaxis_title="Time",
         yaxis_title="Power [pu]",
+        #=
         yaxis2=attr(
             title="Price [\$/MWh]",
             overlaying="y",
@@ -291,27 +305,32 @@ plot(
             autorange=false,
             range=[-35, 35],
         ),
+        =#
     ),
 )
 
 #Day AHead
-da_bid_out = var_res[PSI.VariableKey{HSS.EnergyDABidOut, HybridSystem}("")][!, "317_Hybrid"]
-da_bid_in = var_res[PSI.VariableKey{HSS.EnergyDABidIn, HybridSystem}("")][!, "317_Hybrid"]
+da_bid_out =
+    var_res_b[PSI.VariableKey{HSS.EnergyDABidOut, HybridSystem}("")][!, "317_Hybrid"]
+da_bid_in = var_res_b[PSI.VariableKey{HSS.EnergyDABidIn, HybridSystem}("")][!, "317_Hybrid"]
 
-plot([
-    scatter(x=time_da, y=da_bid_out, name="DA Bid Out", line_shape="hv"),
-    scatter(x=time_da, y=res_out_regup, name="RegUp Out", line_shape="hv"),
-    scatter(
-        x=time_da,
-        y=res_out_down,
-        name="RegDown Out",
-        line_shape="hv",
-        line=attr(dash="dash"),
-    ),
-    scatter(x=time_da, y=res_out_spin, name="Spin Out", line_shape="hv"),
-    scatter(x=time_da, y=-da_bid_in, name="DA Bid In", line_shape="hv"),
-    #scatter(x=time_rt, y=DART, name="DART", line_shape="hv"),
-])
+plot(
+    [
+        scatter(x=time_da, y=da_bid_out, name="DA Bid Out", line_shape="hv"),
+        scatter(x=time_da, y=res_out_regup, name="RegUp Out", line_shape="hv"),
+        scatter(
+            x=time_da,
+            y=res_out_down,
+            name="RegDown Out",
+            line_shape="hv",
+            line=attr(dash="dash"),
+        ),
+        scatter(x=time_da, y=res_out_spin, name="Spin Out", line_shape="hv"),
+        scatter(x=time_da, y=-da_bid_in, name="DA Bid In", line_shape="hv"),
+        #scatter(x=time_rt, y=DART, name="DART", line_shape="hv"),
+    ],
+    Layout(title="BiLevel"),
+)
 
 ##############################
 ###### Scripts Plot New ######
@@ -335,29 +354,30 @@ plot([
 ])
 
 # OUT
-time_rt = read_variable(res, "ReservationVariable__HybridSystem")[!, 1]
-hybrid_on = read_variable(res, "ReservationVariable__HybridSystem")[!, "317_Hybrid"]
-bid_rt_out = read_variable(res, "EnergyRTBidOut__HybridSystem")[!, "317_Hybrid"]
-p_out = read_variable(res, "ActivePowerOutVariable__HybridSystem")[!, "317_Hybrid"] / 100.0
-p_in = read_variable(res, "ActivePowerInVariable__HybridSystem")[!, "317_Hybrid"] / 100.0
-var_res = res.variable_values
+time_rt = read_variable(res_b, "ReservationVariable__HybridSystem")[!, 1]
+hybrid_on = read_variable(res_b, "ReservationVariable__HybridSystem")[!, "317_Hybrid"]
+bid_rt_out = read_variable(res_b, "EnergyRTBidOut__HybridSystem")[!, "317_Hybrid"]
+p_out =
+    read_variable(res_b, "ActivePowerOutVariable__HybridSystem")[!, "317_Hybrid"] / 100.0
+p_in = read_variable(res_b, "ActivePowerInVariable__HybridSystem")[!, "317_Hybrid"] / 100.0
+var_res_b = res_b.variable_values
 time_da = dic["λ_da_df"][!, "DateTime"][1:24]
 res_out_regup =
-    var_res[PSI.VariableKey{HSS.BidReserveVariableOut, VariableReserve{ReserveUp}}(
+    var_res_b[PSI.VariableKey{HSS.BidReserveVariableOut, VariableReserve{ReserveUp}}(
         "Reg_Up",
     )][
         !,
         "317_Hybrid",
     ]
 res_out_spin =
-    var_res[PSI.VariableKey{HSS.BidReserveVariableOut, VariableReserve{ReserveUp}}(
+    var_res_b[PSI.VariableKey{HSS.BidReserveVariableOut, VariableReserve{ReserveUp}}(
         "Spin_Up_R3",
     )][
         !,
         "317_Hybrid",
     ]
 res_out_down =
-    var_res[PSI.VariableKey{HSS.BidReserveVariableOut, VariableReserve{ReserveDown}}(
+    var_res_b[PSI.VariableKey{HSS.BidReserveVariableOut, VariableReserve{ReserveDown}}(
         "Reg_Down",
     )][
         !,
@@ -365,7 +385,7 @@ res_out_down =
     ]
 
 res_in_down =
-    var_res[PSI.VariableKey{HSS.BidReserveVariableIn, VariableReserve{ReserveDown}}(
+    var_res_b[PSI.VariableKey{HSS.BidReserveVariableIn, VariableReserve{ReserveDown}}(
         "Reg_Down",
     )][
         !,
@@ -385,20 +405,23 @@ plot(
 )
 
 # IN
-bid_rt_in = read_variable(res, "EnergyRTBidIn__HybridSystem")[!, "317_Hybrid"]
+bid_rt_in = read_variable(res_b, "EnergyRTBidIn__HybridSystem")[!, "317_Hybrid"]
 res_in_regup =
-    var_res[PSI.VariableKey{HSS.BidReserveVariableIn, VariableReserve{ReserveUp}}("Reg_Up")][
+    var_res_b[PSI.VariableKey{HSS.BidReserveVariableIn, VariableReserve{ReserveUp}}(
+        "Reg_Up",
+    )][
         !,
         "317_Hybrid",
     ]
-res_in_spin = var_res[PSI.VariableKey{HSS.BidReserveVariableIn, VariableReserve{ReserveUp}}(
-    "Spin_Up_R3",
-)][
-    !,
-    "317_Hybrid",
-]
+res_in_spin =
+    var_res_b[PSI.VariableKey{HSS.BidReserveVariableIn, VariableReserve{ReserveUp}}(
+        "Spin_Up_R3",
+    )][
+        !,
+        "317_Hybrid",
+    ]
 res_in_down =
-    var_res[PSI.VariableKey{HSS.BidReserveVariableIn, VariableReserve{ReserveDown}}(
+    var_res_b[PSI.VariableKey{HSS.BidReserveVariableIn, VariableReserve{ReserveDown}}(
         "Reg_Down",
     )][
         !,
@@ -418,13 +441,14 @@ plot(
 )
 
 # Assets
-p_re_asset = read_parameter(res, "RenewablePowerTimeSeries__HybridSystem")[!, "317_Hybrid"]
-p_load = read_parameter(res, "ElectricLoadTimeSeries__HybridSystem")[!, "317_Hybrid"]
-p_re = read_variable(res, "RenewablePower__HybridSystem")[!, "317_Hybrid"]
-p_th = read_variable(res, "ThermalPower__HybridSystem")[!, "317_Hybrid"]
-p_ch = read_variable(res, "BatteryCharge__HybridSystem")[!, "317_Hybrid"]
-p_ds = read_variable(res, "BatteryDischarge__HybridSystem")[!, "317_Hybrid"]
-soc = read_variable(res, "EnergyVariable__HybridSystem")[!, "317_Hybrid"] / 100.0
+p_re_asset =
+    read_parameter(res_b, "RenewablePowerTimeSeries__HybridSystem")[!, "317_Hybrid"]
+p_load = read_parameter(res_b, "ElectricLoadTimeSeries__HybridSystem")[!, "317_Hybrid"]
+p_re = read_variable(res_b, "RenewablePower__HybridSystem")[!, "317_Hybrid"]
+p_th = read_variable(res_b, "ThermalPower__HybridSystem")[!, "317_Hybrid"]
+p_ch = read_variable(res_b, "BatteryCharge__HybridSystem")[!, "317_Hybrid"]
+p_ds = read_variable(res_b, "BatteryDischarge__HybridSystem")[!, "317_Hybrid"]
+soc = read_variable(res_b, "EnergyVariable__HybridSystem")[!, "317_Hybrid"] / 100.0
 plot(
     [
         scatter(x=time_rt, y=-p_in, name="Input Power", line_shape="hv"),
@@ -451,8 +475,9 @@ plot(
 )
 
 #Day AHead
-da_bid_out = var_res[PSI.VariableKey{HSS.EnergyDABidOut, HybridSystem}("")][!, "317_Hybrid"]
-da_bid_in = var_res[PSI.VariableKey{HSS.EnergyDABidIn, HybridSystem}("")][!, "317_Hybrid"]
+da_bid_out =
+    var_res_b[PSI.VariableKey{HSS.EnergyDABidOut, HybridSystem}("")][!, "317_Hybrid"]
+da_bid_in = var_res_b[PSI.VariableKey{HSS.EnergyDABidIn, HybridSystem}("")][!, "317_Hybrid"]
 
 plot(
     [
@@ -466,32 +491,34 @@ plot(
 # Asset Reserve
 
 res_re_regup =
-    read_variable(res, "RenewableReserveVariable__VariableReserve__ReserveUp__Reg_Up")[
+    read_variable(res_b, "RenewableReserveVariable__VariableReserve__ReserveUp__Reg_Up")[
         !,
         "317_Hybrid",
     ]
 res_re_spin =
-    read_variable(res, "RenewableReserveVariable__VariableReserve__ReserveUp__Spin_Up_R3")[
+    read_variable(res_b, "RenewableReserveVariable__VariableReserve__ReserveUp__Spin_Up_R3")[
         !,
         "317_Hybrid",
     ]
 res_re_regdown =
-    read_variable(res, "RenewableReserveVariable__VariableReserve__ReserveDown__Reg_Down")[
+    read_variable(res_b, "RenewableReserveVariable__VariableReserve__ReserveDown__Reg_Down")[
         !,
         "317_Hybrid",
     ]
-res_ds_regdown =
-    read_variable(res, "DischargingReserveVariable__VariableReserve__ReserveDown__Reg_Down")[
-        !,
-        "317_Hybrid",
-    ]
+res_ds_regdown = read_variable(
+    res_b,
+    "DischargingReserveVariable__VariableReserve__ReserveDown__Reg_Down",
+)[
+    !,
+    "317_Hybrid",
+]
 res_ch_regdown =
-    read_variable(res, "ChargingReserveVariable__VariableReserve__ReserveDown__Reg_Down")[
+    read_variable(res_b, "ChargingReserveVariable__VariableReserve__ReserveDown__Reg_Down")[
         !,
         "317_Hybrid",
     ]
 res_th_regdown =
-    read_variable(res, "ThermalReserveVariable__VariableReserve__ReserveDown__Reg_Down")[
+    read_variable(res_b, "ThermalReserveVariable__VariableReserve__ReserveDown__Reg_Down")[
         !,
         "317_Hybrid",
     ]

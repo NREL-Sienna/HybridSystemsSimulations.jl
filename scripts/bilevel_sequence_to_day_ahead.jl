@@ -127,7 +127,6 @@ JuMP.upper_bound(
 )
 =#
 
-solve!(decision_optimizer_DA)
 hy_sys = first(get_components(HybridSystem, sys))
 tmap = get_ext(hy_sys)["tmap"]
 res = ProblemResults(decision_optimizer_DA)
@@ -250,3 +249,217 @@ plot([
     scatter(x=time_da, y=-da_bid_in, name="DA Bid In", line_shape="hv"),
     scatter(x=time_rt, y=DART, name="DART", line_shape="hv"),
 ])
+
+
+##############################
+###### Scripts Plot New ######
+##############################
+
+hy_sys = first(get_components(HybridSystem, sys))
+tmap = get_ext(hy_sys)["tmap"]
+res = ProblemResults(decision_optimizer_DA)
+
+λ_rt = dic["λ_rt_df"][!, 2][1:288]
+λ_da = dic["λ_da_df"][!, 2][1:24]
+λ_regup = dic["λ_Reg_Up"][!, 2][1:24]
+λ_regdown = dic["λ_Reg_Down"][!, 2][1:24]
+λ_spin = dic["λ_Spin_Up_R3"][!, 2][1:24]
+DART = [λ_da[tmap[t]] - λ_rt[t] for t in 1:288]
+
+# OUT
+time_rt = read_variable(res, "ReservationVariable__HybridSystem")[!, 1]
+hybrid_on = read_variable(res, "ReservationVariable__HybridSystem")[!, "317_Hybrid"]
+bid_rt_out = read_variable(res, "EnergyRTBidOut__HybridSystem")[!, "317_Hybrid"]
+p_out = read_variable(res, "ActivePowerOutVariable__HybridSystem")[!, "317_Hybrid"] / 100.0
+p_in = read_variable(res, "ActivePowerInVariable__HybridSystem")[!, "317_Hybrid"] / 100.0
+var_res = res.variable_values
+time_da = dic["λ_da_df"][!, "DateTime"][1:24]
+res_out_regup =
+    var_res[PSI.VariableKey{HSS.BidReserveVariableOut, VariableReserve{ReserveUp}}(
+        "Reg_Up",
+    )][
+        !,
+        "317_Hybrid",
+    ]
+res_out_spin =
+    var_res[PSI.VariableKey{HSS.BidReserveVariableOut, VariableReserve{ReserveUp}}(
+        "Spin_Up_R3",
+    )][
+        !,
+        "317_Hybrid",
+    ]
+res_out_down =
+    var_res[PSI.VariableKey{HSS.BidReserveVariableOut, VariableReserve{ReserveDown}}(
+        "Reg_Down",
+    )][
+        !,
+        "317_Hybrid",
+    ]
+
+res_in_down =
+    var_res[PSI.VariableKey{HSS.BidReserveVariableIn, VariableReserve{ReserveDown}}(
+        "Reg_Down",
+    )][
+        !,
+        "317_Hybrid",
+    ]
+
+plot([
+    scatter(x=time_rt, y=p_out[1:277], name="Output Power", line_shape="hv"),
+    scatter(x=time_rt, y=bid_rt_out[1:277], name="Bid Out", line_shape="hv"),
+    scatter(x=time_da, y=0.25*res_out_regup, name="RegUp Bid Out", line_shape="hv"),
+    scatter(x=time_da, y=0.25*res_out_spin, name="Spin Bid Out", line_shape="hv"),
+    scatter(x=time_da, y=0.25*res_out_down, name="RegDown Bid Out", line_shape="hv"),
+    scatter(x=time_rt, y=-p_in[1:277], name="Input Power", line_shape="hv"),
+],  Layout(
+    xaxis_title="Time",
+    yaxis_title="Power and Bids [pu]",
+), 
+)
+
+# IN 
+bid_rt_in = read_variable(res, "EnergyRTBidIn__HybridSystem")[!, "317_Hybrid"]
+res_in_regup =
+    var_res[PSI.VariableKey{HSS.BidReserveVariableIn, VariableReserve{ReserveUp}}("Reg_Up")][
+        !,
+        "317_Hybrid",
+    ]
+res_in_spin = var_res[PSI.VariableKey{HSS.BidReserveVariableIn, VariableReserve{ReserveUp}}(
+    "Spin_Up_R3",
+)][
+    !,
+    "317_Hybrid",
+]
+res_in_down =
+    var_res[PSI.VariableKey{HSS.BidReserveVariableIn, VariableReserve{ReserveDown}}(
+        "Reg_Down",
+    )][
+        !,
+        "317_Hybrid",
+    ]
+
+plot([
+    scatter(x=time_rt, y=p_in, name="Input Power", line_shape="hv"),
+    scatter(x=time_rt, y=bid_rt_in, name="Bid In", line_shape="hv"),
+    scatter(x=time_da, y=0.25*res_in_regup, name="RegUp Bid In", line_shape="hv"),
+    scatter(x=time_da, y=0.25*res_in_spin, name="Spin Bid In", line_shape="hv"),
+    scatter(x=time_da, y=0.25*res_in_down, name="RegDown Bid In", line_shape="hv"),
+    #scatter(x = time_rt, y = -p_in, name = "Input Power", line_shape = "hv")
+],  Layout(
+    xaxis_title="Time",
+    yaxis_title="Power and Bids [pu]",
+), 
+)
+
+# Assets
+p_re_asset = read_parameter(res, "RenewablePowerTimeSeries__HybridSystem")[!, "317_Hybrid"]
+p_load = read_parameter(res, "ElectricLoadTimeSeries__HybridSystem")[!, "317_Hybrid"]
+p_re = read_variable(res, "RenewablePower__HybridSystem")[!, "317_Hybrid"]
+p_th = read_variable(res, "ThermalPower__HybridSystem")[!, "317_Hybrid"]
+p_ch = read_variable(res, "BatteryCharge__HybridSystem")[!, "317_Hybrid"]
+p_ds = read_variable(res, "BatteryDischarge__HybridSystem")[!, "317_Hybrid"]
+soc = read_variable(res, "EnergyVariable__HybridSystem")[!, "317_Hybrid"] / 100.0
+plot(
+    [
+        scatter(x=time_rt, y=-p_in, name="Input Power", line_shape="hv"),
+        scatter(x=time_rt, y=p_out, name="Output Power", line_shape="hv"),
+        scatter(x=time_rt, y=p_th, name="Thermal Power", line_shape="hv"),
+        scatter(x=time_rt, y=p_re, name="Renewable Power", line_shape="hv"),
+        scatter(x=time_rt, y=p_re_asset, name="Renewable Available", line_shape="hv"),
+        scatter(x=time_rt, y=-p_ch, name="Charge Power", line_shape="hv"),
+        scatter(x=time_rt, y=p_ds, name="Discharge Power", line_shape="hv"),
+        scatter(x=time_rt, y=soc, name="State of Charge", line_shape="hv"),
+        scatter(x=time_rt, y=λ_rt, name="RT Price", yaxis="y2", line_shape="hv"),
+    ],
+    Layout(
+        xaxis_title="Time",
+        yaxis_title="Power [pu]",
+        yaxis2=attr(
+            title="Price [\$/MWh]",
+            overlaying="y",
+            side="right",
+            autorange=false,
+            range=[-35, 35],
+        ),
+    ),
+)
+
+#Day AHead
+da_bid_out = var_res[PSI.VariableKey{HSS.EnergyDABidOut, HybridSystem}("")][!, "317_Hybrid"]
+da_bid_in = var_res[PSI.VariableKey{HSS.EnergyDABidIn, HybridSystem}("")][!, "317_Hybrid"]
+
+plot([
+    scatter(x=time_da, y=da_bid_out, name="DA Bid Out", line_shape="hv"),
+    scatter(x=time_da, y=-da_bid_in, name="DA Bid In", line_shape="hv"),
+    scatter(x=time_rt[1:277], y=DART[1:277]/4, name="DART / 4", line_shape="hv"),
+],  Layout(
+    xaxis_title="Time",
+    yaxis_title="Power [pu] and Price [\$/MWh]",
+),)
+
+# Asset Reserve
+
+res_re_regup = read_variable(res, "RenewableReserveVariable__VariableReserve__ReserveUp__Reg_Up")[!, "317_Hybrid"]
+res_re_spin = read_variable(res, "RenewableReserveVariable__VariableReserve__ReserveUp__Spin_Up_R3")[!, "317_Hybrid"]
+res_re_regdown = read_variable(res, "RenewableReserveVariable__VariableReserve__ReserveDown__Reg_Down")[!, "317_Hybrid"]
+res_ds_regdown = read_variable(res, "DischargingReserveVariable__VariableReserve__ReserveDown__Reg_Down")[!, "317_Hybrid"]
+res_ch_regdown = read_variable(res, "ChargingReserveVariable__VariableReserve__ReserveDown__Reg_Down")[!, "317_Hybrid"]
+res_th_regdown = read_variable(res, "ThermalReserveVariable__VariableReserve__ReserveDown__Reg_Down")[!, "317_Hybrid"]
+
+plot([
+    scatter(x=time_da, y=0.25*res_out_down, name="RegDown Bid Out", line_shape="hv"),
+    scatter(x=time_da, y=0.25*res_in_down, name="RegDown Bid In", line_shape="hv"),
+    scatter(x=time_rt, y=0.25*res_re_regdown[1:277], name="RegDown Re Bid Out", line_shape="hv"),
+    scatter(x=time_rt, y=0.25*res_ch_regdown[1:277], name="RegDown Ch Bid Out", line_shape="hv"),
+    scatter(x=time_rt, y=0.25*res_ds_regdown[1:277], name="RegDown Ds Bid Out", line_shape="hv"),
+],  Layout(
+    xaxis_title="Time",
+    yaxis_title="Power and Bids [pu]",
+), 
+)
+
+plot([
+    scatter(x=time_da, y=0.25*res_out_down + 0.25 * res_in_down, name="RegDown Bid", line_shape="hv"),
+    scatter(x=time_rt, y=0.25*res_th_regdown[1:277] + 0.25*res_re_regdown[1:277] + 0.25*res_ch_regdown[1:277] + 0.25*res_ds_regdown[1:277], name="RegDown Re Bid Out", line_shape="hv"),
+],  Layout(
+    xaxis_title="Time",
+    yaxis_title="Power and Bids [pu]",
+), 
+)
+
+plot([
+    #scatter(x=time_rt, y=0.25*res_th_regdown[1:277], name="RegDown Th Bid Out", line_shape="hv", stackgroup="one", mode="lines", hoverinfo="x+y",),
+    scatter(x=time_rt, y=0.25*res_re_regdown[1:277], name="RegDown Re Bid Out", line_shape="hv", stackgroup="one", mode="lines", hoverinfo="x+y",),
+    scatter(x=time_rt, y=0.25*res_ch_regdown[1:277], name="RegDown Ch Bid Out", line_shape="hv", stackgroup="one", mode="lines", hoverinfo="x+y",),
+    scatter(x=time_rt, y=0.25*res_ds_regdown[1:277], name="RegDown Ds Bid Out", line_shape="hv", stackgroup="one", mode="lines", hoverinfo="x+y",),
+    scatter(x=time_da, y=0.25*(res_out_down + res_in_down), name="RegDown Bid Total", line_shape="hv", line=attr(color="black", dash="dash"),),
+],  Layout(
+    xaxis_title="Time",
+    yaxis_title="Bids [pu]",
+), 
+)
+
+#=
+plot([
+    scatter(x=time_da, y=-0.25*res_out_down, name="RegDown Bid Out", line_shape="hv"),
+    scatter(x=time_rt, y=bid_rt_out[1:277], name="Bid Out", line_shape="hv", stackgroup="one", mode="lines", hoverinfo="x+y"),
+    scatter(x=time_da, y=0.25*res_out_regup, name="RegUp Bid Out", line_shape="hv", stackgroup="one", mode="lines", hoverinfo="x+y"),
+    scatter(x=time_rt, y=p_out[1:277], name="Output Power", line_shape="hv", line=attr(color="black", dash="dash"),),
+],  Layout(
+    xaxis_title="Time",
+    yaxis_title="Power and Bids [pu]",
+), 
+)
+=#
+
+reg_down_served = [res_out_down[tmap[t]] for t in 1:length(time_rt)]
+
+plot([
+    scatter(x=time_rt, y=p_out, name="Output Power", line_shape="hv", stackgroup="one", mode="lines", hoverinfo="x+y"),
+    scatter(x=time_rt, y=0.25*reg_down_served, name="RegDown Served Energy", line_shape="hv", stackgroup="one", mode="lines", hoverinfo="x+y"),
+    scatter(x=time_rt, y=bid_rt_out, name="Bid Out", line_shape="hv", line=attr(color="black", dash="dash"), ),    
+],  Layout(
+    xaxis_title="Time",
+    yaxis_title="Power and Bids [pu]",
+), 
+)

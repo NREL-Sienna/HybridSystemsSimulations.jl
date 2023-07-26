@@ -14,6 +14,7 @@ using PowerNetworkMatrices
 using HybridSystemsSimulations
 import OrderedCollections: OrderedDict
 using JuMP
+using Statistics
 const PSY = PowerSystems
 const PSI = PowerSimulations
 const PSB = PowerSystemCaseBuilder
@@ -60,6 +61,38 @@ for s in [sys_rts_da, sys_rts_merchant]
 end
 
 sys = sys_rts_merchant
+
+time_da_long = dic["λ_da_df"][!, 1]
+services = collect(get_components(Service, sys_rts_da))
+regdown = services[1]
+regup = services[5]
+spin = services[4]
+average_price = mean(λ_da)
+regup_req = values(get_time_series(SingleTimeSeries, regup, "requirement")[time_da_long].data) * average_price / 1.1
+regdown_req = values(get_time_series(SingleTimeSeries, regdown, "requirement")[time_da_long].data) * average_price / 3
+spin_req = values(get_time_series(SingleTimeSeries, spin, "requirement")[time_da_long].data) * average_price / 1.4
+regup_req[11] = 35.0
+regup_req[12] = 35.0
+regup_req[13] = 35.0
+using CSV
+df_spin = DataFrame("DateTime" => time_da_long, "Chuhsi" => spin_req)
+df_up = DataFrame("DateTime" => time_da_long, "Chuhsi" => regup_req)
+df_dn = DataFrame("DateTime" => time_da_long, "Chuhsi" => regdown_req)
+
+CSV.write("scripts/simulation_pipeline/inputs/chuhsi_RegUp_prices_new.csv", df_up)
+CSV.write("scripts/simulation_pipeline/inputs/chuhsi_RegDown_prices_new.csv", df_dn)
+CSV.write("scripts/simulation_pipeline/inputs/chuhsi_Spin_prices_new.csv", df_spin)
+
+plot([
+    #scatter(x = time_da, y = λ_da, name = "Day-Ahead", line_shape="hv"),
+    #scatter(x = time_rt, y = λ_rt, name = "Real-Time", line_shape="hv"),
+    scatter(x = time_da, y = λ_regup, name = "Reg-Up Price", line_shape = "hv"),
+    scatter(x = time_da, y = λ_regdown, name = "Reg-Down Price", line_shape = "hv"),
+    scatter(x = time_da, y = λ_spin, name = "Spin Price", line_shape = "hv"),
+    scatter(x = time_da, y = regup_req, name = "Reg-Up Req", line_shape = "hv"),
+    scatter(x = time_da, y = regdown_req, name = "Reg-Down Req", line_shape = "hv"),
+    scatter(x = time_da, y = spin_req, name = "Spin Req", line_shape = "hv"),
+])
 
 sys.internal.ext = Dict{String, DataFrame}()
 dic = PSY.get_ext(sys)
@@ -159,39 +192,7 @@ res_b = ProblemResults(decision_optimizer_DA)
 λ_spin = dic["λ_Spin_Up_R3"][!, 2][1:horizon_merchant_da]
 DART = [λ_da[tmap[t]] - λ_rt[t] for t in 1:horizon_merchant_rt]
 
-#=
-time_da_long = dic["λ_da_df"][!, 1]
-services = collect(get_components(Service, sys_rts_da))
-regdown = services[1]
-regup = services[5]
-spin = services[4]
-average_price = mean(λ_da)
-regup_req = values(get_time_series(SingleTimeSeries, regup, "requirement")[time_da_long].data) * average_price / 3
-regdown_req = values(get_time_series(SingleTimeSeries, regdown, "requirement")[time_da_long].data) * average_price / 5
-spin_req = values(get_time_series(SingleTimeSeries, spin, "requirement")[time_da_long].data) * average_price / 3.5
-regup_req[11] = 35.0
-regup_req[12] = 35.0
-regup_req[13] = 35.0
-using CSV
-df_spin = DataFrame("DateTime" => time_da_long, "Chuhsi" => spin_req)
-df_up = DataFrame("DateTime" => time_da_long, "Chuhsi" => regup_req)
-df_dn = DataFrame("DateTime" => time_da_long, "Chuhsi" => regdown_req)
 
-CSV.write("scripts/simulation_pipeline/inputs/chuhsi_RegUp_prices_new.csv", df_up)
-CSV.write("scripts/simulation_pipeline/inputs/chuhsi_RegDown_prices_new.csv", df_dn)
-CSV.write("scripts/simulation_pipeline/inputs/chuhsi_Spin_prices_new.csv", df_spin)
-
-plot([
-    #scatter(x = time_da, y = λ_da, name = "Day-Ahead", line_shape="hv"),
-    #scatter(x = time_rt, y = λ_rt, name = "Real-Time", line_shape="hv"),
-    scatter(x = time_da, y = λ_regup, name = "Reg-Up Price", line_shape = "hv"),
-    scatter(x = time_da, y = λ_regdown, name = "Reg-Down Price", line_shape = "hv"),
-    scatter(x = time_da, y = λ_spin, name = "Spin Price", line_shape = "hv"),
-    scatter(x = time_da, y = regup_req, name = "Reg-Up Req", line_shape = "hv"),
-    scatter(x = time_da, y = regdown_req, name = "Reg-Down Req", line_shape = "hv"),
-    scatter(x = time_da, y = spin_req, name = "Spin Req", line_shape = "hv"),
-])
-=#
 
 # OUT
 time_rt = read_variable(res_b, "ReservationVariable__HybridSystem")[!, 1]

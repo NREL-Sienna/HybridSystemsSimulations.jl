@@ -170,6 +170,13 @@ PSI.get_variable_upper_bound(
     ::AbstractHybridFormulation,
 ) = PSY.get_output_active_power_limits(d).max
 
+PSI.get_variable_upper_bound(
+    ::MerchantModelDualVariable,
+    ::Type{PSY.HybridSystem},
+    ::AbstractHybridFormulation,
+) = 0.0
+
+
 function _get_row_val(df, row_name)
     return df[only(findall(==(row_name), df.ParamName)), :]["Value"]
 end

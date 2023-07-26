@@ -39,14 +39,14 @@ include("utils.jl")
 
 ## Get Systems
 # Let's do three days of 24 hours each for Day Ahead given that we have prices for three days
-horizon_merchant_rt = 288
-horizon_merchant_da = 24
+horizon_merchant_da = 72
+horizon_merchant_rt = horizon_merchant_da*12
 sys_rts_merchant = PSB.build_RTS_GMLC_RT_sys(
     raw_data=PSB.RTS_DIR,
     horizon=horizon_merchant_rt,
     interval=Hour(24),
 )
-sys_rts_da = PSB.build_RTS_GMLC_DA_sys(raw_data=PSB.RTS_DIR, horizon=24)
+sys_rts_da = PSB.build_RTS_GMLC_DA_sys(raw_data=PSB.RTS_DIR, horizon=horizon_merchant_da)
 
 #sys_rts_rt = PSB.build_RTS_GMLC_RT_sys(raw_data=PSB.RTS_DIR, horizon=864, interval=Minute(5))
 
@@ -131,10 +131,10 @@ params = decision_optimizer_DA.internal.container.parameters
 exprs = decision_optimizer_DA.internal.container.expressions
 
 cons[PSI.ConstraintKey{HSS.DayAheadBidInRangeLimit, HybridSystem}("lb")]["317_Hybrid", 1]
-cons[PSI.ConstraintKey{HSS.RealTimeBidOutRangeLimit, HybridSystem}("ub")]["317_Hybrid", 288]
-cons[PSI.ConstraintKey{HSS.StatusInOn, HybridSystem}("ub")]["317_Hybrid", 288]
-cons[PSI.ConstraintKey{HSS.MarketInConvergence, HybridSystem}("")]["317_Hybrid", 288]
-cons[PSI.ConstraintKey{HSS.ReserveBalance, HybridSystem}("Reg_Up")]["317_Hybrid", 288]
+cons[PSI.ConstraintKey{HSS.RealTimeBidOutRangeLimit, HybridSystem}("ub")]["317_Hybrid", horizon_merchant_rt]
+cons[PSI.ConstraintKey{HSS.StatusInOn, HybridSystem}("ub")]["317_Hybrid", horizon_merchant_rt]
+cons[PSI.ConstraintKey{HSS.MarketInConvergence, HybridSystem}("")]["317_Hybrid", horizon_merchant_rt]
+cons[PSI.ConstraintKey{HSS.ReserveBalance, HybridSystem}("Reg_Up")]["317_Hybrid", horizon_merchant_rt]
 exprs[PSI.ExpressionKey{HSS.TotalReserveInUpExpression, HybridSystem}("")]["317_Hybrid", 1]
 vars[PSI.VariableKey{HSS.ThermalReserveVariable, VariableReserve{ReserveUp}}("Reg_Up")]
 JuMP.upper_bound(
@@ -147,12 +147,12 @@ hy_sys = first(get_components(HybridSystem, sys))
 tmap = get_ext(hy_sys)["tmap"]
 res = ProblemResults(decision_optimizer_DA_c)
 
-λ_rt = dic["λ_rt_df"][!, 2][1:288]
-λ_da = dic["λ_da_df"][!, 2][1:24]
-λ_regup = dic["λ_Reg_Up"][!, 2][1:24]
-λ_regdown = dic["λ_Reg_Down"][!, 2][1:24]
-λ_spin = dic["λ_Spin_Up_R3"][!, 2][1:24]
-DART = [λ_da[tmap[t]] - λ_rt[t] for t in 1:288]
+λ_rt = dic["λ_rt_df"][!, 2][1:horizon_merchant_rt]
+λ_da = dic["λ_da_df"][!, 2][1:horizon_merchant_da]
+λ_regup = dic["λ_Reg_Up"][!, 2][1:horizon_merchant_da]
+λ_regdown = dic["λ_Reg_Down"][!, 2][1:horizon_merchant_da]
+λ_spin = dic["λ_Spin_Up_R3"][!, 2][1:horizon_merchant_da]
+DART = [λ_da[tmap[t]] - λ_rt[t] for t in 1:horizon_merchant_rt]
 
 # OUT
 time_rt = read_variable(res, "ReservationVariable__HybridSystem")[!, 1]
@@ -161,7 +161,7 @@ bid_rt_out = read_variable(res, "EnergyRTBidOut__HybridSystem")[!, "317_Hybrid"]
 p_out = read_variable(res, "ActivePowerOutVariable__HybridSystem")[!, "317_Hybrid"] / 100.0
 p_in = read_variable(res, "ActivePowerInVariable__HybridSystem")[!, "317_Hybrid"] / 100.0
 var_res = res.variable_values
-time_da = dic["λ_da_df"][!, "DateTime"][1:24]
+time_da = dic["λ_da_df"][!, "DateTime"][1:horizon_merchant_da]
 res_out_regup =
     var_res[PSI.VariableKey{HSS.BidReserveVariableOut, VariableReserve{ReserveUp}}(
         "Reg_Up",
@@ -196,7 +196,7 @@ plot(
     Layout(title="Co-Opt"),
 )
 
-# IN 
+# IN
 bid_rt_in = read_variable(res, "EnergyRTBidIn__HybridSystem")[!, "317_Hybrid"]
 res_in_regup =
     var_res[PSI.VariableKey{HSS.BidReserveVariableIn, VariableReserve{ReserveUp}}("Reg_Up")][

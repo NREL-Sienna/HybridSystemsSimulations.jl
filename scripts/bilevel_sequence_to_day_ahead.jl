@@ -39,14 +39,14 @@ include("utils.jl")
 
 ## Get Systems
 # Let's do three days of 24 hours each for Day Ahead given that we have prices for three days
-horizon_merchant_rt = 288
-horizon_merchant_da = 24
+horizon_merchant_da = 72
+horizon_merchant_rt = horizon_merchant_da*12
 sys_rts_merchant = PSB.build_RTS_GMLC_RT_sys(
     raw_data=PSB.RTS_DIR,
     horizon=horizon_merchant_rt,
     interval=Hour(24),
 )
-sys_rts_da = PSB.build_RTS_GMLC_DA_sys(raw_data=PSB.RTS_DIR, horizon=24)
+sys_rts_da = PSB.build_RTS_GMLC_DA_sys(raw_data=PSB.RTS_DIR, horizon=horizon_merchant_da)
 
 #sys_rts_rt = PSB.build_RTS_GMLC_RT_sys(raw_data=PSB.RTS_DIR, horizon=864, interval=Minute(5))
 
@@ -152,12 +152,12 @@ hy_sys = first(get_components(HybridSystem, sys))
 tmap = get_ext(hy_sys)["tmap"]
 res_b = ProblemResults(decision_optimizer_DA)
 
-λ_rt = dic["λ_rt_df"][!, 2][1:288]
-λ_da = dic["λ_da_df"][!, 2][1:24]
-λ_regup = dic["λ_Reg_Up"][!, 2][1:24]
-λ_regdown = dic["λ_Reg_Down"][!, 2][1:24]
-λ_spin = dic["λ_Spin_Up_R3"][!, 2][1:24]
-DART = [λ_da[tmap[t]] - λ_rt[t] for t in 1:288]
+λ_rt = dic["λ_rt_df"][!, 2][1:horizon_merchant_rt]
+λ_da = dic["λ_da_df"][!, 2][1:horizon_merchant_da]
+λ_regup = dic["λ_Reg_Up"][!, 2][1:horizon_merchant_da]
+λ_regdown = dic["λ_Reg_Down"][!, 2][1:horizon_merchant_da]
+λ_spin = dic["λ_Spin_Up_R3"][!, 2][1:horizon_merchant_da]
+DART = [λ_da[tmap[t]] - λ_rt[t] for t in 1:horizon_merchant_rt]
 
 #=
 time_da_long = dic["λ_da_df"][!, 1]
@@ -201,7 +201,7 @@ p_out =
     read_variable(res_b, "ActivePowerOutVariable__HybridSystem")[!, "317_Hybrid"] / 100.0
 p_in = read_variable(res_b, "ActivePowerInVariable__HybridSystem")[!, "317_Hybrid"] / 100.0
 var_res_b = res_b.variable_values
-time_da = dic["λ_da_df"][!, "DateTime"][1:24]
+time_da = dic["λ_da_df"][!, "DateTime"][1:horizon_merchant_da]
 res_out_regup =
     var_res_b[PSI.VariableKey{HSS.BidReserveVariableOut, VariableReserve{ReserveUp}}(
         "Reg_Up",
@@ -340,12 +340,12 @@ hy_sys = first(get_components(HybridSystem, sys))
 tmap = get_ext(hy_sys)["tmap"]
 res = ProblemResults(decision_optimizer_DA)
 
-λ_rt = dic["λ_rt_df"][!, 2][1:288]
-λ_da = dic["λ_da_df"][!, 2][1:24]
-λ_regup = dic["λ_Reg_Up"][!, 2][1:24]
-λ_regdown = dic["λ_Reg_Down"][!, 2][1:24]
-λ_spin = dic["λ_Spin_Up_R3"][!, 2][1:24]
-DART = [λ_da[tmap[t]] - λ_rt[t] for t in 1:288]
+λ_rt = dic["λ_rt_df"][!, 2][1:horizon_merchant_rt]
+λ_da = dic["λ_da_df"][!, 2][1:horizon_merchant_da]
+λ_regup = dic["λ_Reg_Up"][!, 2][1:horizon_merchant_da]
+λ_regdown = dic["λ_Reg_Down"][!, 2][1:horizon_merchant_da]
+λ_spin = dic["λ_Spin_Up_R3"][!, 2][1:horizon_merchant_da]
+DART = [λ_da[tmap[t]] - λ_rt[t] for t in 1:horizon_merchant_rt]
 
 plot([
     scatter(x=time_da, y=λ_da, name="DA", line_shape="hv"),
@@ -361,7 +361,7 @@ p_out =
     read_variable(res_b, "ActivePowerOutVariable__HybridSystem")[!, "317_Hybrid"] / 100.0
 p_in = read_variable(res_b, "ActivePowerInVariable__HybridSystem")[!, "317_Hybrid"] / 100.0
 var_res_b = res_b.variable_values
-time_da = dic["λ_da_df"][!, "DateTime"][1:24]
+time_da = dic["λ_da_df"][!, "DateTime"][1:horizon_merchant_da]
 res_out_regup =
     var_res_b[PSI.VariableKey{HSS.BidReserveVariableOut, VariableReserve{ReserveUp}}(
         "Reg_Up",

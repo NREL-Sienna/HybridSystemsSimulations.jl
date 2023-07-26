@@ -1417,7 +1417,7 @@ function add_constraints!(
     W <: MerchantModelWithReserves,
 } where {D <: PSY.HybridSystem}
     # Temporary Map for DA to RT
-    tmap = [div(k - 1, Int(288 / 24)) + 1 for k in 1:288]
+    tmap = [div(k - 1, Int(288*3 / 72)) + 1 for k in 1:288*3]
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     dual_var = PSI.get_variable(container, μThUb(), D)
@@ -1455,7 +1455,7 @@ function add_constraints!(
     W <: MerchantModelWithReserves,
 } where {D <: PSY.HybridSystem}
     # temp tmap
-    tmap = [div(k - 1, Int(288 / 24)) + 1 for k in 1:288]
+    tmap = [div(k - 1, Int(288*3 / 72)) + 1 for k in 1:288*3]
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     dual_var = PSI.get_variable(container, μThLb(), D)

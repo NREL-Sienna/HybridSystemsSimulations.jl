@@ -127,8 +127,8 @@ p_out_centr_da =
 p_in_centr_da =
     read_realized_variable(results_uc_dcp, "ActivePowerInVariable__HybridSystem")[!, 2] /
     100.0
-p_load =
-    read_realized_parameter(results_ed_dcp, "ElectricLoadTimeSeries__HybridSystem")[!, 2]
+#p_load =
+#    read_realized_parameter(results_ed_dcp, "ElectricLoadTimeSeries__HybridSystem")[!, 2]
 #p_asset = read_realized_variable(results_uc_dcp, "ActivePowerVariable__HybridSystem")
 plot(p_re)
 

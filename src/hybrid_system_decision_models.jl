@@ -1902,6 +1902,7 @@ end
 
 function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyCase})
     container = PSI.get_optimization_container(decision_model)
+    sys = PSI.get_system(decision_model)
     model = container.JuMPmodel
     # Resolution
     Δt_DA = 1.0
@@ -2298,7 +2299,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
             constraint_balance[name, t] = JuMP.@constraint(
                 model,
                 p_th[name, t] + p_re[name, t] + p_ds[name, t] - p_ch[name, t] -
-                P_ld_array[t] * P_ld_multiplier[name, t] - p_out[name, t] +
+                P_ld_array[t] - p_out[name, t] + # TODO: Restore P_ld_multiplier
                 p_in[name, t] == 0.0
             )
         end
@@ -2791,7 +2792,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyF
             constraint_balance[name, t] = JuMP.@constraint(
                 model,
                 p_th[name, t] + p_re[name, t] + p_ds[name, t] - p_ch[name, t] -
-                P_ld_array[t] * P_ld_multiplier[name, t] - p_out[name, t] +
+                P_ld_array[t] - p_out[name, t] + #TODO: Restore P_ld_multiplier
                 p_in[name, t] == 0.0
             )
         end

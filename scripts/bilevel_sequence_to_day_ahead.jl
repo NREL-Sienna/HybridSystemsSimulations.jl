@@ -94,6 +94,7 @@ tmap =
 
 time_da_long = dic["λ_da_df"][!, 1]
 time_rt = dic["λ_rt_df"][!, 1]
+#=
 services = collect(get_components(Service, sys_rts_da))
 regdown = services[1]
 regup = services[5]
@@ -119,6 +120,7 @@ df_dn = DataFrame("DateTime" => time_da_long, "Chuhsi" => regdown_req)
 CSV.write("scripts/simulation_pipeline/inputs/chuhsi_RegUp_prices_new.csv", df_up)
 CSV.write("scripts/simulation_pipeline/inputs/chuhsi_RegDown_prices_new.csv", df_dn)
 CSV.write("scripts/simulation_pipeline/inputs/chuhsi_Spin_prices_new.csv", df_spin)
+=#
 
 bus_name = "chuhsi"
 dic["λ_da_df"] =

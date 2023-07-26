@@ -1,8 +1,10 @@
 bus_name = "chuhsi"
+sys_rts_da_original = build_system(PSISystems, "modified_RTS_GMLC_DA_sys_noForecast")
 sys_rts_merchant = build_system(PSISystems, "modified_RTS_GMLC_RT_sys_noForecast")
 horizon_merchant_rt = 12 * 24 * 3
 horizon_merchant_da = 72
 interval_merchant = Dates.Hour(24 * 3)
+add_da_forecast_in_5_mins_to_rt!(sys_rts_merchant, sys_rts_da_original)
 
 for sys in [sys_rts_merchant]
     bus_to_add = "Chuhsi" # "Barton"

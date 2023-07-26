@@ -142,6 +142,7 @@ JuMP.upper_bound(
 =#
 
 solve!(decision_optimizer_DA_c)
+
 hy_sys = first(get_components(HybridSystem, sys))
 tmap = get_ext(hy_sys)["tmap"]
 res = ProblemResults(decision_optimizer_DA_c)

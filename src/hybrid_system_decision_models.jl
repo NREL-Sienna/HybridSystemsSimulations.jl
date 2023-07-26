@@ -1982,7 +1982,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
             container,
             RenewablePowerTimeSeries(),
             _hybrids_with_renewable,
-            "RenewableDispatch__max_active_power"
+            "RenewableDispatch__max_active_power_da"
         )
     end
 
@@ -3135,7 +3135,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
             container,
             RenewablePowerTimeSeries(),
             _hybrids_with_renewable,
-            "RenewableDispatch__max_active_power"
+            "RenewableDispatch__max_active_power_da"
         )
         PSI.add_variables!(
             container,
@@ -4001,7 +4001,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridBilevel
             container,
             RenewablePowerTimeSeries(),
             _hybrids_with_renewable,
-            "RenewableDispatch__max_active_power"
+            "RenewableDispatch__max_active_power_da"
         )
         PSI.add_variables!(
             container,

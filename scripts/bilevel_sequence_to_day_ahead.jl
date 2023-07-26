@@ -49,7 +49,8 @@ sys_rts_merchant = PSB.build_RTS_GMLC_RT_sys(
 )
 sys_rts_da = PSB.build_RTS_GMLC_DA_sys(raw_data=PSB.RTS_DIR, horizon=horizon_merchant_da)
 
-#sys_rts_rt = PSB.build_RTS_GMLC_RT_sys(raw_data=PSB.RTS_DIR, horizon=864, interval=Minute(5))
+sys_rts_rt = PSB.build_RTS_GMLC_RT_sys(raw_data=PSB.RTS_DIR, horizon=horizon_merchant_rt, interval=Minute(5))
+add_da_forecast_in_5_mins_to_rt!(sys_rts_rt, sys_rts_da)
 
 # There is no Wind + Thermal in a Single Bus.
 # We will try to pick the Wind in 317 bus Chuhsi

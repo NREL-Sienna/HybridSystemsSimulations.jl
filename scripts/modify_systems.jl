@@ -43,14 +43,13 @@ function add_battery_to_bus!(sys::System, bus_name::String)
     return
 end
 
-function add_hybrid_to_chuhsi_bus!(sys::System)
+function add_hybrid_to_chuhsi_bus!(sys::System; ren_name = "317_WIND_1")
     bus = get_component(Bus, sys, "Chuhsi")
     bat = _build_battery(bus, 8.0, 4.0, 0.93, 0.93)
     op_cost = get_operation_cost(bat)
     op_cost.variable = VariableCost(2.0)
     # Wind is taken from Bus 317: Chuhsi
     # Thermal and Load is taken from adjacent bus 318: Clark
-    ren_name = "317_WIND_1"
     thermal_name = "318_CC_1"
     load_name = "Clark"
     renewable = get_component(StaticInjection, sys, ren_name)
@@ -80,5 +79,19 @@ function add_hybrid_to_chuhsi_bus!(sys::System)
     )
     # Add Hybrid
     add_component!(sys, hybrid)
+    return
+end
+
+
+function add_da_forecast_in_5_mins_to_rt!(sys_rts_rt, sys_rts_da; ren_name = "317_WIND_1")
+    comp_da = get_component(RenewableDispatch, sys_rts_da, ren_name)
+    data_ts_object = get_time_series(SingleTimeSeries, comp_da, "max_active_power")
+    ini_time = get_initial_timestamp(data_ts_object)
+    data_da = values(get_data(data_ts_object))
+    comp_rt = get_component(RenewableDispatch, sys_rts_rt, ren_name)
+    data_rt = get_data(get_time_series(SingleTimeSeries, comp_rt, "max_active_power"))
+    rt_data = [data_da[div(k - 1, Int(length(data_rt) / length(data_da))) + 1] for k in 1:length(data_rt)]
+    new_ts = SingleTimeSeries("max_active_power_da", TimeArray(timestamp(data_rt), rt_data))
+    add_time_series!(sys_rts_rt, comp_rt, new_ts)
     return
 end

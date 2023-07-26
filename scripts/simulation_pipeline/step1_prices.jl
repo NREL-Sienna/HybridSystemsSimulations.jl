@@ -47,18 +47,15 @@ sys_rts_rt = build_system(PSISystems, "modified_RTS_GMLC_RT_sys_noForecast")
 # There is no Wind + Thermal in a Single Bus.
 # We will try to pick the Wind in 317 bus Chuhsi
 # It does not have thermal and load, so we will pick the adjacent bus 318: Clark
-
-for sys in [sys_rts_da, sys_rts_rt]
-    bus_to_add = "Chuhsi" # "Barton"
-    modify_ren_curtailment_cost!(sys)
-    add_hybrid_to_chuhsi_bus!(sys)
-    #for l in get_components(PowerLoad, sys)
-    #    set_max_active_power!(l, get_max_active_power(l) * 1.3)
-    #end
-end
+bus_to_add = "Chuhsi" # "Barton"
+modify_ren_curtailment_cost!(sys_rts_da)
+add_hybrid_to_chuhsi_bus!(sys_rts_da)
+modify_ren_curtailment_cost!(sys_rts_rt)
+add_hybrid_to_chuhsi_bus!(sys_rts_rt)
+add_da_forecast_in_5_mins_to_rt!(sys_rts_rt, sys_rts_da)
 
 interval_DA = Hour(24)
-horizon_DA = 48
+horizon_DA = 72
 transform_single_time_series!(sys_rts_da, horizon_DA, interval_DA)
 interval_RT = Minute(5)
 horizon_RT = 24

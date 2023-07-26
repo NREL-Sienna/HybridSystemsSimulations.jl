@@ -41,7 +41,7 @@ include("utils.jl")
 ## Get Systems
 # Let's do three days of 24 hours each for Day Ahead given that we have prices for three days
 horizon_merchant_da = 72
-horizon_merchant_rt = horizon_merchant_da*12
+horizon_merchant_rt = horizon_merchant_da * 12
 sys_rts_merchant = PSB.build_RTS_GMLC_RT_sys(
     raw_data=PSB.RTS_DIR,
     horizon=horizon_merchant_rt,
@@ -84,7 +84,12 @@ dic["λ_Spin_Up_R3"] = CSV.read(
 )
 
 hy_sys = first(get_components(HybridSystem, sys))
-tmap = get_ext(hy_sys)["tmap"]= tmap = [div(k - 1, Int(horizon_merchant_rt / horizon_merchant_da)) + 1 for k in 1:horizon_merchant_rt]
+tmap =
+    get_ext(hy_sys)["tmap"] =
+        tmap = [
+            div(k - 1, Int(horizon_merchant_rt / horizon_merchant_da)) + 1 for
+            k in 1:horizon_merchant_rt
+        ]
 
 time_da_long = dic["λ_da_df"][!, 1]
 time_rt = dic["λ_rt_df"][!, 1]
@@ -93,9 +98,15 @@ regdown = services[1]
 regup = services[5]
 spin = services[4]
 average_price = mean(dic["λ_da_df"][!, 2])
-regup_req = values(get_time_series(SingleTimeSeries, regup, "requirement")[time_da_long].data) * average_price / 1.1
-regdown_req = values(get_time_series(SingleTimeSeries, regdown, "requirement")[time_da_long].data) * average_price / 3
-spin_req = values(get_time_series(SingleTimeSeries, spin, "requirement")[time_da_long].data) * average_price / 1.4
+regup_req =
+    values(get_time_series(SingleTimeSeries, regup, "requirement")[time_da_long].data) *
+    average_price / 1.1
+regdown_req =
+    values(get_time_series(SingleTimeSeries, regdown, "requirement")[time_da_long].data) *
+    average_price / 3
+spin_req =
+    values(get_time_series(SingleTimeSeries, spin, "requirement")[time_da_long].data) *
+    average_price / 1.4
 regup_req[18] = 35.0
 regup_req[19] = 35.0
 regup_req[20] = 35.0
@@ -133,19 +144,17 @@ dic["λ_Spin_Up_R3"] = CSV.read(
 λ_spin = dic["λ_Spin_Up_R3"][!, 2][1:horizon_merchant_da]
 DART = [λ_da[tmap[t]] - λ_rt[t] for t in 1:horizon_merchant_rt]
 
-
 plot([
     #scatter(x = time_da_long, y = λ_da, name = "Day-Ahead", line_shape="hv"),
     #scatter(x = time_rt, y = λ_rt, name = "Real-Time", line_shape="hv"),
-    scatter(x = time_rt, y =DART, name = "DART", line_shape="hv"),
-    scatter(x = time_da_long, y = λ_regup, name = "Reg-Up Price", line_shape = "hv"),
-    scatter(x = time_da_long, y = λ_regdown, name = "Reg-Down Price", line_shape = "hv"),
-    scatter(x = time_da_long, y = λ_spin, name = "Spin Price", line_shape = "hv"),
+    scatter(x=time_rt, y=DART, name="DART", line_shape="hv"),
+    scatter(x=time_da_long, y=λ_regup, name="Reg-Up Price", line_shape="hv"),
+    scatter(x=time_da_long, y=λ_regdown, name="Reg-Down Price", line_shape="hv"),
+    scatter(x=time_da_long, y=λ_spin, name="Spin Price", line_shape="hv"),
     #scatter(x = time_da_long, y = regup_req, name = "Reg-Up Req", line_shape = "hv"),
     #scatter(x = time_da_long, y = regdown_req, name = "Reg-Down Req", line_shape = "hv"),
     #scatter(x = time_da_long, y = spin_req, name = "Spin Req", line_shape = "hv"),
 ])
-
 
 dic["horizon_RT"] = horizon_merchant_rt
 dic["horizon_DA"] = horizon_merchant_da
@@ -506,7 +515,11 @@ plot(
         scatter(x=time_da, y=-da_bid_in, name="DA Bid In", line_shape="hv"),
         scatter(x=time_rt[1:277], y=DART[1:277] / 4, name="DART / 4", line_shape="hv"),
     ],
-    Layout(title = "Bi-level", xaxis_title="Time", yaxis_title="Power [pu] and Price [\$/MWh]"),
+    Layout(
+        title="Bi-level",
+        xaxis_title="Time",
+        yaxis_title="Power [pu] and Price [\$/MWh]",
+    ),
 )
 
 # Asset Reserve

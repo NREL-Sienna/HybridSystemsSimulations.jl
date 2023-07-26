@@ -43,7 +43,7 @@ function add_battery_to_bus!(sys::System, bus_name::String)
     return
 end
 
-function add_hybrid_to_chuhsi_bus!(sys::System; ren_name = "317_WIND_1")
+function add_hybrid_to_chuhsi_bus!(sys::System; ren_name="317_WIND_1")
     bus = get_component(Bus, sys, "Chuhsi")
     bat = _build_battery(bus, 8.0, 4.0, 0.93, 0.93)
     op_cost = get_operation_cost(bat)
@@ -82,15 +82,17 @@ function add_hybrid_to_chuhsi_bus!(sys::System; ren_name = "317_WIND_1")
     return
 end
 
-
-function add_da_forecast_in_5_mins_to_rt!(sys_rts_rt, sys_rts_da; ren_name = "317_WIND_1")
+function add_da_forecast_in_5_mins_to_rt!(sys_rts_rt, sys_rts_da; ren_name="317_WIND_1")
     comp_da = get_component(RenewableDispatch, sys_rts_da, ren_name)
     data_ts_object = get_time_series(SingleTimeSeries, comp_da, "max_active_power")
     ini_time = get_initial_timestamp(data_ts_object)
     data_da = values(get_data(data_ts_object))
     comp_rt = get_component(RenewableDispatch, sys_rts_rt, ren_name)
     data_rt = get_data(get_time_series(SingleTimeSeries, comp_rt, "max_active_power"))
-    rt_data = [data_da[div(k - 1, Int(length(data_rt) / length(data_da))) + 1] for k in 1:length(data_rt)]
+    rt_data = [
+        data_da[div(k - 1, Int(length(data_rt) / length(data_da))) + 1] for
+        k in 1:length(data_rt)
+    ]
     new_ts = SingleTimeSeries("max_active_power_da", TimeArray(timestamp(data_rt), rt_data))
     add_time_series!(sys_rts_rt, comp_rt, new_ts)
     return

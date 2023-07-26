@@ -40,7 +40,7 @@ include("utils.jl")
 ## Get Systems
 # Let's do three days of 24 hours each for Day Ahead given that we have prices for three days
 horizon_merchant_da = 72
-horizon_merchant_rt = horizon_merchant_da*12
+horizon_merchant_rt = horizon_merchant_da * 12
 sys_rts_merchant = PSB.build_RTS_GMLC_RT_sys(
     raw_data=PSB.RTS_DIR,
     horizon=horizon_merchant_rt,

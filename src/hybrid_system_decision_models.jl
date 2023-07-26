@@ -170,7 +170,7 @@ PSI.get_variable_upper_bound(
     ::AbstractHybridFormulation,
 ) = PSY.get_output_active_power_limits(d).max
 
-PSI.get_variable_upper_bound(
+PSI.get_variable_lower_bound(
     ::MerchantModelDualVariable,
     ::Type{PSY.HybridSystem},
     ::AbstractHybridFormulation,

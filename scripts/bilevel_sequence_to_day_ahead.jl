@@ -42,16 +42,16 @@ include("utils.jl")
 # Let's do three days of 24 hours each for Day Ahead given that we have prices for three days
 horizon_merchant_da = 72
 horizon_merchant_rt = horizon_merchant_da * 12
-sys_rts_merchant = PSB.build_RTS_GMLC_RT_sys(
-    raw_data=PSB.RTS_DIR,
-    horizon=horizon_merchant_rt,
-    interval=Hour(24),
-)
-sys_rts_da = PSB.build_RTS_GMLC_DA_sys(raw_data=PSB.RTS_DIR, horizon=horizon_merchant_da)
+sys_rts_da = build_system(PSISystems, "modified_RTS_GMLC_DA_sys_noForecast")
+sys_rts_merchant = build_system(PSISystems, "modified_RTS_GMLC_RT_sys_noForecast")
 
-sys_rts_rt = PSB.build_RTS_GMLC_RT_sys(raw_data=PSB.RTS_DIR, horizon=horizon_merchant_rt, interval=Minute(5))
-add_da_forecast_in_5_mins_to_rt!(sys_rts_rt, sys_rts_da)
+interval_DA = Hour(24)
+transform_single_time_series!(sys_rts_da, horizon_merchant_da, interval_DA)
+interval_RT = Minute(5)
+transform_single_time_series!(sys_rts_rt, horizon_merchant_rt, interval_RT)
 
+# sys_rts_rt = PSB.build_RTS_GMLC_RT_sys(raw_data=PSB.RTS_DIR, horizon=horizon_merchant_rt, interval=Minute(5))
+add_da_forecast_in_5_mins_to_rt!(sys_rts_merchant, sys_rts_da)
 # There is no Wind + Thermal in a Single Bus.
 # We will try to pick the Wind in 317 bus Chuhsi
 # It does not have thermal and load, so we will pick the adjacent bus 318: Clark

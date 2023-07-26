@@ -181,7 +181,7 @@ decision_optimizer_DA = DecisionModel(
     MerchantHybridBilevelCase,
     ProblemTemplate(CopperPlatePowerModel),
     sys,
-    optimizer=optimizer_with_attributes(Xpress.Optimizer, "MIPRELSTOP" => 1e-3),
+    optimizer=optimizer_with_attributes(Xpress.Optimizer, "MIPRELSTOP" => 5e-3),
     calculate_conflict=true,
     optimizer_solve_log_print=true,
     store_variable_names=true,
@@ -348,7 +348,7 @@ plot(
         ),
         scatter(x=time_da, y=res_out_spin, name="Spin Out", line_shape="hv"),
         scatter(x=time_da, y=-da_bid_in, name="DA Bid In", line_shape="hv"),
-        #scatter(x=time_rt, y=DART, name="DART", line_shape="hv"),
+        scatter(x=time_rt, y=DART, name="DART", line_shape="hv"),
     ],
     Layout(title="BiLevel"),
 )
@@ -464,7 +464,7 @@ plot(
 # Assets
 p_re_asset =
     read_parameter(res_b, "RenewablePowerTimeSeries__HybridSystem")[!, "317_Hybrid"]
-p_load = read_parameter(res_b, "ElectricLoadTimeSeries__HybridSystem")[!, "317_Hybrid"]
+# p_load = read_parameter(res_b, "ElectricLoadTimeSeries__HybridSystem")[!, "317_Hybrid"]
 p_re = read_variable(res_b, "RenewablePower__HybridSystem")[!, "317_Hybrid"]
 p_th = read_variable(res_b, "ThermalPower__HybridSystem")[!, "317_Hybrid"]
 p_ch = read_variable(res_b, "BatteryCharge__HybridSystem")[!, "317_Hybrid"]
@@ -506,7 +506,7 @@ plot(
         scatter(x=time_da, y=-da_bid_in, name="DA Bid In", line_shape="hv"),
         scatter(x=time_rt[1:277], y=DART[1:277] / 4, name="DART / 4", line_shape="hv"),
     ],
-    Layout(xaxis_title="Time", yaxis_title="Power [pu] and Price [\$/MWh]"),
+    Layout(title = "Bi-level", xaxis_title="Time", yaxis_title="Power [pu] and Price [\$/MWh]"),
 )
 
 # Asset Reserve

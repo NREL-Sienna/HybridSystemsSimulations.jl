@@ -545,7 +545,7 @@ function add_time_series_parameters!(
     container::PSI.OptimizationContainer,
     param::RenewablePowerTimeSeries,
     devices::Vector{PSY.HybridSystem},
-    ts_name = "RenewableDispatch__max_active_power"
+    ts_name="RenewableDispatch__max_active_power",
 )
     _add_time_series_parameters(container, ts_name, param, devices)
 end
@@ -554,7 +554,7 @@ function add_time_series_parameters!(
     container::PSI.OptimizationContainer,
     param::ElectricLoadTimeSeries,
     devices::Vector{PSY.HybridSystem},
-    ts_name = "PowerLoad__max_active_power"
+    ts_name="PowerLoad__max_active_power",
 )
     _add_time_series_parameters(container, ts_name, param, devices)
     return
@@ -1982,7 +1982,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
             container,
             RenewablePowerTimeSeries(),
             _hybrids_with_renewable,
-            "RenewableDispatch__max_active_power_da"
+            "RenewableDispatch__max_active_power_da",
         )
     end
 
@@ -2474,7 +2474,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyF
             container,
             RenewablePowerTimeSeries(),
             _hybrids_with_renewable,
-            "RenewableDispatch__max_active_power"
+            "RenewableDispatch__max_active_power",
         )
     end
 
@@ -3135,7 +3135,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
             container,
             RenewablePowerTimeSeries(),
             _hybrids_with_renewable,
-            "RenewableDispatch__max_active_power_da"
+            "RenewableDispatch__max_active_power_da",
         )
         PSI.add_variables!(
             container,
@@ -4001,7 +4001,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridBilevel
             container,
             RenewablePowerTimeSeries(),
             _hybrids_with_renewable,
-            "RenewableDispatch__max_active_power_da"
+            "RenewableDispatch__max_active_power_da",
         )
         PSI.add_variables!(
             container,

@@ -371,6 +371,7 @@ function _add_time_series_parameters(
     param,
     devices::Vector{PSY.HybridSystem},
 )
+    ts_name
     ts_type = PSI.get_default_time_series_type(container)
     time_steps = PSI.get_time_steps(container)
 
@@ -2134,6 +2135,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
 
     for t in T_rt, dev in hybrids
         name = PSY.get_name(dev)
+        λ_rt_pos[name, t]
         lin_cost_rt_out = Δt_RT * λ_rt_pos[name, t] * eb_rt_out[name, t]
         lin_cost_rt_in = -Δt_RT * λ_rt_neg[name, t] * eb_rt_in[name, t]
         lin_cost_dart_out = -Δt_RT * λ_dart_neg[name, t] * eb_da_out[name, tmap[t]]
@@ -4749,5 +4751,87 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridBilevel
 
     PSI.serialize_metadata!(container, PSI.get_output_dir(decision_model))
 
+    return
+end
+
+function PSI._initialize_model_states!(
+    sim_state::PSI.SimulationState,
+    model::PSI.DecisionModel{MerchantHybridEnergyCase},
+    simulation_initial_time::Dates.DateTime,
+    simulation_step::Dates.Millisecond,
+    params::OrderedDict{PSI.OptimizationContainerKey, PSI.STATE_TIME_PARAMS},
+)
+    states = PSI.get_decision_states(sim_state)
+    container = PSI.get_optimization_container(model)
+    for field in fieldnames(PSI.DatasetContainer)
+        field_containers = getfield(container, field)
+        field_states = getfield(states, field)
+        for (key, value) in field_containers
+            !PSI.should_write_resulting_value(key) && continue
+            #if key == PSI.VariableKey{EnergyDABidOut, PSY.HybridSystem}("")
+            #    @show value_counts = 1
+            #elseif key == PSI.VariableKey{EnergyDABidIn, PSY.HybridSystem}("")
+            #    @show value_counts = 1
+            #else
+                value_counts = params[key].horizon ÷ params[key].resolution
+            #end
+            column_names = PSI.get_column_names(key, value)
+            if !haskey(field_states, key) || length(field_states[key]) < value_counts
+                field_states[key] = PSI.DataFrameDataset(
+                    PSI.DataFrames.DataFrame(
+                        fill(NaN, value_counts, length(column_names)),
+                        column_names,
+                    ),
+                    collect(
+                        range(
+                            simulation_initial_time;
+                            step = params[key].resolution,
+                            length = value_counts,
+                        ),
+                    ),
+                    params[key].resolution,
+                    Int(simulation_step / params[key].resolution),
+                )
+            end
+        end
+    end
+    return
+end
+
+function PSI.update_decision_state!(
+    state::PSI.SimulationState,
+    key::PSI.VariableKey{EnergyDABidIn, PSY.HybridSystem},
+    store_data::PSI.DataFrames.DataFrame,
+    simulation_time::Dates.DateTime,
+    model_params::PSI.SimulationState,
+)
+    error("here")
+    state_data = PSI.get_decision_state_data(state, key)
+    model_resolution = PSI.get_resolution(model_params)
+    state_resolution = PSI.get_data_resolution(state_data)
+    resolution_ratio = model_resolution ÷ state_resolution
+    state_timestamps = state_data.timestamps
+    PSI.IS.@assert_op resolution_ratio >= 1
+
+    if simulation_time > PSI.get_end_of_step_timestamp(state_data)
+        state_data_index = 1
+        state_data.timestamps[:] .=
+            range(simulation_time; step = state_resolution, length = length(state_data))
+    else
+        state_data_index = PSI.find_timestamp_index(state_timestamps, simulation_time)
+    end
+
+    offset = resolution_ratio - 1
+    result_time_index = axes(store_data)[1]
+    PSI.set_update_timestamp!(state_data, simulation_time)
+    for t in result_time_index
+        state_range = state_data_index:(state_data_index + offset)
+        for name in DataFrames.names(store_data), i in state_range
+            # TODO: We could also interpolate here
+            state_data.values[i, name] = store_data[t, name]
+        end
+        PSI.set_last_recorded_row!(state_data, state_range[end])
+        state_data_index += resolution_ratio
+    end
     return
 end

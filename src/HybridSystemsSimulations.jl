@@ -52,6 +52,7 @@ import PowerSimulations
 import PowerSystems
 import JuMP
 import Dates
+import DataStructures: OrderedDict
 
 const MOI = MathOptInterface
 const PSI = PowerSimulations

@@ -41,6 +41,17 @@ m_upd = DecisionModel(
     store_variable_names=true,
     system_to_file=false,
 )
+
+template_ed_copperplate = get_ed_copperplate_template(sys_rts_rt)
+set_device_model!(
+    template_uc_copperplate,
+    DeviceModel(
+        PSY.HybridSystem,
+        HybridEnergyOnlyFixedDA;
+        attributes=Dict{String, Any}("cycling" => false),
+    ),
+)
+
 PSI.build!(m_upd, output_dir=pwd())
 PSI.solve!(m_upd)
 res_upd = ProblemResults(m_upd)

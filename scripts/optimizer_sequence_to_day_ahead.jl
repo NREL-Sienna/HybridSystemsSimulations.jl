@@ -39,25 +39,26 @@ include("utils.jl")
 
 ## Get Systems
 # Let's do three days of 24 hours each for Day Ahead given that we have prices for three days
-horizon_merchant_rt = 288
-horizon_merchant_da = 24
-sys_rts_merchant = PSB.build_RTS_GMLC_RT_sys(
-    raw_data=PSB.RTS_DIR,
-    horizon=horizon_merchant_rt,
-    interval=Hour(24),
-)
-sys_rts_da = PSB.build_RTS_GMLC_DA_sys(raw_data=PSB.RTS_DIR, horizon=24)
 
-#sys_rts_rt = PSB.build_RTS_GMLC_RT_sys(raw_data=PSB.RTS_DIR, horizon=864, interval=Minute(5))
+sys_rts_da = build_system(PSISystems, "modified_RTS_GMLC_DA_sys_noForecast")
+sys_rts_merchant = build_system(PSISystems, "modified_RTS_GMLC_RT_sys_noForecast")
 
 # There is no Wind + Thermal in a Single Bus.
 # We will try to pick the Wind in 317 bus Chuhsi
 # It does not have thermal and load, so we will pick the adjacent bus 318: Clark
-for s in [sys_rts_da, sys_rts_merchant]
-    bus_to_add = "Chuhsi" # "Barton"
-    modify_ren_curtailment_cost!(s)
-    add_hybrid_to_chuhsi_bus!(s)
-end
+bus_to_add = "Chuhsi" # "Barton"
+add_da_forecast_in_5_mins_to_rt!(sys_rts_merchant, sys_rts_da)
+modify_ren_curtailment_cost!(sys_rts_da)
+add_hybrid_to_chuhsi_bus!(sys_rts_da)
+modify_ren_curtailment_cost!(sys_rts_merchant)
+add_hybrid_to_chuhsi_bus!(sys_rts_merchant)
+
+interval_DA = Hour(24)
+horizon_DA = 24
+transform_single_time_series!(sys_rts_da, horizon_DA, interval_DA)
+interval_RT = Hour(24)
+horizon_RT = 24*12
+transform_single_time_series!(sys_rts_merchant, horizon_RT, interval_RT)
 
 sys = sys_rts_merchant
 sys.internal.ext = Dict{String, DataFrame}()
@@ -86,12 +87,13 @@ decision_optimizer_DA = DecisionModel(
     name="MerchantHybridEnergyCase_DA",
 )
 
+#=
 build!(decision_optimizer_DA; output_dir=pwd())
 solve!(decision_optimizer_DA)
 
-results = ProblemResults(decision_optimizer_DA)
-var_results = results.variable_values
-rt_bid_out = read_variable(results, "EnergyRTBidOut__HybridSystem")
+#results = ProblemResults(decision_optimizer_DA)
+#var_results = results.variable_values
+#rt_bid_out = read_variable(results, "EnergyRTBidOut__HybridSystem")
 da_bid_out = var_results[PSI.VariableKey{HSS.EnergyDABidOut, HybridSystem}("")]
 
 cons = decision_optimizer_DA.internal.container.constraints
@@ -100,6 +102,8 @@ cons[PSI.ConstraintKey{HSS.StatusOutOn, HybridSystem}("")]["317_Hybrid", 1]
 JuMP.upper_bound(
     vars[PSI.VariableKey{HSS.EnergyRTBidOut, HybridSystem}("")]["317_Hybrid", 1],
 )
+=#
+
 mipgap = 0.01
 num_steps = 3
 start_time = DateTime("2020-10-03T00:00:00")

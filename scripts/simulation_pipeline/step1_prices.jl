@@ -90,7 +90,7 @@ template_ed_dcp = get_ed_dcp_template()
 ###############################
 
 mipgap = 0.005
-num_steps = 3
+num_steps = 6
 starttime = DateTime("2020-10-03T00:00:00")
 
 ###############################

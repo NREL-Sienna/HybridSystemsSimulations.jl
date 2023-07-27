@@ -1,3 +1,4 @@
+using StorageSystemsSimulations
 ###############################
 ###### Model Templates ########
 ###############################

@@ -154,6 +154,7 @@ res = ProblemResults(decision_optimizer_DA_c)
 λ_regup = dic["λ_Reg_Up"][!, 2][1:horizon_merchant_da]
 λ_regdown = dic["λ_Reg_Down"][!, 2][1:horizon_merchant_da]
 λ_spin = dic["λ_Spin_Up_R3"][!, 2][1:horizon_merchant_da]
+tmap = get_ext(hy_sys)["tmap"]
 DART = [λ_da[tmap[t]] - λ_rt[t] for t in 1:horizon_merchant_rt]
 
 # OUT

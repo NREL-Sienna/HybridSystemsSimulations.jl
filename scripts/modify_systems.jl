@@ -74,8 +74,8 @@ function add_hybrid_to_chuhsi_bus!(sys::System; ren_name="317_WIND_1")
         renewable_unit=renewable, #new_ren,
         interconnection_impedance=0.0 + 0.0im,
         interconnection_rating=nothing,
-        input_active_power_limits=(min=0.0, max=10.0),
-        output_active_power_limits=(min=0.0, max=10.0),
+        input_active_power_limits=(min=0.0, max=6.0),
+        output_active_power_limits=(min=0.0, max=6.0),
         reactive_power_limits=nothing,
     )
     # Add Hybrid

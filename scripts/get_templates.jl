@@ -129,6 +129,21 @@ function get_ed_copperplate_template(sys_rts_da)
     return template_ed
 end
 
+function get_ed_copperplate_template_noslack(sys_rts_da)
+    template_uc = ProblemTemplate(
+        NetworkModel(
+            CopperPlatePowerModel,
+            use_slacks=false,
+            PTDF_matrix=PTDF(sys_rts_da),
+            duals=[CopperPlateBalanceConstraint],
+        ),
+    )
+    set_uc_models!(template_uc)
+    set_ptdf_line_unbounded_template!(template_uc)
+    update_ed_models!(template_uc)
+    return template_uc
+end
+
 #### DCP  ####
 
 function get_uc_dcp_template()

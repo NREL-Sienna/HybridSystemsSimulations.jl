@@ -19,9 +19,9 @@ interval_DA = Hour(24)
 horizon_DA = 24
 transform_single_time_series!(sys_rts_da, horizon_DA, interval_DA)
 interval_RT = Hour(24)
-horizon_RT = 24*12
+horizon_RT = 24 * 12
 transform_single_time_series!(sys_rts_merchant, horizon_RT, interval_RT)
-horizon_merchant_rt = 24*12
+horizon_merchant_rt = 24 * 12
 horizon_merchant_da = 24
 sys = sys_rts_merchant
 sys.internal.ext = Dict{String, DataFrame}()
@@ -49,7 +49,6 @@ decision_optimizer_DA = DecisionModel(
     name="MerchantHybridEnergyCase_DA",
 )
 
-
 template_uc_copperplate = get_uc_copperplate_template(sys_rts_da)
 # Set Hybrid in UC as FixedDA
 set_device_model!(
@@ -75,7 +74,6 @@ interval_realized = Dates.Hour(24)
 #interval_merchant = Dates.Hour(1)
 #horizon_realized = 12
 #interval_realized = Dates.Hour(1)
-
 
 for sys in [sys_upd, sys_realized]
     bus_to_add = "Chuhsi" # "Barton"
@@ -229,7 +227,6 @@ sequence = SimulationSequence(
                 affected_values=[ActivePowerInVariable],
             ),
         ],
-
     ),
     ini_cond_chronology=InterProblemChronology(),
 )
@@ -248,11 +245,14 @@ build!(sim)
 execute!(sim; enable_progress_bar=true)
 
 # Check DA prices in Step 3 are same as here:
-prices_uc_centralized = prices_uc_dcp 
+prices_uc_centralized = prices_uc_dcp
 prices_uc_upd_stored = CSV.read(
     "scripts/simulation_pipeline/inputs/$(bus_name)_DA_prices_updated_sim.csv",
     DataFrame,
-)[!, 2]
+)[
+    !,
+    2,
+]
 
 results = SimulationResults(sim)
 result_merch_DA = get_decision_problem_results(results, "MerchantHybridEnergyCase_DA")
@@ -261,13 +261,22 @@ results_uc = get_decision_problem_results(results, "UC")
 results_ed = get_decision_problem_results(results, "ED")
 
 prices_uc_upd =
-    read_realized_dual(results_uc, "CopperPlateBalanceConstraint__System")[!, 2] ./
-    100.0
+    read_realized_dual(results_uc, "CopperPlateBalanceConstraint__System")[!, 2] ./ 100.0
 
 plot([
-    scatter(x = dates_uc, y = prices_uc_centralized, name = "Centralized DA Price", line_shape = "hv"),
-    scatter(x = dates_uc, y = prices_uc_upd_stored, name = "Stored DA Price after update", line_shape = "hv"),
-    scatter(x = dates_uc, y = prices_uc_upd, name = "Simulation DA Price", line_shape = "hv"),
+    scatter(
+        x=dates_uc,
+        y=prices_uc_centralized,
+        name="Centralized DA Price",
+        line_shape="hv",
+    ),
+    scatter(
+        x=dates_uc,
+        y=prices_uc_upd_stored,
+        name="Stored DA Price after update",
+        line_shape="hv",
+    ),
+    scatter(x=dates_uc, y=prices_uc_upd, name="Simulation DA Price", line_shape="hv"),
 ])
 
 # Store Prices from Simulation #
@@ -279,14 +288,17 @@ CSV.write("scripts/simulation_pipeline/inputs/chuhsi_DA_prices_updated_sim.csv",
 =#
 
 # Compare Prices in RT
-prices_ed_centralized = prices_ed_dcp 
+prices_ed_centralized = prices_ed_dcp
 prices_ed_upd =
-    read_realized_dual(results_ed, "CopperPlateBalanceConstraint__System")[!, 2] ./
-    100.0 * 60 / 5
-
+    read_realized_dual(results_ed, "CopperPlateBalanceConstraint__System")[!, 2] ./ 100.0 *
+    60 / 5
 
 plot([
-    scatter(x = dates_ed, y = prices_ed_centralized, name = "Centralized RT Price", line_shape = "hv"),
-    scatter(x = dates_ed, y = prices_ed_upd, name = "Realized RT Price", line_shape = "hv"),
+    scatter(
+        x=dates_ed,
+        y=prices_ed_centralized,
+        name="Centralized RT Price",
+        line_shape="hv",
+    ),
+    scatter(x=dates_ed, y=prices_ed_upd, name="Realized RT Price", line_shape="hv"),
 ])
-

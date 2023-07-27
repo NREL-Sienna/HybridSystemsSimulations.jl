@@ -56,10 +56,7 @@ set_device_model!(
 )
 set_device_model!(
     template_ed_copperplate,
-    DeviceModel(
-        PSY.ThermalStandard,
-        ThermalDispatchNoMin,
-    ),
+    DeviceModel(PSY.ThermalStandard, ThermalDispatchNoMin),
 )
 
 mipgap = 0.005
@@ -116,7 +113,6 @@ sim = Simulation(
 build!(sim)
 execute!(sim; enable_progress_bar=true)
 
-
 results = SimulationResults(sim)
 result_merchant = get_decision_problem_results(results, "MerchantHybridEnergyFixedDA")
 result_realized = get_decision_problem_results(results, "Realized")
@@ -139,23 +135,28 @@ for (k, bid) in da_bid_in_dic
     i = i + 1
 end
 
-p_out_upd = read_realized_variable(result_merchant, "ActivePowerOutVariable__HybridSystem")[!, 2]
-p_in_upd = read_realized_variable(result_merchant, "ActivePowerInVariable__HybridSystem")[!, 2]
+p_out_upd =
+    read_realized_variable(result_merchant, "ActivePowerOutVariable__HybridSystem")[!, 2]
+p_in_upd =
+    read_realized_variable(result_merchant, "ActivePowerInVariable__HybridSystem")[!, 2]
 
-p_out_realized = read_realized_variable(result_realized, "ActivePowerOutVariable__HybridSystem")[!, 2]
-p_in_realized = read_realized_variable(result_realized, "ActivePowerInVariable__HybridSystem")[!, 2]
+p_out_realized =
+    read_realized_variable(result_realized, "ActivePowerOutVariable__HybridSystem")[!, 2]
+p_in_realized =
+    read_realized_variable(result_realized, "ActivePowerInVariable__HybridSystem")[!, 2]
 
 p_ch_upd = read_realized_variable(result_merchant, "BatteryCharge__HybridSystem")[!, 2]
 p_ds_upd = read_realized_variable(result_merchant, "BatteryDischarge__HybridSystem")[!, 2]
 
 p_re_upd = read_realized_variable(result_merchant, "RenewablePower__HybridSystem")[!, 2]
 
-plot([
-    scatter(x = dates_ed, y = p_out_upd, name = "Merchant POut")
-    scatter(x = dates_ed, y = p_out_realized, name = "Realized POut")
-])
+plot(
+    [
+        scatter(x=dates_ed, y=p_out_upd, name="Merchant POut")
+        scatter(x=dates_ed, y=p_out_realized, name="Realized POut")
+    ],
+)
 
 prices_ed_realized =
     read_realized_dual(results_realized, "CopperPlateBalanceConstraint__System")[!, 2] ./
     100.0 * 60 / 5
-

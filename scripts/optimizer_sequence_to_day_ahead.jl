@@ -57,7 +57,7 @@ interval_DA = Hour(24)
 horizon_DA = 24
 transform_single_time_series!(sys_rts_da, horizon_DA, interval_DA)
 interval_RT = Hour(24)
-horizon_RT = 24*12
+horizon_RT = 24 * 12
 transform_single_time_series!(sys_rts_merchant, horizon_RT, interval_RT)
 
 sys = sys_rts_merchant

@@ -1986,7 +1986,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
                 _hybrids_with_renewable,
                 "RenewableDispatch__max_active_power",
             )
-        else            
+        else
             add_time_series_parameters!(
                 container,
                 RenewablePowerTimeSeries(),

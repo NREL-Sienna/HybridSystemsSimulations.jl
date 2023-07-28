@@ -4773,7 +4773,7 @@ function PSI._initialize_model_states!(
             #elseif key == PSI.VariableKey{EnergyDABidIn, PSY.HybridSystem}("")
             #    @show value_counts = 1
             #else
-                value_counts = params[key].horizon ÷ params[key].resolution
+            value_counts = params[key].horizon ÷ params[key].resolution
             #end
             column_names = PSI.get_column_names(key, value)
             if !haskey(field_states, key) || length(field_states[key]) < value_counts
@@ -4785,8 +4785,8 @@ function PSI._initialize_model_states!(
                     collect(
                         range(
                             simulation_initial_time;
-                            step = params[key].resolution,
-                            length = value_counts,
+                            step=params[key].resolution,
+                            length=value_counts,
                         ),
                     ),
                     params[key].resolution,
@@ -4816,7 +4816,7 @@ function PSI.update_decision_state!(
     if simulation_time > PSI.get_end_of_step_timestamp(state_data)
         state_data_index = 1
         state_data.timestamps[:] .=
-            range(simulation_time; step = state_resolution, length = length(state_data))
+            range(simulation_time; step=state_resolution, length=length(state_data))
     else
         state_data_index = PSI.find_timestamp_index(state_timestamps, simulation_time)
     end

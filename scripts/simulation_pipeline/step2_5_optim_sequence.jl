@@ -1,4 +1,6 @@
-include("/Users/jlara/cache/HybridSystemsSimulations.jl/scripts/simulation_pipeline/step1_prices.jl")
+include(
+    "/Users/jlara/cache/HybridSystemsSimulations.jl/scripts/simulation_pipeline/step1_prices.jl",
+)
 ###########################################
 ### Systems for DA and Merchant DA Bids ###
 ###########################################
@@ -24,7 +26,7 @@ horizon_DA = 24
 transform_single_time_series!(sys_rts_da, horizon_DA, interval_DA)
 interval_RT = Hour(1)
 horizon_RT = 24
-transform_single_time_series!(sys_rts_merchant_da, horizon_DA*12, interval_DA)
+transform_single_time_series!(sys_rts_merchant_da, horizon_DA * 12, interval_DA)
 transform_single_time_series!(sys_rts_merchant_rt, horizon_RT, interval_RT)
 
 dic = PSY.get_ext(sys_rts_merchant_da)
@@ -39,7 +41,7 @@ dic["horizon_RT"] = horizon_RT
 dic["horizon_DA"] = horizon_DA
 
 sys_rts_merchant_da.internal.ext = deepcopy(dic)
-sys_rts_merchant_da.internal.ext["horizon_RT"] = horizon_DA*12
+sys_rts_merchant_da.internal.ext["horizon_RT"] = horizon_DA * 12
 hy_sys_da = first(get_components(HybridSystem, sys_rts_merchant_da))
 PSY.set_ext!(hy_sys_da, sys_rts_merchant_da.internal.ext)
 sys_rts_merchant_rt.internal.ext = deepcopy(dic)
@@ -179,7 +181,7 @@ sequence = SimulationSequence(
 
 sim = Simulation(
     name="compact_sim",
-    steps=num_steps-1,
+    steps=num_steps - 1,
     models=models,
     sequence=sequence,
     initial_time=starttime,
@@ -196,7 +198,6 @@ result_merch_RT = get_decision_problem_results(results, "MerchantHybridEnergyCas
 results_uc = get_decision_problem_results(results, "UC")
 results_ed = get_decision_problem_results(results, "ED")
 
-
 # Check DA prices in Step 3 are same as here:
 prices_uc_centralized = prices_uc_dcp
 prices_uc_upd =
@@ -205,15 +206,18 @@ prices_uc_upd =
 uc_out = read_realized_variable(results_uc, "ActivePowerOutVariable__HybridSystem")
 uc_in = read_realized_variable(results_uc, "ActivePowerOutVariable__HybridSystem")
 
-plot([
-    scatter(
-        x=dates_uc[1:24*5],
-        y=prices_uc_centralized[1:24*5],
-        name="Centralized DA Price",
-        line_shape="hv",
-    ),
-    scatter(x=dates_uc, y=prices_uc_upd, name="Simulation DA Price", line_shape="hv"),
-], Layout(title="Price Differences", yaxis_title="\$/MWh"),)
+plot(
+    [
+        scatter(
+            x=dates_uc[1:(24 * 5)],
+            y=prices_uc_centralized[1:(24 * 5)],
+            name="Centralized DA Price",
+            line_shape="hv",
+        ),
+        scatter(x=dates_uc, y=prices_uc_upd, name="Simulation DA Price", line_shape="hv"),
+    ],
+    Layout(title="Price Differences", yaxis_title="\$/MWh"),
+)
 
 tmap = get_ext(hy_sys_da)["tmap"]
 DART = [λ_da[tmap[t]] - λ_rt[t] for t in 1:horizon_merchant_rt]
@@ -231,20 +235,23 @@ prices_ed_upd =
     read_realized_dual(results_ed, "CopperPlateBalanceConstraint__System")[!, 2] ./ 100.0 *
     60 / 5
 
-plot([
-    scatter(
-        x=dates_ed[1:24*5*12],
-        y=prices_ed_centralized[1:24*5*12],
-        name="Centralized RT Price",
-        line_shape="hv",
-    ),
-    scatter(x=dates_ed, y=prices_ed_upd, name="Realized RT Price", line_shape="hv"),
-], Layout(title="Price Differences", yaxis_title="\$/MWh"))
+plot(
+    [
+        scatter(
+            x=dates_ed[1:(24 * 5 * 12)],
+            y=prices_ed_centralized[1:(24 * 5 * 12)],
+            name="Centralized RT Price",
+            line_shape="hv",
+        ),
+        scatter(x=dates_ed, y=prices_ed_upd, name="Realized RT Price", line_shape="hv"),
+    ],
+    Layout(title="Price Differences", yaxis_title="\$/MWh"),
+)
 
 plot([
     scatter(
-        x=dates_ed[1:24*5*12],
-        y=prices_ed_centralized[1:24*5*12],
+        x=dates_ed[1:(24 * 5 * 12)],
+        y=prices_ed_centralized[1:(24 * 5 * 12)],
         name="Centralized RT Price",
         line_shape="hv",
     ),
@@ -266,188 +273,199 @@ da_in_rt = read_variable(result_merch_RT, "EnergyDABidIn__HybridSystem")
 uc_p_out = read_realized_variable(results_uc, "ActivePowerOutVariable__HybridSystem")
 uc_p_in = read_realized_variable(results_uc, "ActivePowerInVariable__HybridSystem")
 
-
 p1 = plot([
     scatter(
         x=dates_uc,
-        y=vcat(values(da_out)...)[!,1],
+        y=vcat(values(da_out)...)[!, 1],
         name="DA Bid Out",
         line_shape="hv",
     ),
+    scatter(x=dates_uc, y=vcat(values(da_in)...)[!, 1], name="DA Bid In", line_shape="hv"),
+    scatter(x=uc_p_out[!, 1], y=uc_p_out[!, 2] / 100.0, name="UC P Out", line_shape="hv"),
+    scatter(x=uc_p_in[!, 1], y=uc_p_in[!, 2] / 100.0, name="UC P In", line_shape="hv"),
     scatter(
         x=dates_uc,
-        y=vcat(values(da_in)...)[!,1],
-        name="DA Bid In", line_shape="hv"),
-    scatter(
-        x=uc_p_out[!,1],
-        y=uc_p_out[!,2]/100.0,
-        name="UC P Out",
+        y=vcat(values(da_out_rt)...)[!, 1],
+        name="DA Bid Out RT",
         line_shape="hv",
     ),
     scatter(
-        x=uc_p_in[!,1],
-        y=uc_p_in[!,2]/100.0,
-        name="UC P In", line_shape="hv"),
-    scatter(
         x=dates_uc,
-        y=vcat(values(da_out_rt)...)[!,1],
-        name="DA Bid Out RT",
+        y=vcat(values(da_in_rt)...)[!, 1],
+        name="DA Bid In RT",
         line_shape="hv",
-        ),
-    scatter(
-        x=dates_uc,
-        y=vcat(values(da_in_rt)...)[!,1],
-        name="DA Bid In RT", line_shape="hv"),
+    ),
 ])
 
 p1 = plot([
     scatter(
         x=da_rt_forecast_out[!, "DateTime"],
-        y=da_rt_forecast_out[!,2],
+        y=da_rt_forecast_out[!, 2],
         name="DA RT Bid Out",
         line_shape="hv",
     ),
     scatter(
         x=rt_out[!, "DateTime"],
         y=rt_out[!, 2],
-        name="Realized RT Bid Out", line_shape="hv"),
+        name="Realized RT Bid Out",
+        line_shape="hv",
+    ),
 ])
 
 p2 = plot([
     scatter(
         x=da_rt_forecast_in[!, "DateTime"],
-        y=da_rt_forecast_in[!,2],
+        y=da_rt_forecast_in[!, 2],
         name="DA RT Bid In",
         line_shape="hv",
     ),
     scatter(
         x=rt_in[!, "DateTime"],
         y=rt_in[!, 2],
-        name="Realized RT Bid In", line_shape="hv"),
+        name="Realized RT Bid In",
+        line_shape="hv",
+    ),
 ])
 
 [p1; p2]
 
-
-da_rt_forecast_discharge = read_realized_variable(result_merch_DA, "BatteryDischarge__HybridSystem")
-da_rt_forecast_charge = read_realized_variable(result_merch_DA, "BatteryCharge__HybridSystem")
+da_rt_forecast_discharge =
+    read_realized_variable(result_merch_DA, "BatteryDischarge__HybridSystem")
+da_rt_forecast_charge =
+    read_realized_variable(result_merch_DA, "BatteryCharge__HybridSystem")
 da_rt_forecast_re = read_realized_variable(result_merch_DA, "RenewablePower__HybridSystem")
 da_rt_forecast_th = read_realized_variable(result_merch_DA, "ThermalPower__HybridSystem")
-da_rt_forecast_re_available = read_realized_parameter(result_merch_DA, "RenewablePowerTimeSeries__HybridSystem")
+da_rt_forecast_re_available =
+    read_realized_parameter(result_merch_DA, "RenewablePowerTimeSeries__HybridSystem")
 da_rt_soc = read_realized_variable(result_merch_DA, "EnergyVariable__HybridSystem")
 
-
-rt_forecast_discharge = read_realized_variable(result_merch_RT, "BatteryDischarge__HybridSystem")
+rt_forecast_discharge =
+    read_realized_variable(result_merch_RT, "BatteryDischarge__HybridSystem")
 rt_forecast_charge = read_realized_variable(result_merch_RT, "BatteryCharge__HybridSystem")
 rt_forecast_th = read_realized_variable(result_merch_RT, "ThermalPower__HybridSystem")
 rt_forecast_re = read_realized_variable(result_merch_RT, "RenewablePower__HybridSystem")
-rt_forecast_re_available = read_realized_parameter(result_merch_RT, "RenewablePowerTimeSeries__HybridSystem")
+rt_forecast_re_available =
+    read_realized_parameter(result_merch_RT, "RenewablePowerTimeSeries__HybridSystem")
 rt_soc = read_realized_variable(result_merch_RT, "EnergyVariable__HybridSystem")
 
 p1 = plot([
     scatter(
-        x=dates_ed[1:24*5*12],
-        y=prices_ed_centralized[1:24*5*12],
+        x=dates_ed[1:(24 * 5 * 12)],
+        y=prices_ed_centralized[1:(24 * 5 * 12)],
         name="Centralized RT Price",
         line_shape="hv",
     ),
     scatter(
         x=da_rt_forecast_out[!, "DateTime"],
-        y=da_rt_forecast_out[!,2],
+        y=da_rt_forecast_out[!, 2],
         name="DA RT Bid Out",
         line_shape="hv",
     ),
     scatter(
         x=da_rt_forecast_in[!, "DateTime"],
-        y=-1*da_rt_forecast_in[!,2],
+        y=-1 * da_rt_forecast_in[!, 2],
         name="DA RT Bid In",
         line_shape="hv",
     ),
     scatter(
         x=da_rt_soc[!, "DateTime"],
-        y=da_rt_soc[!,2]/100.0,
+        y=da_rt_soc[!, 2] / 100.0,
         name="DA SoC",
         line_shape="hv",
     ),
     scatter(
         x=da_rt_forecast_re_available[!, "DateTime"],
         y=da_rt_forecast_re_available[!, 2],
-        name="RE Available", line_shape="hv"),
+        name="RE Available",
+        line_shape="hv",
+    ),
     scatter(
         x=da_rt_forecast_discharge[!, "DateTime"],
         y=da_rt_forecast_discharge[!, 2],
-        name="DA Discharge", line_shape="hv", mode="none", stackgroup="two"),
+        name="DA Discharge",
+        line_shape="hv",
+        mode="none",
+        stackgroup="two",
+    ),
     scatter(
         x=da_rt_forecast_charge[!, "DateTime"],
         y=-1da_rt_forecast_charge[!, 2],
-        name="DA Charge", line_shape="hv", mode="none", stackgroup="two"),
+        name="DA Charge",
+        line_shape="hv",
+        mode="none",
+        stackgroup="two",
+    ),
     scatter(
         x=da_rt_forecast_th[!, "DateTime"],
         y=da_rt_forecast_th[!, 2],
-        name="DA Thermal", line_shape="hv", mode="none", stackgroup="two"),
+        name="DA Thermal",
+        line_shape="hv",
+        mode="none",
+        stackgroup="two",
+    ),
     scatter(
         x=da_rt_forecast_re[!, "DateTime"],
         y=da_rt_forecast_re[!, 2],
-        name="DA RE", line_shape="hv", mode="none", stackgroup="two"),
-
+        name="DA RE",
+        line_shape="hv",
+        mode="none",
+        stackgroup="two",
+    ),
 ])
-
 
 p1 = plot([
     scatter(
-        x=dates_ed[1:24*5*12],
-        y=prices_ed_centralized[1:24*5*12],
+        x=dates_ed[1:(24 * 5 * 12)],
+        y=prices_ed_centralized[1:(24 * 5 * 12)],
         name="Centralized RT Price",
         line_shape="hv",
     ),
-    scatter(
-        x=da_out[!,1],
-        y=da_out[!,2],
-        name="DA Bid Out",
-        line_shape="hv",
-    ),
-    scatter(
-        x=da_in[!,1],
-        y=da_in[!,2],
-        name="DA Bid In",
-        line_shape="hv",
-    ),
-    scatter(
-        x=rt_out[!, "DateTime"],
-        y=rt_out[!,2],
-        name="RT Bid Out",
-        line_shape="hv",
-    ),
-    scatter(
-        x=rt_in[!, "DateTime"],
-        y=-1*rt_in[!,2],
-        name="RT Bid In",
-        line_shape="hv",
-    ),
+    scatter(x=da_out[!, 1], y=da_out[!, 2], name="DA Bid Out", line_shape="hv"),
+    scatter(x=da_in[!, 1], y=da_in[!, 2], name="DA Bid In", line_shape="hv"),
+    scatter(x=rt_out[!, "DateTime"], y=rt_out[!, 2], name="RT Bid Out", line_shape="hv"),
+    scatter(x=rt_in[!, "DateTime"], y=-1 * rt_in[!, 2], name="RT Bid In", line_shape="hv"),
     scatter(
         x=rt_soc[!, "DateTime"],
-        y=rt_soc[!,2]/100.0,
+        y=rt_soc[!, 2] / 100.0,
         name="RT SoC",
         line_shape="hv",
     ),
     scatter(
         x=rt_forecast_re_available[!, "DateTime"],
         y=rt_forecast_re_available[!, 2],
-        name="RE Available", line_shape="hv"),
+        name="RE Available",
+        line_shape="hv",
+    ),
     scatter(
         x=rt_forecast_discharge[!, "DateTime"],
         y=rt_forecast_discharge[!, 2],
-        name="RT Discharge", line_shape="hv", mode="none", stackgroup="two"),
+        name="RT Discharge",
+        line_shape="hv",
+        mode="none",
+        stackgroup="two",
+    ),
     scatter(
         x=rt_forecast_charge[!, "DateTime"],
-        y=-1*rt_forecast_charge[!, 2],
-        name="RT Charge", line_shape="hv", mode="none", stackgroup="two"),
+        y=-1 * rt_forecast_charge[!, 2],
+        name="RT Charge",
+        line_shape="hv",
+        mode="none",
+        stackgroup="two",
+    ),
     scatter(
         x=rt_forecast_th[!, "DateTime"],
         y=rt_forecast_th[!, 2],
-        name="RT Thermal", line_shape="hv", mode="none", stackgroup="two"),
+        name="RT Thermal",
+        line_shape="hv",
+        mode="none",
+        stackgroup="two",
+    ),
     scatter(
         x=rt_forecast_re[!, "DateTime"],
         y=rt_forecast_re[!, 2],
-        name="RT RE", line_shape="hv", mode="none", stackgroup="two"),
+        name="RT RE",
+        line_shape="hv",
+        mode="none",
+        stackgroup="two",
+    ),
 ])

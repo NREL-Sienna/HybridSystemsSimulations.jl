@@ -322,7 +322,7 @@ PSI.get_variable_multiplier(
 PSI.get_parameter_multiplier(
     ::PSI.FixValueParameter,
     ::PSY.HybridSystem,
-    ::Union{HybridEnergyOnlyFixedDA, HybridEnergyOnlyDispatch}
+    ::Union{HybridEnergyOnlyFixedDA, HybridEnergyOnlyDispatch},
 ) = 1.0
 
 ###################################################################

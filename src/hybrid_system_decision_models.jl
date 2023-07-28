@@ -4754,50 +4754,6 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridBilevel
     return
 end
 
-function PSI._initialize_model_states!(
-    sim_state::PSI.SimulationState,
-    model::PSI.DecisionModel{MerchantHybridEnergyCase},
-    simulation_initial_time::Dates.DateTime,
-    simulation_step::Dates.Millisecond,
-    params::OrderedDict{PSI.OptimizationContainerKey, PSI.STATE_TIME_PARAMS},
-)
-    states = PSI.get_decision_states(sim_state)
-    container = PSI.get_optimization_container(model)
-    for field in fieldnames(PSI.DatasetContainer)
-        field_containers = getfield(container, field)
-        field_states = getfield(states, field)
-        for (key, value) in field_containers
-            !PSI.should_write_resulting_value(key) && continue
-            #if key == PSI.VariableKey{EnergyDABidOut, PSY.HybridSystem}("")
-            #    @show value_counts = 1
-            #elseif key == PSI.VariableKey{EnergyDABidIn, PSY.HybridSystem}("")
-            #    @show value_counts = 1
-            #else
-            value_counts = params[key].horizon ÷ params[key].resolution
-            #end
-            column_names = PSI.get_column_names(key, value)
-            if !haskey(field_states, key) || length(field_states[key]) < value_counts
-                field_states[key] = PSI.DataFrameDataset(
-                    PSI.DataFrames.DataFrame(
-                        fill(NaN, value_counts, length(column_names)),
-                        column_names,
-                    ),
-                    collect(
-                        range(
-                            simulation_initial_time;
-                            step=params[key].resolution,
-                            length=value_counts,
-                        ),
-                    ),
-                    params[key].resolution,
-                    Int(simulation_step / params[key].resolution),
-                )
-            end
-        end
-    end
-    return
-end
-
 function PSI.update_decision_state!(
     state::PSI.SimulationState,
     key::PSI.VariableKey{EnergyDABidIn, PSY.HybridSystem},

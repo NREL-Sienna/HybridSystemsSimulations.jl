@@ -4791,3 +4791,41 @@ function PSI.update_decision_state!(
     end
     return
 end
+
+function PSI.update_decision_state!(
+    state::PSI.SimulationState,
+    key::PSI.VariableKey{EnergyDABidOut, PSY.HybridSystem},
+    store_data::PSI.DataFrames.DataFrame,
+    simulation_time::Dates.DateTime,
+    model_params::PSI.SimulationState,
+)
+    error("here")
+    state_data = PSI.get_decision_state_data(state, key)
+    model_resolution = PSI.get_resolution(model_params)
+    state_resolution = PSI.get_data_resolution(state_data)
+    resolution_ratio = model_resolution ÷ state_resolution
+    state_timestamps = state_data.timestamps
+    PSI.IS.@assert_op resolution_ratio >= 1
+
+    if simulation_time > PSI.get_end_of_step_timestamp(state_data)
+        state_data_index = 1
+        state_data.timestamps[:] .=
+            range(simulation_time; step=state_resolution, length=length(state_data))
+    else
+        state_data_index = PSI.find_timestamp_index(state_timestamps, simulation_time)
+    end
+
+    offset = resolution_ratio - 1
+    result_time_index = axes(store_data)[1]
+    PSI.set_update_timestamp!(state_data, simulation_time)
+    for t in result_time_index
+        state_range = state_data_index:(state_data_index + offset)
+        for name in DataFrames.names(store_data), i in state_range
+            # TODO: We could also interpolate here
+            state_data.values[i, name] = store_data[t, name]
+        end
+        PSI.set_last_recorded_row!(state_data, state_range[end])
+        state_data_index += resolution_ratio
+    end
+    return
+end

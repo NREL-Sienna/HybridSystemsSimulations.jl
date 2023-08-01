@@ -420,8 +420,8 @@ p1 = plot([
         name="Centralized RT Price",
         line_shape="hv",
     ),
-    scatter(x=da_out[!, 1], y=da_out[!, 2], name="DA Bid Out", line_shape="hv"),
-    scatter(x=da_in[!, 1], y=da_in[!, 2], name="DA Bid In", line_shape="hv"),
+    #scatter(x=da_out[!, 1], y=da_out[!, 2], name="DA Bid Out", line_shape="hv"),
+    #scatter(x=da_in[!, 1], y=da_in[!, 2], name="DA Bid In", line_shape="hv"),
     scatter(x=rt_out[!, "DateTime"], y=rt_out[!, 2], name="RT Bid Out", line_shape="hv"),
     scatter(x=rt_in[!, "DateTime"], y=-1 * rt_in[!, 2], name="RT Bid In", line_shape="hv"),
     scatter(

@@ -4794,19 +4794,18 @@ end
 
 function PSI.update_decision_state!(
     state::PSI.SimulationState,
-    key::PSI.VariableKey{EnergyDABidOut, PSY.HybridSystem},
-    store_data::PSI.DataFrames.DataFrame,
+    key::PSI.VariableKey{T, PSY.HybridSystem},
+    store_data::DataFrames.DataFrame,
     simulation_time::Dates.DateTime,
-    model_params::PSI.SimulationState,
-)
-    error("here")
+    model_params::PSI.ModelStoreParams,
+) where T <: Union{EnergyDABidOut, EnergyDABidIn}
     state_data = PSI.get_decision_state_data(state, key)
     model_resolution = PSI.get_resolution(model_params)
     state_resolution = PSI.get_data_resolution(state_data)
     resolution_ratio = model_resolution ÷ state_resolution
     state_timestamps = state_data.timestamps
     PSI.IS.@assert_op resolution_ratio >= 1
-
+    error("here")
     if simulation_time > PSI.get_end_of_step_timestamp(state_data)
         state_data_index = 1
         state_data.timestamps[:] .=

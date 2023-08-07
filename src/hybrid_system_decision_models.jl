@@ -3691,6 +3691,13 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
                 service,
                 MerchantModelWithReserves(),
             )
+            _add_constraints_reservecoverage_withreserves_endofperiod!(
+                container,
+                ReserveCoverageConstraintEndOfPeriod,
+                _hybrids_with_storage,
+                service,
+                MerchantModelWithReserves(),
+            )
         end
     end
 

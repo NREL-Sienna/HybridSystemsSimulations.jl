@@ -208,8 +208,64 @@ build!(decision_optimizer_DA; output_dir=pwd())
 #JuMP.fix(bid_regup_out["317_Hybrid", 12], 1.0; force = true)
 solve!(decision_optimizer_DA)
 res_b = ProblemResults(decision_optimizer_DA)
+
 #=
 cons = decision_optimizer_DA.internal.container.constraints
+cons[PowerSimulations.ConstraintKey{
+    HybridSystemsSimulations.ReserveCoverageConstraintEndOfPeriod,
+    HybridSystem,
+}(
+    "Spin_Up_R3",
+)][
+    "317_Hybrid",
+    2,
+]
+cons[PowerSimulations.ConstraintKey{
+    HybridSystemsSimulations.ReserveCoverageConstraint,
+    HybridSystem,
+}(
+    "Spin_Up_R3",
+)][
+    "317_Hybrid",
+    2,
+]
+cons[PowerSimulations.ConstraintKey{
+    HybridSystemsSimulations.ReserveCoverageConstraintEndOfPeriod,
+    HybridSystem,
+}(
+    "Reg_Down",
+)][
+    "317_Hybrid",
+    2,
+]
+cons[PowerSimulations.ConstraintKey{
+    HybridSystemsSimulations.ReserveCoverageConstraint,
+    HybridSystem,
+}(
+    "Reg_Down",
+)][
+    "317_Hybrid",
+    2,
+]
+cons[PowerSimulations.ConstraintKey{
+    HybridSystemsSimulations.MarketOutConvergence,
+    HybridSystem,
+}(
+    "",
+)][
+    "317_Hybrid",
+    2,
+]
+cons[PowerSimulations.ConstraintKey{
+    HybridSystemsSimulations.MarketInConvergence,
+    HybridSystem,
+}(
+    "",
+)][
+    "317_Hybrid",
+    2,
+]
+
 vars = decision_optimizer_DA.internal.container.variables
 params = decision_optimizer_DA.internal.container.parameters
 exprs = decision_optimizer_DA.internal.container.expressions

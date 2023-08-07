@@ -1363,7 +1363,7 @@ end
 
 ############## Storage Constraints ReserveLimit, HybridSystem ###################
 
-# Range Constraint Coverage Discharge
+# Range Constraint Coverage Discharge (RegUp)
 function _add_constraints_reservecoverage_withreserves!(
     container::PSI.OptimizationContainer,
     T::Type{<:ReserveCoverageConstraint},
@@ -1378,9 +1378,8 @@ function _add_constraints_reservecoverage_withreserves!(
     time_steps = PSI.get_time_steps(container)
     resolution = PSI.get_resolution(container)
     fraction_of_hour = Dates.value(Dates.Minute(resolution)) / PSI.MINUTES_IN_HOUR
-    num_periods =
-        Dates.value(Dates.Minute(PSY.get_sustained_time(service))) /
-        Dates.value(Dates.Minute(resolution))
+    sustained_time = PSY.get_sustained_time(service) # in seconds
+    num_periods = sustained_time / Dates.value(Dates.Second(resolution))
     initial_conditions = PSI.get_initial_condition(container, PSI.InitialEnergyLevel(), D)
     energy_var = PSI.get_variable(container, PSI.EnergyVariable(), D)
     service_name = PSY.get_name(service)
@@ -1432,7 +1431,7 @@ function PSI.add_constraints!(
     return
 end
 
-# Range Constraint Coverage Discharge
+# Range Constraint Coverage Charge (RegDown)
 function _add_constraints_reservecoverage_withreserves!(
     container::PSI.OptimizationContainer,
     T::Type{<:ReserveCoverageConstraint},
@@ -1499,6 +1498,135 @@ function PSI.add_constraints!(
     W <: HybridDispatchWithReserves,
 } where {D <: PSY.HybridSystem}
     _add_constraints_reservecoverage_withreserves!(container, T, devices, service, W())
+    return
+end
+
+# Reserve Coverage Constraints End Of Period Discharge (RegUP)
+function _add_constraints_reservecoverage_withreserves_endofperiod!(
+    container::PSI.OptimizationContainer,
+    T::Type{<:ReserveCoverageConstraintEndOfPeriod},
+    devices::U,
+    service::V,
+    ::W,
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    V <: PSY.Reserve{PSY.ReserveUp},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
+    time_steps = PSI.get_time_steps(container)
+    resolution = PSI.get_resolution(container)
+    fraction_of_hour = Dates.value(Dates.Minute(resolution)) / PSI.MINUTES_IN_HOUR
+    sustained_time = PSY.get_sustained_time(service) # in seconds
+    num_periods = sustained_time / Dates.value(Dates.Second(resolution))
+    energy_var = PSI.get_variable(container, PSI.EnergyVariable(), D)
+    service_name = PSY.get_name(service)
+    reserve_var = PSI.get_variable(container, DischargingReserveVariable(), V, service_name)
+    names = [PSY.get_name(d) for d in devices]
+    con = PSI.add_constraints_container!(
+        container,
+        T(),
+        D,
+        names,
+        time_steps,
+        meta=service_name,
+    )
+    for device in devices, t in time_steps
+        ci_name = PSY.get_name(device)
+        storage = PSY.get_storage(device)
+        inv_efficiency = 1.0 / PSY.get_efficiency(storage).out
+        sustained_param = inv_efficiency * fraction_of_hour * num_periods
+        con[ci_name, t] = JuMP.@constraint(
+            container.JuMPmodel,
+            sustained_param * reserve_var[ci_name, t] <= energy_var[ci_name, t]
+        )
+    end
+    return
+end
+
+function PSI.add_constraints!(
+    container::PSI.OptimizationContainer,
+    T::Type{ReserveCoverageConstraintEndOfPeriod},
+    devices::U,
+    service::V,
+    model::PSI.DeviceModel{D, W},
+    network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    V <: PSY.Reserve{PSY.ReserveUp},
+    W <: HybridDispatchWithReserves,
+} where {D <: PSY.HybridSystem}
+    _add_constraints_reservecoverage_withreserves_endofperiod!(
+        container,
+        T,
+        devices,
+        service,
+        W(),
+    )
+    return
+end
+
+# Reserve Coverage Constraints End Of Period Charge (RegDown)
+function _add_constraints_reservecoverage_withreserves_endofperiod!(
+    container::PSI.OptimizationContainer,
+    T::Type{<:ReserveCoverageConstraintEndOfPeriod},
+    devices::U,
+    service::V,
+    ::W,
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    V <: PSY.Reserve{PSY.ReserveDown},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
+    time_steps = PSI.get_time_steps(container)
+    resolution = PSI.get_resolution(container)
+    fraction_of_hour = Dates.value(Dates.Minute(resolution)) / PSI.MINUTES_IN_HOUR
+    sustained_time = PSY.get_sustained_time(service) # in seconds
+    num_periods = sustained_time / Dates.value(Dates.Second(resolution))
+    energy_var = PSI.get_variable(container, PSI.EnergyVariable(), D)
+    service_name = PSY.get_name(service)
+    reserve_var = PSI.get_variable(container, ChargingReserveVariable(), V, service_name)
+    names = [PSY.get_name(d) for d in devices]
+    con = PSI.add_constraints_container!(
+        container,
+        T(),
+        D,
+        names,
+        time_steps,
+        meta=service_name,
+    )
+    for device in devices, t in time_steps
+        ci_name = PSY.get_name(device)
+        storage = PSY.get_storage(device)
+        E_max = PSY.get_state_of_charge_limits(storage).max
+        efficiency = PSY.get_efficiency(storage).in
+        sustained_param = efficiency * fraction_of_hour * num_periods
+        con[ci_name, t] = JuMP.@constraint(
+            container.JuMPmodel,
+            sustained_param * reserve_var[ci_name, t] <= E_max - energy_var[ci_name, t]
+        )
+    end
+    return
+end
+
+function PSI.add_constraints!(
+    container::PSI.OptimizationContainer,
+    T::Type{ReserveCoverageConstraintEndOfPeriod},
+    devices::U,
+    service::V,
+    model::PSI.DeviceModel{D, W},
+    network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    V <: PSY.Reserve{PSY.ReserveDown},
+    W <: HybridDispatchWithReserves,
+} where {D <: PSY.HybridSystem}
+    _add_constraints_reservecoverage_withreserves_endofperiod!(
+        container,
+        T,
+        devices,
+        service,
+        W(),
+    )
     return
 end
 

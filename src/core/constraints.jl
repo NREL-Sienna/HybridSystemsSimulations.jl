@@ -40,6 +40,7 @@ struct StatusInOn <: PSI.ConstraintType end
 
 ## AS for Components
 struct ReserveCoverageConstraint <: PSI.ConstraintType end
+struct ReserveCoverageConstraintEndOfPeriod <: PSI.ConstraintType end
 struct ChargingReservePowerLimit <: PSI.ConstraintType end
 struct DischargingReservePowerLimit <: PSI.ConstraintType end
 struct ThermalReserveLimit <: PSI.ConstraintType end

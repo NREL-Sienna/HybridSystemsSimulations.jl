@@ -4798,7 +4798,7 @@ function PSI.update_decision_state!(
     store_data::DataFrames.DataFrame,
     simulation_time::Dates.DateTime,
     model_params::PSI.ModelStoreParams,
-) where T <: Union{EnergyDABidOut, EnergyDABidIn}
+) where {T <: Union{EnergyDABidOut, EnergyDABidIn}}
     state_data = PSI.get_decision_state_data(state, key)
     model_resolution = PSI.get_resolution(model_params)
     state_resolution = PSI.get_data_resolution(state_data)

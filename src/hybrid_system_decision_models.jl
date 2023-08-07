@@ -1205,7 +1205,7 @@ function add_constraints!(
         for t in time_steps
             con[n, t] = JuMP.@constraint(
                 jm,
-                VOM + λUb_var[n, t] - λLb_var[n, t] - μChUb_var[n, t] +
+                Δt_RT * VOM + λUb_var[n, t] - λLb_var[n, t] - μChUb_var[n, t] +
                 μChLb_var[n, t] +
                 η_ch * (-γStBalUb_var[n, t] + γStBalLb_var[n, t] - κStCh_var[n]) == 0.0
             )
@@ -1280,7 +1280,7 @@ function add_constraints!(
         for t in time_steps
             con[n, t] = JuMP.@constraint(
                 jm,
-                VOM - λUb_var[n, t] + λLb_var[n, t] - μDsUb_var[n, t] +
+                Δt_RT * VOM - λUb_var[n, t] + λLb_var[n, t] - μDsUb_var[n, t] +
                 μDsLb_var[n, t] +
                 inv_η_ds * (γStBalUb_var[n, t] - γStBalLb_var[n, t] - κStDs_var[n]) ==
                 0.0

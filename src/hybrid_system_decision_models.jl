@@ -4814,12 +4814,13 @@ function PSI.update_decision_state!(
     model_params::PSI.ModelStoreParams,
 ) where {T <: Union{EnergyDABidOut, EnergyDABidIn}}
     state_data = PSI.get_decision_state_data(state, key)
-    model_resolution = PSI.get_resolution(model_params)
-    state_resolution = PSI.get_data_resolution(state_data)
+    model_resolution = PSI.get_resolution(model_params) # var res: 1 hour
+    model_resolution = Dates.Hour(1) #TODO: Find a ext hack
+    state_resolution = PSI.get_data_resolution(state_data) # 5 min
     resolution_ratio = model_resolution ÷ state_resolution
     state_timestamps = state_data.timestamps
     PSI.IS.@assert_op resolution_ratio >= 1
-    error("here")
+
     if simulation_time > PSI.get_end_of_step_timestamp(state_data)
         state_data_index = 1
         state_data.timestamps[:] .=

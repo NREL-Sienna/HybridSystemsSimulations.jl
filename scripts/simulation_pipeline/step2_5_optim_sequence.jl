@@ -1,6 +1,4 @@
-include(
-    "/Users/jlara/cache/HybridSystemsSimulations.jl/scripts/simulation_pipeline/step1_prices.jl",
-)
+include(joinpath(@__DIR__, "step1_prices.jl"))
 ###########################################
 ### Systems for DA and Merchant DA Bids ###
 ###########################################
@@ -200,6 +198,7 @@ results_ed = get_decision_problem_results(results, "ED")
 
 # Check DA prices in Step 3 are same as here:
 prices_uc_centralized = prices_uc_dcp
+prices_ed_centralized = prices_ed_dcp
 prices_uc_upd =
     read_realized_dual(results_uc, "CopperPlateBalanceConstraint__System")[!, 2] ./ 100.0
 
@@ -220,7 +219,8 @@ plot(
 )
 
 tmap = get_ext(hy_sys_da)["tmap"]
-DART = [λ_da[tmap[t]] - λ_rt[t] for t in 1:horizon_merchant_rt]
+tmap2 = [div(k - 1, Int(24 * 5 * 12 / (24 * 5))) + 1 for k in 1:(24 * 5 * 12)]
+DART = [prices_uc_centralized[tmap2[t]] - prices_ed_centralized[t] for t in 1:(24 * 5 * 12)]
 # Store Prices from Simulation #
 #=
 DA_prices_upd = DataFrame()
@@ -247,16 +247,6 @@ plot(
     ],
     Layout(title="Price Differences", yaxis_title="\$/MWh"),
 )
-
-plot([
-    scatter(
-        x=dates_ed[1:(24 * 5 * 12)],
-        y=prices_ed_centralized[1:(24 * 5 * 12)],
-        name="Centralized RT Price",
-        line_shape="hv",
-    ),
-    scatter(x=dates_ed, y=prices_ed_upd, name="Realized RT Price", line_shape="hv"),
-])
 
 da_rt_forecast_out = read_realized_variable(result_merch_DA, "EnergyRTBidOut__HybridSystem")
 da_rt_forecast_in = read_realized_variable(result_merch_DA, "EnergyRTBidIn__HybridSystem")

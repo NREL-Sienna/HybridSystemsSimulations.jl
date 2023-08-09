@@ -4828,6 +4828,7 @@ function PSI._update_parameter_values!(
     sim_timestamps = range(current_time; step=resolution, length=time[end])
     @show time
     for t in time
+        error("Don't use 12")
         @show timestamp_ix = min(max_state_index, state_data_index + 12)
         @debug "parameter horizon is over the step" max_state_index > state_data_index + 1
         if state_timestamps[timestamp_ix] <= sim_timestamps[t]

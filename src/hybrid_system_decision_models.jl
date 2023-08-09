@@ -4770,44 +4770,6 @@ end
 
 function PSI.update_decision_state!(
     state::PSI.SimulationState,
-    key::PSI.VariableKey{EnergyDABidIn, PSY.HybridSystem},
-    store_data::PSI.DataFrames.DataFrame,
-    simulation_time::Dates.DateTime,
-    model_params::PSI.SimulationState,
-)
-    error("here")
-    state_data = PSI.get_decision_state_data(state, key)
-    model_resolution = PSI.get_resolution(model_params)
-    state_resolution = PSI.get_data_resolution(state_data)
-    resolution_ratio = model_resolution ÷ state_resolution
-    state_timestamps = state_data.timestamps
-    PSI.IS.@assert_op resolution_ratio >= 1
-
-    if simulation_time > PSI.get_end_of_step_timestamp(state_data)
-        state_data_index = 1
-        state_data.timestamps[:] .=
-            range(simulation_time; step=state_resolution, length=length(state_data))
-    else
-        state_data_index = PSI.find_timestamp_index(state_timestamps, simulation_time)
-    end
-
-    offset = resolution_ratio - 1
-    result_time_index = axes(store_data)[1]
-    PSI.set_update_timestamp!(state_data, simulation_time)
-    for t in result_time_index
-        state_range = state_data_index:(state_data_index + offset)
-        for name in DataFrames.names(store_data), i in state_range
-            # TODO: We could also interpolate here
-            state_data.values[i, name] = store_data[t, name]
-        end
-        PSI.set_last_recorded_row!(state_data, state_range[end])
-        state_data_index += resolution_ratio
-    end
-    return
-end
-
-function PSI.update_decision_state!(
-    state::PSI.SimulationState,
     key::PSI.VariableKey{T, PSY.HybridSystem},
     store_data::DataFrames.DataFrame,
     simulation_time::Dates.DateTime,
@@ -4840,6 +4802,49 @@ function PSI.update_decision_state!(
         end
         PSI.set_last_recorded_row!(state_data, state_range[end])
         state_data_index += resolution_ratio
+    end
+    return
+end
+
+function PSI._update_parameter_values!(
+    parameter_array::AbstractArray{T},
+    attributes::PSI.VariableValueAttributes{
+        PowerSimulations.VariableKey{U, PSY.HybridSystem},
+    },
+    ::Type{<:PSY.HybridSystem},
+    model::PSI.DecisionModel,
+    state::PSI.DatasetContainer{PSI.DataFrameDataset},
+) where {T <: Union{JuMP.VariableRef, Float64}, U <: Union{EnergyDABidOut, EnergyDABidIn}}
+    @show typeof(model)
+    current_time = PSI.get_current_time(model)
+    state_values = PSI.get_dataset_values(state, PSI.get_attribute_key(attributes))
+    component_names, time = axes(parameter_array)
+    resolution = PSI.get_resolution(model)
+    state_data = PSI.get_dataset(state, PSI.get_attribute_key(attributes))
+    state_timestamps = state_data.timestamps
+    max_state_index = length(state_data)
+
+    state_data_index = PSI.find_timestamp_index(state_timestamps, current_time)
+    sim_timestamps = range(current_time; step=resolution, length=time[end])
+    @show time
+    for t in time
+        @show timestamp_ix = min(max_state_index, state_data_index + 12)
+        @debug "parameter horizon is over the step" max_state_index > state_data_index + 1
+        if state_timestamps[timestamp_ix] <= sim_timestamps[t]
+            state_data_index = timestamp_ix
+        end
+        for name in component_names
+            # Pass indices in this way since JuMP DenseAxisArray don't support view()
+            @show state_value = state_values[state_data_index, name]
+            if !isfinite(state_value)
+                error(
+                    "The value for the system state used in $(encode_key_as_string(get_attribute_key(attributes))) is not a finite value $(state_value) \
+                     This is commonly caused by referencing a state value at a time when such decision hasn't been made. \
+                     Consider reviewing your models' horizon and interval definitions",
+                )
+            end
+            PSI._set_param_value!(parameter_array, state_value, name, t)
+        end
     end
     return
 end

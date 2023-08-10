@@ -47,9 +47,10 @@ sys_rts_merchant_rt.internal.ext["horizon_DA"] = 1
 hy_sys_rt = first(get_components(HybridSystem, sys_rts_merchant_rt))
 PSY.set_ext!(hy_sys_rt, sys_rts_merchant_rt.internal.ext)
 
+template_uc_copperplate = get_uc_copperplate_template(sys_rts_da)
 decision_optimizer_DA = DecisionModel(
     MerchantHybridEnergyCase,
-    ProblemTemplate(CopperPlatePowerModel),
+    template_uc_copperplate,
     sys_rts_merchant_da,
     optimizer=Xpress.Optimizer,
     calculate_conflict=true,
@@ -58,7 +59,6 @@ decision_optimizer_DA = DecisionModel(
     name="MerchantHybridEnergyCase_DA",
 )
 
-template_uc_copperplate = get_uc_copperplate_template(sys_rts_da)
 # Set Hybrid in UC as FixedDA
 set_device_model!(
     template_uc_copperplate,

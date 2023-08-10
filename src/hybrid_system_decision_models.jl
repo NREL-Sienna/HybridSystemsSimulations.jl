@@ -2395,7 +2395,8 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
             )
         end
     end
-
+    device_model = PSI.get_model(PSI.get_template(decision_model), PSY.HybridSystem)
+    PSI.add_feedforward_arguments!(container, device_model, hybrids)
     PSI.serialize_metadata!(container, PSI.get_output_dir(decision_model))
     return
 end
@@ -4815,20 +4816,81 @@ function PSI._update_parameter_values!(
     model::PSI.DecisionModel,
     state::PSI.DatasetContainer{PSI.DataFrameDataset},
 ) where {T <: Union{JuMP.VariableRef, Float64}, U <: Union{EnergyDABidOut, EnergyDABidIn}}
-    @show typeof(model)
+    @show PSI.get_name(model)
     current_time = PSI.get_current_time(model)
     state_values = PSI.get_dataset_values(state, PSI.get_attribute_key(attributes))
     component_names, time = axes(parameter_array)
-    resolution = PSI.get_resolution(model)
+    @show resolution = PSI.get_resolution(model)
+    @show Dates.Minute(resolution)
     state_data = PSI.get_dataset(state, PSI.get_attribute_key(attributes))
     state_timestamps = state_data.timestamps
-    max_state_index = length(state_data)
+    @show max_state_index = length(state_data)
 
-    state_data_index = PSI.find_timestamp_index(state_timestamps, current_time)
+    @show state_data_index = PSI.find_timestamp_index(state_timestamps, current_time)
     sim_timestamps = range(current_time; step=resolution, length=time[end])
     @show time
     for t in time
-        error("Don't use 12")
+        if resolution < Dates.Minute(10)
+            t_step = 1
+            #if t > 1
+            #    continue
+            #end
+        else
+            t_step = 12
+        end
+        #error("Don't use 12")
+        @show timestamp_ix = min(max_state_index, state_data_index + t_step)
+        @debug "parameter horizon is over the step" max_state_index > state_data_index + 1
+        @show t
+        @show state_timestamps[timestamp_ix]
+        @show sim_timestamps[t]
+        if state_timestamps[timestamp_ix] <= sim_timestamps[t]
+            state_data_index = timestamp_ix
+        end
+        @show state_data_index
+        if state_data_index > 288
+            continue
+        end
+        for name in component_names
+            # Pass indices in this way since JuMP DenseAxisArray don't support view()
+            @show state_value = state_values[state_data_index, name]
+            if !isfinite(state_value)
+                error(
+                    "The value for the system state used in $(encode_key_as_string(PSI.get_attribute_key(attributes))) is not a finite value $(state_value) \
+                     This is commonly caused by referencing a state value at a time when such decision hasn't been made. \
+                     Consider reviewing your models' horizon and interval definitions",
+                )
+            end
+            PSI._set_param_value!(parameter_array, state_value, name, t)
+        end
+    end
+    return
+end
+
+#=
+function PSI._update_parameter_values!(
+    parameter_array::AbstractArray{T},
+    attributes::PSI.VariableValueAttributes,
+    ::Type{<:PSY.HybridSystem},
+    model::PSI.DecisionModel{V},
+    state::PSI.DatasetContainer{PSI.DataFrameDataset},
+) where {T <: Union{JuMP.VariableRef, Float64}, V <: HybridDecisionProblem}
+    error("here")
+    @show PSI.get_name(model)
+    current_time = PSI.get_current_time(model)
+    state_values = PSI.get_dataset_values(state, PSI.get_attribute_key(attributes))
+    component_names, time = axes(parameter_array)
+    @show resolution = PSI.get_resolution(model)
+    @show Dates.Hour(resolution)
+    state_data = PSI.get_dataset(state, PSI.get_attribute_key(attributes))
+    state_timestamps = state_data.timestamps
+    @show max_state_index = length(state_data)
+
+    @show state_data_index = PSI.find_timestamp_index(state_timestamps, current_time)
+    sim_timestamps = range(current_time; step=resolution, length=time[end])
+    @show time
+    for t in time
+        #error("Don't use 12")
         @show timestamp_ix = min(max_state_index, state_data_index + 12)
         @debug "parameter horizon is over the step" max_state_index > state_data_index + 1
         if state_timestamps[timestamp_ix] <= sim_timestamps[t]
@@ -4845,6 +4907,50 @@ function PSI._update_parameter_values!(
                 )
             end
             PSI._set_param_value!(parameter_array, state_value, name, t)
+        end
+    end
+    return
+end
+=#
+
+function PSI.add_feedforward_arguments!(
+    container::PSI.OptimizationContainer,
+    model::PSI.DeviceModel,
+    devices::Vector{V},
+) where {V <: PSY.HybridSystem}
+    for ff in PSI.get_feedforwards(model)
+        #@debug "arguments" ff V _group = LOG_GROUP_FEEDFORWARDS_CONSTRUCTION
+        PSI._add_feedforward_arguments!(container, model, devices, ff)
+    end
+    return
+end
+
+function PSI._add_feedforward_arguments!(
+    container::PSI.OptimizationContainer,
+    model::PSI.DeviceModel,
+    devices::Vector{T},
+    ff::PSI.AbstractAffectFeedforward,
+) where {T <: PSY.HybridSystem}
+    parameter_type = PSI.get_default_parameter_type(ff, T)
+    PSI.add_parameters!(container, parameter_type, ff, model, devices)
+    return
+end
+
+function PSI._fix_parameter_value!(
+    container::PSI.OptimizationContainer,
+    parameter_array::PSI.JuMPFloatArray,
+    parameter_attributes::PSI.VariableValueAttributes{
+        PowerSimulations.VariableKey{U, PSY.HybridSystem},
+    },
+) where {U <: Union{EnergyDABidIn, EnergyDABidOut}}
+    @error("here")
+    affected_variable_keys = parameter_attributes.affected_keys
+    for var_key in affected_variable_keys
+        variable = PSI.get_variable(container, var_key)
+        component_name_var, time_var = axes(variable)
+        component_names, time = axes(parameter_array)
+        for t in time_var, name in component_names
+            JuMP.fix(variable[name, t], parameter_array[name, t]; force=true)
         end
     end
     return

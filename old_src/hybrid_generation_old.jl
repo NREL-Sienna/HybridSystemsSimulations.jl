@@ -1997,7 +1997,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
 
     for t in T_rt
         # RT Bid Limits
-        #@show t
+        # t
         constraint_rt_bid_up_out[t] = JuMP.@constraint(
             model,
             eb_rt_out[t] + sb_ru_rt_out[t] + sb_spin_rt_out[t] <= P_max_pcc

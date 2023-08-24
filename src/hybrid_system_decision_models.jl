@@ -1889,7 +1889,6 @@ function add_constraints!(
 } where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
-    @show T
     return
 end
 
@@ -4816,19 +4815,19 @@ function PSI._update_parameter_values!(
     model::PSI.DecisionModel,
     state::PSI.DatasetContainer{PSI.InMemoryDataset},
 ) where {T <: Union{JuMP.VariableRef, Float64}, U <: Union{EnergyDABidOut, EnergyDABidIn}}
-    @show PSI.get_name(model)
+    PSI.get_name(model)
     current_time = PSI.get_current_time(model)
     state_values = PSI.get_dataset_values(state, PSI.get_attribute_key(attributes))
     component_names, time = axes(parameter_array)
-    @show resolution = PSI.get_resolution(model)
-    @show Dates.Minute(resolution)
+    resolution = PSI.get_resolution(model)
+    Dates.Minute(resolution)
     state_data = PSI.get_dataset(state, PSI.get_attribute_key(attributes))
     state_timestamps = state_data.timestamps
-    @show max_state_index = length(state_data)
+    max_state_index = PSI.get_num_rows(state_data)
 
-    @show state_data_index = PSI.find_timestamp_index(state_timestamps, current_time)
+    state_data_index = PSI.find_timestamp_index(state_timestamps, current_time)
     sim_timestamps = range(current_time; step=resolution, length=time[end])
-    @show time
+    time
     for t in time
         if resolution < Dates.Minute(10)
             t_step = 1
@@ -4839,24 +4838,21 @@ function PSI._update_parameter_values!(
             t_step = 12
         end
         #error("Don't use 12")
-        @show timestamp_ix = min(max_state_index, state_data_index + t_step)
+        timestamp_ix = min(max_state_index, state_data_index + t_step)
         @debug "parameter horizon is over the step" max_state_index > state_data_index + 1
-        @show t
-        @show state_timestamps[timestamp_ix]
-        @show sim_timestamps[t]
         if state_timestamps[timestamp_ix] <= sim_timestamps[t]
             state_data_index = timestamp_ix
         end
-        @show state_data_index
+        state_data_index
         if state_data_index > 288
             continue
         end
         for name in component_names
             # Pass indices in this way since JuMP DenseAxisArray don't support view()
-            @show state_value = state_values[state_data_index, name]
+            state_value = state_values[name, state_data_index]
             if !isfinite(state_value)
                 error(
-                    "The value for the system state used in $(encode_key_as_string(PSI.get_attribute_key(attributes))) is not a finite value $(state_value) \
+                    "The value for the system state used in $(PSI.encode_key_as_string(PSI.get_attribute_key(attributes))) is not a finite value $(state_value) \
                      This is commonly caused by referencing a state value at a time when such decision hasn't been made. \
                      Consider reviewing your models' horizon and interval definitions",
                 )
@@ -4876,29 +4872,29 @@ function PSI._update_parameter_values!(
     state::PSI.DatasetContainer{PSI.InMemoryDataset},
 ) where {T <: Union{JuMP.VariableRef, Float64}, V <: HybridDecisionProblem}
     error("here")
-    @show PSI.get_name(model)
+     PSI.get_name(model)
     current_time = PSI.get_current_time(model)
     state_values = PSI.get_dataset_values(state, PSI.get_attribute_key(attributes))
     component_names, time = axes(parameter_array)
-    @show resolution = PSI.get_resolution(model)
-    @show Dates.Hour(resolution)
+     resolution = PSI.get_resolution(model)
+     Dates.Hour(resolution)
     state_data = PSI.get_dataset(state, PSI.get_attribute_key(attributes))
     state_timestamps = state_data.timestamps
-    @show max_state_index = length(state_data)
+     max_state_index = length(state_data)
 
-    @show state_data_index = PSI.find_timestamp_index(state_timestamps, current_time)
+     state_data_index = PSI.find_timestamp_index(state_timestamps, current_time)
     sim_timestamps = range(current_time; step=resolution, length=time[end])
-    @show time
+     time
     for t in time
         #error("Don't use 12")
-        @show timestamp_ix = min(max_state_index, state_data_index + 12)
+         timestamp_ix = min(max_state_index, state_data_index + 12)
         @debug "parameter horizon is over the step" max_state_index > state_data_index + 1
         if state_timestamps[timestamp_ix] <= sim_timestamps[t]
             state_data_index = timestamp_ix
         end
         for name in component_names
             # Pass indices in this way since JuMP DenseAxisArray don't support view()
-            @show state_value = state_values[state_data_index, name]
+             state_value = state_values[state_data_index, name]
             if !isfinite(state_value)
                 error(
                     "The value for the system state used in $(encode_key_as_string(get_attribute_key(attributes))) is not a finite value $(state_value) \

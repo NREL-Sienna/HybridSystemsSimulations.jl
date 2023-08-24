@@ -266,22 +266,22 @@ uc_p_in = read_realized_variable(results_uc, "ActivePowerInVariable__HybridSyste
 p1 = plot([
     scatter(
         x=dates_uc,
-        y=vcat(values(da_out)...)[!, 1],
+        y=vcat(values(da_out)...)[!, 2],
         name="DA Bid Out",
         line_shape="hv",
     ),
-    scatter(x=dates_uc, y=vcat(values(da_in)...)[!, 1], name="DA Bid In", line_shape="hv"),
+    scatter(x=dates_uc, y=vcat(values(da_in)...)[!, 2], name="DA Bid In", line_shape="hv"),
     scatter(x=uc_p_out[!, 1], y=uc_p_out[!, 2] / 100.0, name="UC P Out", line_shape="hv"),
     scatter(x=uc_p_in[!, 1], y=uc_p_in[!, 2] / 100.0, name="UC P In", line_shape="hv"),
     scatter(
         x=dates_uc,
-        y=vcat(values(da_out_rt)...)[!, 1],
+        y=vcat(values(da_out_rt)...)[!, 2],
         name="DA Bid Out RT",
         line_shape="hv",
     ),
     scatter(
         x=dates_uc,
-        y=vcat(values(da_in_rt)...)[!, 1],
+        y=vcat(values(da_in_rt)...)[!, 2],
         name="DA Bid In RT",
         line_shape="hv",
     ),
@@ -421,6 +421,12 @@ p1 = plot([
         line_shape="hv",
     ),
     scatter(
+        x=da_rt_forecast_re_available[!, "DateTime"],
+        y=da_rt_forecast_re_available[!, 2],
+        name="RE Forecast DA",
+        line_shape="hv",
+    ),
+    scatter(
         x=rt_forecast_re_available[!, "DateTime"],
         y=rt_forecast_re_available[!, 2],
         name="RE Available",
@@ -449,6 +455,18 @@ p1 = plot([
         line_shape="hv",
         mode="none",
         stackgroup="two",
+    ),
+    scatter(
+        x=da_rt_forecast_out[!, "DateTime"],
+        y=da_rt_forecast_out[!, 2],
+        name="DA RT Bid Out",
+        line_shape="hv",
+    ),
+    scatter(
+        x=da_rt_forecast_in[!, "DateTime"],
+        y=-1 * da_rt_forecast_in[!, 2],
+        name="DA RT Bid In",
+        line_shape="hv",
     ),
     scatter(
         x=rt_forecast_re[!, "DateTime"],

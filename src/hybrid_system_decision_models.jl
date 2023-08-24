@@ -4771,7 +4771,7 @@ end
 function PSI.update_decision_state!(
     state::PSI.SimulationState,
     key::PSI.VariableKey{T, PSY.HybridSystem},
-    store_data::DataFrames.DataFrame,
+    store_data::PSI.DenseAxisArray{Float64},
     simulation_time::Dates.DateTime,
     model_params::PSI.ModelStoreParams,
 ) where {T <: Union{EnergyDABidOut, EnergyDABidIn}}
@@ -4786,19 +4786,19 @@ function PSI.update_decision_state!(
     if simulation_time > PSI.get_end_of_step_timestamp(state_data)
         state_data_index = 1
         state_data.timestamps[:] .=
-            range(simulation_time; step=state_resolution, length=length(state_data))
+            range(simulation_time; step=state_resolution, length=PSI.get_num_rows(state_data))
     else
         state_data_index = PSI.find_timestamp_index(state_timestamps, simulation_time)
     end
 
     offset = resolution_ratio - 1
-    result_time_index = axes(store_data)[1]
+    result_time_index = axes(store_data)[2]
     PSI.set_update_timestamp!(state_data, simulation_time)
     for t in result_time_index
         state_range = state_data_index:(state_data_index + offset)
-        for name in DataFrames.names(store_data), i in state_range
+        for name in axes(state_data.values)[1], i in state_range
             # TODO: We could also interpolate here
-            state_data.values[i, name] = store_data[t, name]
+            state_data.values[name, i] = store_data[name, t]
         end
         PSI.set_last_recorded_row!(state_data, state_range[end])
         state_data_index += resolution_ratio
@@ -4815,19 +4815,15 @@ function PSI._update_parameter_values!(
     model::PSI.DecisionModel,
     state::PSI.DatasetContainer{PSI.InMemoryDataset},
 ) where {T <: Union{JuMP.VariableRef, Float64}, U <: Union{EnergyDABidOut, EnergyDABidIn}}
-    PSI.get_name(model)
     current_time = PSI.get_current_time(model)
     state_values = PSI.get_dataset_values(state, PSI.get_attribute_key(attributes))
     component_names, time = axes(parameter_array)
     resolution = PSI.get_resolution(model)
-    Dates.Minute(resolution)
     state_data = PSI.get_dataset(state, PSI.get_attribute_key(attributes))
     state_timestamps = state_data.timestamps
     max_state_index = PSI.get_num_rows(state_data)
-
     state_data_index = PSI.find_timestamp_index(state_timestamps, current_time)
     sim_timestamps = range(current_time; step=resolution, length=time[end])
-    time
     for t in time
         if resolution < Dates.Minute(10)
             t_step = 1
@@ -4843,7 +4839,6 @@ function PSI._update_parameter_values!(
         if state_timestamps[timestamp_ix] <= sim_timestamps[t]
             state_data_index = timestamp_ix
         end
-        state_data_index
         if state_data_index > 288
             continue
         end
@@ -4862,52 +4857,6 @@ function PSI._update_parameter_values!(
     end
     return
 end
-
-#=
-function PSI._update_parameter_values!(
-    parameter_array::AbstractArray{T},
-    attributes::PSI.VariableValueAttributes,
-    ::Type{<:PSY.HybridSystem},
-    model::PSI.DecisionModel{V},
-    state::PSI.DatasetContainer{PSI.InMemoryDataset},
-) where {T <: Union{JuMP.VariableRef, Float64}, V <: HybridDecisionProblem}
-    error("here")
-     PSI.get_name(model)
-    current_time = PSI.get_current_time(model)
-    state_values = PSI.get_dataset_values(state, PSI.get_attribute_key(attributes))
-    component_names, time = axes(parameter_array)
-     resolution = PSI.get_resolution(model)
-     Dates.Hour(resolution)
-    state_data = PSI.get_dataset(state, PSI.get_attribute_key(attributes))
-    state_timestamps = state_data.timestamps
-     max_state_index = length(state_data)
-
-     state_data_index = PSI.find_timestamp_index(state_timestamps, current_time)
-    sim_timestamps = range(current_time; step=resolution, length=time[end])
-     time
-    for t in time
-        #error("Don't use 12")
-         timestamp_ix = min(max_state_index, state_data_index + 12)
-        @debug "parameter horizon is over the step" max_state_index > state_data_index + 1
-        if state_timestamps[timestamp_ix] <= sim_timestamps[t]
-            state_data_index = timestamp_ix
-        end
-        for name in component_names
-            # Pass indices in this way since JuMP DenseAxisArray don't support view()
-             state_value = state_values[state_data_index, name]
-            if !isfinite(state_value)
-                error(
-                    "The value for the system state used in $(encode_key_as_string(get_attribute_key(attributes))) is not a finite value $(state_value) \
-                     This is commonly caused by referencing a state value at a time when such decision hasn't been made. \
-                     Consider reviewing your models' horizon and interval definitions",
-                )
-            end
-            PSI._set_param_value!(parameter_array, state_value, name, t)
-        end
-    end
-    return
-end
-=#
 
 function PSI.add_feedforward_arguments!(
     container::PSI.OptimizationContainer,
@@ -4939,7 +4888,6 @@ function PSI._fix_parameter_value!(
         PowerSimulations.VariableKey{U, PSY.HybridSystem},
     },
 ) where {U <: Union{EnergyDABidIn, EnergyDABidOut}}
-    @error("here")
     affected_variable_keys = parameter_attributes.affected_keys
     for var_key in affected_variable_keys
         variable = PSI.get_variable(container, var_key)

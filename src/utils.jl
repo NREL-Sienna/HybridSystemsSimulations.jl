@@ -34,7 +34,7 @@ function _update_parameter_values!(
     attributes::TimeSeriesAttributes{U},
     ::Type{V},
     model::DecisionModel,
-    ::DatasetContainer{DataFrameDataset},
+    ::DatasetContainer{InMemoryDataset},
 ) where {U <: PSY.AbstractDeterministic, V <: PSY.HybridSystem}
     initial_forecast_time = get_current_time(model) # Function not well defined for DecisionModels
     horizon = get_time_steps(get_optimization_container(model))[end]

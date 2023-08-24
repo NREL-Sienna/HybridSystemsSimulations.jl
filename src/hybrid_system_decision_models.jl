@@ -609,7 +609,7 @@ end
 function PSI.update_parameter_values!(
     model::PSI.DecisionModel{T},
     key::PSI.ParameterKey{U, PSY.HybridSystem},
-    ::PSI.DatasetContainer{PSI.DataFrameDataset},
+    ::PSI.DatasetContainer{PSI.InMemoryDataset},
 ) where {T <: HybridDecisionProblem, U <: Union{DayAheadEnergyPrice, RealTimeEnergyPrice}}
     container = PSI.get_optimization_container(model)
     @assert !PSI.is_synchronized(container)
@@ -4814,7 +4814,7 @@ function PSI._update_parameter_values!(
     },
     ::Type{<:PSY.HybridSystem},
     model::PSI.DecisionModel,
-    state::PSI.DatasetContainer{PSI.DataFrameDataset},
+    state::PSI.DatasetContainer{PSI.InMemoryDataset},
 ) where {T <: Union{JuMP.VariableRef, Float64}, U <: Union{EnergyDABidOut, EnergyDABidIn}}
     @show PSI.get_name(model)
     current_time = PSI.get_current_time(model)
@@ -4873,7 +4873,7 @@ function PSI._update_parameter_values!(
     attributes::PSI.VariableValueAttributes,
     ::Type{<:PSY.HybridSystem},
     model::PSI.DecisionModel{V},
-    state::PSI.DatasetContainer{PSI.DataFrameDataset},
+    state::PSI.DatasetContainer{PSI.InMemoryDataset},
 ) where {T <: Union{JuMP.VariableRef, Float64}, V <: HybridDecisionProblem}
     error("here")
     @show PSI.get_name(model)

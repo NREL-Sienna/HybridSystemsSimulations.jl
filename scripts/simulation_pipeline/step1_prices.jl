@@ -12,6 +12,7 @@ using PowerSystemCaseBuilder
 using InfrastructureSystems
 using PowerNetworkMatrices
 using HybridSystemsSimulations
+using HydroPowerSimulations
 using StorageSystemsSimulations
 import OrderedCollections: OrderedDict
 const PSY = PowerSystems

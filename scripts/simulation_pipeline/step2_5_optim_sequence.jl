@@ -18,12 +18,7 @@ modify_ren_curtailment_cost!(sys_rts_merchant_da)
 modify_ren_curtailment_cost!(sys_rts_merchant_rt)
 add_hybrid_to_chuhsi_bus!(sys_rts_merchant_da)
 add_hybrid_to_chuhsi_bus!(sys_rts_merchant_rt)
-
-interval_DA = Hour(24)
-horizon_DA = 24
 transform_single_time_series!(sys_rts_da, horizon_DA, interval_DA)
-interval_RT = Hour(1)
-horizon_RT = 24
 transform_single_time_series!(sys_rts_merchant_da, horizon_DA * 12, interval_DA)
 transform_single_time_series!(sys_rts_merchant_rt, horizon_RT, interval_RT)
 
@@ -177,9 +172,10 @@ sequence = SimulationSequence(
     ini_cond_chronology=InterProblemChronology(),
 )
 
+sim_steps = 3 # num_steps - 2
 sim = Simulation(
     name="compact_sim",
-    steps=num_steps - 1,
+    steps=sim_steps,
     models=models,
     sequence=sequence,
     initial_time=starttime,
@@ -208,8 +204,8 @@ uc_in = read_realized_variable(results_uc, "ActivePowerOutVariable__HybridSystem
 plot(
     [
         scatter(
-            x=dates_uc[1:(24 * 5)],
-            y=prices_uc_centralized[1:(24 * 5)],
+            x=dates_uc[1:(24 * sim_steps)],
+            y=prices_uc_centralized[1:(24 * sim_steps)],
             name="Centralized DA Price",
             line_shape="hv",
         ),
@@ -219,8 +215,8 @@ plot(
 )
 
 tmap = get_ext(hy_sys_da)["tmap"]
-tmap2 = [div(k - 1, Int(24 * 5 * 12 / (24 * 5))) + 1 for k in 1:(24 * 5 * 12)]
-DART = [prices_uc_centralized[tmap2[t]] - prices_ed_centralized[t] for t in 1:(24 * 5 * 12)]
+tmap2 = [div(k - 1, Int(24 * sim_steps * 12 / (24 * sim_steps))) + 1 for k in 1:(24 * sim_steps * 12)]
+DART = [prices_uc_centralized[tmap2[t]] - prices_ed_centralized[t] for t in 1:(24 * sim_steps * 12)]
 # Store Prices from Simulation #
 #=
 DA_prices_upd = DataFrame()
@@ -233,13 +229,13 @@ CSV.write("scripts/simulation_pipeline/inputs/chuhsi_DA_prices_updated_sim.csv",
 prices_ed_centralized = prices_ed_dcp
 prices_ed_upd =
     read_realized_dual(results_ed, "CopperPlateBalanceConstraint__System")[!, 2] ./ 100.0 *
-    60 / 5
+    60 / sim_steps
 
 plot(
     [
         scatter(
-            x=dates_ed[1:(24 * 5 * 12)],
-            y=prices_ed_centralized[1:(24 * 5 * 12)],
+            x=dates_ed[1:(24 * sim_steps * 12)],
+            y=prices_ed_centralized[1:(24 * sim_steps * 12)],
             name="Centralized RT Price",
             line_shape="hv",
         ),
@@ -255,7 +251,9 @@ rt_out = read_realized_variable(result_merch_RT, "EnergyRTBidOut__HybridSystem")
 rt_in = read_realized_variable(result_merch_RT, "EnergyRTBidIn__HybridSystem")
 
 da_out = read_variable(result_merch_DA, "EnergyDABidOut__HybridSystem")
+da_out_realized = vcat([values(vdf)[!,2][1:24] for vdf in values(da_out)]...)
 da_in = read_variable(result_merch_DA, "EnergyDABidIn__HybridSystem")
+da_in_realized = vcat([values(vdf)[!,2][1:24] for vdf in values(da_in)]...)
 
 da_out_rt = read_variable(result_merch_RT, "EnergyDABidOut__HybridSystem")
 da_in_rt = read_variable(result_merch_RT, "EnergyDABidIn__HybridSystem")
@@ -266,11 +264,11 @@ uc_p_in = read_realized_variable(results_uc, "ActivePowerInVariable__HybridSyste
 p1 = plot([
     scatter(
         x=dates_uc,
-        y=vcat(values(da_out)...)[!, 2],
+        y=da_out_realized,
         name="DA Bid Out",
         line_shape="hv",
     ),
-    scatter(x=dates_uc, y=vcat(values(da_in)...)[!, 2], name="DA Bid In", line_shape="hv"),
+    scatter(x=dates_uc, y=da_in_realized, name="DA Bid In", line_shape="hv"),
     scatter(x=uc_p_out[!, 1], y=uc_p_out[!, 2] / 100.0, name="UC P Out", line_shape="hv"),
     scatter(x=uc_p_in[!, 1], y=uc_p_in[!, 2] / 100.0, name="UC P In", line_shape="hv"),
     scatter(
@@ -338,11 +336,20 @@ rt_forecast_re_available =
     read_realized_parameter(result_merch_RT, "RenewablePowerTimeSeries__HybridSystem")
 rt_soc = read_realized_variable(result_merch_RT, "EnergyVariable__HybridSystem")
 
+rt_price_forecast =
+    read_realized_parameter(result_merch_RT, "RealTimeEnergyPrice__HybridSystem__EnergyRTBidOut")
+
 p1 = plot([
     scatter(
-        x=dates_ed[1:(24 * 5 * 12)],
-        y=prices_ed_centralized[1:(24 * 5 * 12)],
+        x=dates_ed[1:(24 * sim_steps * 12)],
+        y=prices_ed_centralized[1:(24 * sim_steps * 12)],
         name="Centralized RT Price",
+        line_shape="hv",
+    ),
+    scatter(
+        x=rt_price_forecast[!, "DateTime"],
+        y=rt_price_forecast[!, 2],
+        name="Centralized RT Price Forecast",
         line_shape="hv",
     ),
     scatter(
@@ -405,9 +412,15 @@ p1 = plot([
 
 p1 = plot([
     scatter(
-        x=dates_ed[1:(24 * 5 * 12)],
-        y=prices_ed_centralized[1:(24 * 5 * 12)],
+        x=dates_ed[1:(24 * sim_steps * 12)],
+        y=prices_ed_centralized[1:(24 * sim_steps * 12)],
         name="Centralized RT Price",
+        line_shape="hv",
+    ),
+    scatter(
+        x=rt_price_forecast[!, "DateTime"],
+        y=-1*rt_price_forecast[!, 2],
+        name="Centralized RT Price Forecast",
         line_shape="hv",
     ),
     #scatter(x=da_out[!, 1], y=da_out[!, 2], name="DA Bid Out", line_shape="hv"),

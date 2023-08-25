@@ -4827,9 +4827,6 @@ function PSI._update_parameter_values!(
     for t in time
         if resolution < Dates.Minute(10)
             t_step = 1
-            #if t > 1
-            #    continue
-            #end
         else
             t_step = 12
         end
@@ -4838,9 +4835,6 @@ function PSI._update_parameter_values!(
         @debug "parameter horizon is over the step" max_state_index > state_data_index + 1
         if state_timestamps[timestamp_ix] <= sim_timestamps[t]
             state_data_index = timestamp_ix
-        end
-        if state_data_index > 288
-            continue
         end
         for name in component_names
             # Pass indices in this way since JuMP DenseAxisArray don't support view()

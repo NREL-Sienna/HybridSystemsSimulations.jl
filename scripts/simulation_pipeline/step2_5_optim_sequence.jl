@@ -298,7 +298,9 @@ p1 = plot([
         name="Realized RT Bid Out",
         line_shape="hv",
     ),
-])
+],
+Layout(title="RT Bid Adjustments Out", yaxis_title="x100 MW")
+)
 
 p2 = plot([
     scatter(
@@ -313,7 +315,9 @@ p2 = plot([
         name="Realized RT Bid In",
         line_shape="hv",
     ),
-])
+],
+Layout(title="RT Bid Adjustments In", yaxis_title="x100 MW")
+)
 
 [p1; p2]
 
@@ -339,19 +343,17 @@ rt_soc = read_realized_variable(result_merch_RT, "EnergyVariable__HybridSystem")
 rt_price_forecast =
     read_realized_parameter(result_merch_RT, "RealTimeEnergyPrice__HybridSystem__EnergyRTBidOut")
 
+da_rt_price_forecast =
+    read_realized_parameter(result_merch_DA, "RealTimeEnergyPrice__HybridSystem__EnergyRTBidIn")
+
+
 p1 = plot([
-    scatter(
-        x=dates_ed[1:(24 * sim_steps * 12)],
-        y=prices_ed_centralized[1:(24 * sim_steps * 12)],
-        name="Centralized RT Price",
-        line_shape="hv",
-    ),
-    scatter(
-        x=rt_price_forecast[!, "DateTime"],
-        y=rt_price_forecast[!, 2],
-        name="Centralized RT Price Forecast",
-        line_shape="hv",
-    ),
+    #scatter(
+    #    x=da_rt_price_forecast[!, "DateTime"],
+    #    y=da_rt_price_forecast[!, 2],
+    #    name="Centralized RT Price",
+    #    line_shape="hv",
+    #),
     scatter(
         x=da_rt_forecast_out[!, "DateTime"],
         y=da_rt_forecast_out[!, 2],
@@ -364,12 +366,12 @@ p1 = plot([
         name="DA RT Bid In",
         line_shape="hv",
     ),
-    scatter(
-        x=da_rt_soc[!, "DateTime"],
-        y=da_rt_soc[!, 2] / 100.0,
-        name="DA SoC",
-        line_shape="hv",
-    ),
+    #scatter(
+    #    x=da_rt_soc[!, "DateTime"],
+    #    y=da_rt_soc[!, 2] / 100.0,
+    #    name="DA SoC",
+    #    line_shape="hv",
+    #),
     scatter(
         x=da_rt_forecast_re_available[!, "DateTime"],
         y=da_rt_forecast_re_available[!, 2],
@@ -408,31 +410,54 @@ p1 = plot([
         mode="none",
         stackgroup="two",
     ),
-])
+],
+Layout(title="Energy Products Offering", yaxis_title="x100 MW")
+)
+
+p1_soc = plot(
+    scatter(
+        x=da_rt_soc[!, "DateTime"],
+        y=da_rt_soc[!, 2] / 100.0,
+        name="DA SoC",
+        line_shape="hv",
+    ),
+    Layout(title="Battery State of Charge", yaxis_title="x100 MWh")
+)
+
+p1_prices = plot([
+    scatter(
+        x=dates_uc[1:(24 * sim_steps)],
+        y=prices_uc_centralized[1:(24 * sim_steps)],
+        name="DA Price Forecast",
+        line_shape="hv",
+    ),
+ scatter(
+        x=da_rt_price_forecast[!, "DateTime"],
+        y=da_rt_price_forecast[!, 2],
+        name="RT Price Forecast",
+        line_shape="hv",
+    )],
+    Layout(title="Price Forecasts", yaxis_title="\$/MWh")
+    )
+[p1_prices; p1; p1_soc]
 
 p1 = plot([
-    scatter(
-        x=dates_ed[1:(24 * sim_steps * 12)],
-        y=prices_ed_centralized[1:(24 * sim_steps * 12)],
-        name="Centralized RT Price",
-        line_shape="hv",
-    ),
-    scatter(
-        x=rt_price_forecast[!, "DateTime"],
-        y=-1*rt_price_forecast[!, 2],
-        name="Centralized RT Price Forecast",
-        line_shape="hv",
-    ),
+    #scatter(
+    #    x=dates_ed[1:(24 * sim_steps * 12)],
+    #    y=prices_ed_centralized[1:(24 * sim_steps * 12)],
+    #    name="Centralized RT Price",
+    #    line_shape="hv",
+    #),
     #scatter(x=da_out[!, 1], y=da_out[!, 2], name="DA Bid Out", line_shape="hv"),
     #scatter(x=da_in[!, 1], y=da_in[!, 2], name="DA Bid In", line_shape="hv"),
     scatter(x=rt_out[!, "DateTime"], y=rt_out[!, 2], name="RT Bid Out", line_shape="hv"),
     scatter(x=rt_in[!, "DateTime"], y=-1 * rt_in[!, 2], name="RT Bid In", line_shape="hv"),
-    scatter(
-        x=rt_soc[!, "DateTime"],
-        y=rt_soc[!, 2] / 100.0,
-        name="RT SoC",
-        line_shape="hv",
-    ),
+    #scatter(
+    #    x=rt_soc[!, "DateTime"],
+    #    y=rt_soc[!, 2] / 100.0,
+    #    name="RT SoC",
+    #    line_shape="hv",
+    #),
     scatter(
         x=da_rt_forecast_re_available[!, "DateTime"],
         y=da_rt_forecast_re_available[!, 2],
@@ -489,4 +514,18 @@ p1 = plot([
         mode="none",
         stackgroup="two",
     ),
-])
+],
+Layout(title="Energy Products Offering", yaxis_title="x100 MW")
+)
+
+p1_soc = plot(
+    scatter(
+        x=rt_soc[!, "DateTime"],
+        y=rt_soc[!, 2] / 100.0,
+        name="RT SoC",
+        line_shape="hv",
+    ),
+    Layout(title="Battery State of Charge", yaxis_title="x100 MWh")
+)
+
+[p1_prices; p1; p1_soc]

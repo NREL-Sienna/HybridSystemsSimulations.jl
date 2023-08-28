@@ -3,9 +3,13 @@ const HOURS_IN_DAY = 24
 
 struct RenewablePowerTimeSeries <: PSI.TimeSeriesParameter end
 struct ElectricLoadTimeSeries <: PSI.TimeSeriesParameter end
+
 struct DayAheadEnergyPrice <: PSI.ObjectiveFunctionParameter end
 struct RealTimeEnergyPrice <: PSI.ObjectiveFunctionParameter end
 struct AncillaryServicePrice <: PSI.ObjectiveFunctionParameter end
+
+struct ChargeCycleLimit <: PSI.RightHandSideParameter end
+struct DischargeCycleLimit <: PSI.RightHandSideParameter end
 
 PSI.should_write_resulting_value(::Type{DayAheadEnergyPrice}) = true
 PSI.should_write_resulting_value(::Type{RealTimeEnergyPrice}) = true

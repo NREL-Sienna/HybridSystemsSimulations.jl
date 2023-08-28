@@ -2927,7 +2927,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
 
     for t in T_da, dev in hybrids
         name = PSY.get_name(dev)
-        lin_cost_da_out = - 100.0 * Δt_DA * λ_da_pos[name, t] * eb_da_out[name, t]
+        lin_cost_da_out = -100.0 * Δt_DA * λ_da_pos[name, t] * eb_da_out[name, t]
         lin_cost_da_in = 100.0 * Δt_DA * λ_da_neg[name, t] * eb_da_in[name, t]
         PSI.add_to_objective_variant_expression!(container, lin_cost_da_out)
         PSI.add_to_objective_variant_expression!(container, lin_cost_da_in)
@@ -2958,8 +2958,10 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
                 typeof(service),
                 service_name,
             )
-            service_out_cost = - 100.0 * Δt_DA * price_service_out[name, t] * sb_service_out[name, t]
-            service_in_cost = - 100.0 * Δt_DA * price_service_in[name, t] * sb_service_in[name, t]
+            service_out_cost =
+                -100.0 * Δt_DA * price_service_out[name, t] * sb_service_out[name, t]
+            service_in_cost =
+                -100.0 * Δt_DA * price_service_in[name, t] * sb_service_in[name, t]
             PSI.add_to_objective_variant_expression!(container, service_out_cost)
             PSI.add_to_objective_variant_expression!(container, service_in_cost)
         end
@@ -3831,8 +3833,10 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridBilevel
                 typeof(service),
                 service_name,
             )
-            service_out_cost = -100.0 * Δt_DA * price_service_out[name, t] * sb_service_out[name, t]
-            service_in_cost = -100.0 * Δt_DA * price_service_in[name, t] * sb_service_in[name, t]
+            service_out_cost =
+                -100.0 * Δt_DA * price_service_out[name, t] * sb_service_out[name, t]
+            service_in_cost =
+                -100.0 * Δt_DA * price_service_in[name, t] * sb_service_in[name, t]
             PSI.add_to_objective_variant_expression!(container, service_out_cost)
             PSI.add_to_objective_variant_expression!(container, service_in_cost)
         end
@@ -3877,7 +3881,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridBilevel
         lin_cost_rt_out = -100.0 * Δt_RT * λ_rt_pos[name, t] * p_out[name, t]
         lin_cost_rt_in = 100.0 * Δt_RT * λ_rt_neg[name, t] * p_in[name, t]
         lin_cost_dart_out = 100.0 * Δt_RT * λ_dart_neg[name, t] * eb_da_out[name, tmap[t]]
-        lin_cost_dart_in = - 100.0 * Δt_RT * λ_dart_pos[name, t] * eb_da_in[name, tmap[t]]
+        lin_cost_dart_in = -100.0 * Δt_RT * λ_dart_pos[name, t] * eb_da_in[name, tmap[t]]
         PSI.add_to_objective_variant_expression!(container, lin_cost_rt_out)
         PSI.add_to_objective_variant_expression!(container, lin_cost_rt_in)
         PSI.add_to_objective_variant_expression!(container, lin_cost_dart_out)

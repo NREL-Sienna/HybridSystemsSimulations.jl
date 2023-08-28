@@ -668,7 +668,7 @@ function _update_parameter_values!(
     components = PSI.get_available_components(PSY.HybridSystem, PSI.get_system(model))
     variable =
         PSI.get_variable(container, PSI.get_variable_type(attributes)(), PSY.HybridSystem)
-    @show parameter_multiplier = PSI.get_parameter_multiplier_array(container, key)
+    parameter_multiplier = PSI.get_parameter_multiplier_array(container, key)
     for component in components
         ext = PSY.get_ext(component)
         tmap = ext["tmap"]
@@ -2100,15 +2100,15 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
 
     for t in T_da, dev in hybrids
         name = PSY.get_name(dev)
-        lin_cost_da_out = 100.0*Δt_DA * λ_da_pos[name, t] * eb_da_out[name, t]
-        lin_cost_da_in = -100.0*Δt_DA * λ_da_neg[name, t] * eb_da_in[name, t]
+        lin_cost_da_out = -100.0*Δt_DA * λ_da_pos[name, t] * eb_da_out[name, t]
+        lin_cost_da_in = 100.0*Δt_DA * λ_da_neg[name, t] * eb_da_in[name, t]
         PSI.add_to_objective_variant_expression!(container, lin_cost_da_out)
         PSI.add_to_objective_variant_expression!(container, lin_cost_da_in)
         if !isnothing(dev.thermal_unit)
             t_gen = dev.thermal_unit
             three_cost = PSY.get_operation_cost(t_gen)
             C_th_fix = three_cost.fixed # $/h
-            lin_cost_on_th = -Δt_DA * C_th_fix * on_th[name, t]
+            lin_cost_on_th = Δt_DA * C_th_fix * on_th[name, t]
             PSI.add_to_objective_invariant_expression!(container, lin_cost_on_th)
         end
     end
@@ -2135,10 +2135,10 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
     for dev in hybrids
         name = PSY.get_name(dev)
         for t in T_rt
-            lin_cost_rt_out = 100.0*Δt_RT * λ_rt_pos[name, t] * eb_rt_out[name, t]
-            lin_cost_rt_in = -100.0*Δt_RT * λ_rt_neg[name, t] * eb_rt_in[name, t]
-            lin_cost_dart_out = -100.0*Δt_RT * λ_dart_neg[name, t] * eb_da_out[name, tmap[t]]
-            lin_cost_dart_in = 100.0*Δt_RT * λ_dart_pos[name, t] * eb_da_in[name, tmap[t]]
+            lin_cost_rt_out = -100.0*Δt_RT * λ_rt_pos[name, t] * eb_rt_out[name, t]
+            lin_cost_rt_in = 100.0*Δt_RT * λ_rt_neg[name, t] * eb_rt_in[name, t]
+            lin_cost_dart_out = 100.0*Δt_RT * λ_dart_neg[name, t] * eb_da_out[name, tmap[t]]
+            lin_cost_dart_in = -100.0*Δt_RT * λ_dart_pos[name, t] * eb_da_in[name, tmap[t]]
             PSI.add_to_objective_variant_expression!(container, lin_cost_rt_out)
             PSI.add_to_objective_variant_expression!(container, lin_cost_rt_in)
             PSI.add_to_objective_variant_expression!(container, lin_cost_dart_out)
@@ -2150,13 +2150,13 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
                 second_part = three_cost.variable[2]
                 slope = (second_part[1] - first_part[1]) / (second_part[2] - first_part[2]) # $/MWh
                 C_th_var = slope * 100.0 # Multiply by 100 to transform to $/pu
-                lin_cost_p_th = -Δt_RT * C_th_var * p_th[name, t]
+                lin_cost_p_th = Δt_RT * C_th_var * p_th[name, t]
                 PSI.add_to_objective_invariant_expression!(container, lin_cost_p_th)
             end
             if !isnothing(dev.storage)
                 VOM = dev.storage.operation_cost.variable.cost
-                lin_cost_p_ch = -Δt_RT * VOM * p_ch[name, t]
-                lin_cost_p_ds = -Δt_RT * VOM * p_ds[name, t]
+                lin_cost_p_ch = Δt_RT * VOM * p_ch[name, t]
+                lin_cost_p_ds = Δt_RT * VOM * p_ds[name, t]
                 PSI.add_to_objective_invariant_expression!(container, lin_cost_p_ch)
                 PSI.add_to_objective_invariant_expression!(container, lin_cost_p_ds)
             end
@@ -2164,7 +2164,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
     end
     JuMP.@objective(
         model,
-        MOI.MAX_SENSE,
+        MOI.MIN_SENSE,
         PSI.get_objective_function(container.objective_function)
     )
 

@@ -43,6 +43,7 @@ hy_sys_rt = first(get_components(HybridSystem, sys_rts_merchant_rt))
 PSY.set_ext!(hy_sys_rt, sys_rts_merchant_rt.internal.ext)
 
 template_uc_copperplate = get_uc_copperplate_template(sys_rts_da)
+
 decision_optimizer_DA = DecisionModel(
     MerchantHybridEnergyCase,
     template_uc_copperplate,
@@ -320,6 +321,11 @@ Layout(title="RT Bid Adjustments In", yaxis_title="x100 MW")
 )
 
 [p1; p2]
+
+### Exploration of Models ###
+
+#ed_init = sim.models.decision_models[1]
+#ed_adj = sim.models.decision_models[3]
 
 da_rt_forecast_discharge =
     read_realized_variable(result_merch_DA, "BatteryDischarge__HybridSystem")

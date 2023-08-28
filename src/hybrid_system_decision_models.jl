@@ -638,7 +638,7 @@ function _update_parameter_values!(
         name = PSY.get_name(component)
         for (t, value) in enumerate(λ)
             # Since the DA variables are hourly, this will revert the dt multiplication
-            PSI._set_param_value!(parameter_array, value / dt, name, t)
+            PSI._set_param_value!(parameter_array, value * dt * 100.0, name, t)
             PSI.update_variable_cost!(
                 container,
                 parameter_array,
@@ -668,7 +668,7 @@ function _update_parameter_values!(
     components = PSI.get_available_components(PSY.HybridSystem, PSI.get_system(model))
     variable =
         PSI.get_variable(container, PSI.get_variable_type(attributes)(), PSY.HybridSystem)
-    parameter_multiplier = PSI.get_parameter_multiplier_array(container, key)
+    @show parameter_multiplier = PSI.get_parameter_multiplier_array(container, key)
     for component in components
         ext = PSY.get_ext(component)
         tmap = ext["tmap"]
@@ -2100,8 +2100,8 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
 
     for t in T_da, dev in hybrids
         name = PSY.get_name(dev)
-        lin_cost_da_out = Δt_DA * λ_da_pos[name, t] * eb_da_out[name, t]
-        lin_cost_da_in = -Δt_DA * λ_da_neg[name, t] * eb_da_in[name, t]
+        lin_cost_da_out = 100.0*Δt_DA * λ_da_pos[name, t] * eb_da_out[name, t]
+        lin_cost_da_in = -100.0*Δt_DA * λ_da_neg[name, t] * eb_da_in[name, t]
         PSI.add_to_objective_variant_expression!(container, lin_cost_da_out)
         PSI.add_to_objective_variant_expression!(container, lin_cost_da_in)
         if !isnothing(dev.thermal_unit)
@@ -2135,10 +2135,10 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
     for dev in hybrids
         name = PSY.get_name(dev)
         for t in T_rt
-            lin_cost_rt_out = Δt_RT * λ_rt_pos[name, t] * eb_rt_out[name, t]
-            lin_cost_rt_in = -Δt_RT * λ_rt_neg[name, t] * eb_rt_in[name, t]
-            lin_cost_dart_out = -Δt_RT * λ_dart_neg[name, t] * eb_da_out[name, tmap[t]]
-            lin_cost_dart_in = Δt_RT * λ_dart_pos[name, t] * eb_da_in[name, tmap[t]]
+            lin_cost_rt_out = 100.0*Δt_RT * λ_rt_pos[name, t] * eb_rt_out[name, t]
+            lin_cost_rt_in = -100.0*Δt_RT * λ_rt_neg[name, t] * eb_rt_in[name, t]
+            lin_cost_dart_out = -100.0*Δt_RT * λ_dart_neg[name, t] * eb_da_out[name, tmap[t]]
+            lin_cost_dart_in = 100.0*Δt_RT * λ_dart_pos[name, t] * eb_da_in[name, tmap[t]]
             PSI.add_to_objective_variant_expression!(container, lin_cost_rt_out)
             PSI.add_to_objective_variant_expression!(container, lin_cost_rt_in)
             PSI.add_to_objective_variant_expression!(container, lin_cost_dart_out)

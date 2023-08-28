@@ -2100,8 +2100,8 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
 
     for t in T_da, dev in hybrids
         name = PSY.get_name(dev)
-        lin_cost_da_out = -100.0*Δt_DA * λ_da_pos[name, t] * eb_da_out[name, t]
-        lin_cost_da_in = 100.0*Δt_DA * λ_da_neg[name, t] * eb_da_in[name, t]
+        lin_cost_da_out = -100.0 * Δt_DA * λ_da_pos[name, t] * eb_da_out[name, t]
+        lin_cost_da_in = 100.0 * Δt_DA * λ_da_neg[name, t] * eb_da_in[name, t]
         PSI.add_to_objective_variant_expression!(container, lin_cost_da_out)
         PSI.add_to_objective_variant_expression!(container, lin_cost_da_in)
         if !isnothing(dev.thermal_unit)
@@ -2135,10 +2135,12 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
     for dev in hybrids
         name = PSY.get_name(dev)
         for t in T_rt
-            lin_cost_rt_out = -100.0*Δt_RT * λ_rt_pos[name, t] * eb_rt_out[name, t]
-            lin_cost_rt_in = 100.0*Δt_RT * λ_rt_neg[name, t] * eb_rt_in[name, t]
-            lin_cost_dart_out = 100.0*Δt_RT * λ_dart_neg[name, t] * eb_da_out[name, tmap[t]]
-            lin_cost_dart_in = -100.0*Δt_RT * λ_dart_pos[name, t] * eb_da_in[name, tmap[t]]
+            lin_cost_rt_out = -100.0 * Δt_RT * λ_rt_pos[name, t] * eb_rt_out[name, t]
+            lin_cost_rt_in = 100.0 * Δt_RT * λ_rt_neg[name, t] * eb_rt_in[name, t]
+            lin_cost_dart_out =
+                100.0 * Δt_RT * λ_dart_neg[name, t] * eb_da_out[name, tmap[t]]
+            lin_cost_dart_in =
+                -100.0 * Δt_RT * λ_dart_pos[name, t] * eb_da_in[name, tmap[t]]
             PSI.add_to_objective_variant_expression!(container, lin_cost_rt_out)
             PSI.add_to_objective_variant_expression!(container, lin_cost_rt_in)
             PSI.add_to_objective_variant_expression!(container, lin_cost_dart_out)
@@ -4281,8 +4283,11 @@ function PSI.update_decision_state!(
 
     if simulation_time > PSI.get_end_of_step_timestamp(state_data)
         state_data_index = 1
-        state_data.timestamps[:] .=
-            range(simulation_time; step=state_resolution, length=PSI.get_num_rows(state_data))
+        state_data.timestamps[:] .= range(
+            simulation_time;
+            step=state_resolution,
+            length=PSI.get_num_rows(state_data),
+        )
     else
         state_data_index = PSI.find_timestamp_index(state_timestamps, simulation_time)
     end

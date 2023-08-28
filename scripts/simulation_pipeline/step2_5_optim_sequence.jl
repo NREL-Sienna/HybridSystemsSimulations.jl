@@ -38,7 +38,7 @@ sys_rts_merchant_da.internal.ext["horizon_RT"] = horizon_DA * 12
 hy_sys_da = first(get_components(HybridSystem, sys_rts_merchant_da))
 PSY.set_ext!(hy_sys_da, sys_rts_merchant_da.internal.ext)
 sys_rts_merchant_rt.internal.ext = deepcopy(dic)
-sys_rts_merchant_rt.internal.ext["horizon_DA"] = 1
+sys_rts_merchant_rt.internal.ext["horizon_DA"] = horizon_RT ÷ 12
 hy_sys_rt = first(get_components(HybridSystem, sys_rts_merchant_rt))
 PSY.set_ext!(hy_sys_rt, sys_rts_merchant_rt.internal.ext)
 

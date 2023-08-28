@@ -53,8 +53,15 @@ plot(
         scatter(x=dates_uc, y=da_bid_out - da_bid_in, name="DA bids", line_shape="hv"),
         scatter(
             x=dates_ed,
+            y=dart,
+            name="DART Forecast [\$/MWh]",
+            yaxis="y2",
+            line_shape="hv",
+        ),
+        scatter(
+            x=dates_ed,
             y=dart_new,
-            name="New DART Forecast [\$/MWh]",
+            name="Realized DART [\$/MWh]",
             yaxis="y2",
             line_shape="hv",
         ),

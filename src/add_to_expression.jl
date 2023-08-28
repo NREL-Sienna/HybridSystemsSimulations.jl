@@ -3,7 +3,7 @@
 ###########################################################
 
 # ReserveUp Upper/Lower Limit Expression
-function add_to_expression_totalreserveup!(
+function add_to_expression!(
     container::PSI.OptimizationContainer,
     ::Type{T},
     ::Type{U},
@@ -36,6 +36,41 @@ function add_to_expression_totalreserveup!(
     return
 end
 
+# ReserveUp Upper/Lower Limit Expression
+function add_to_expression!(
+    container::PSI.OptimizationContainer,
+    ::Type{T},
+    ::Type{U},
+    devices::Union{Vector{V}, IS.FlattenIteratorWrapper{V}},
+    ::W,
+    time_steps::UnitRange{Int64},
+) where {
+    T <: ServedReserveUpExpression,
+    U <: PSI.VariableType,
+    V <: PSY.HybridSystem,
+    W <: AbstractHybridFormulation,
+}
+    expression = PSI.get_expression(container, T(), V)
+    for d in devices
+        name = PSY.get_name(d)
+        services = PSY.get_services(d)
+        for service in services
+            if isa(service, PSY.Reserve{PSY.ReserveDown})
+                continue
+            end
+            # TODO: This could be improved without requiring to read services for each component independently
+            variable =
+                PSI.get_variable(container, U(), typeof(service), PSY.get_name(service))
+            fraction = PSY.get_ext(service)["served_fraction"]
+            mult = PSI.get_variable_multiplier(U, d, W(), service) * fraction
+            for t in time_steps
+                PSI._add_to_jump_expression!(expression[name, t], variable[name, t], mult)
+            end
+        end
+    end
+    return
+end
+
 function PSI.add_to_expression!(
     container::PSI.OptimizationContainer,
     expression::Type{T},
@@ -51,19 +86,12 @@ function PSI.add_to_expression!(
     X <: PM.AbstractPowerModel,
 }
     time_steps = PSI.get_time_steps(container)
-    add_to_expression_totalreserveup!(
-        container,
-        expression,
-        variable,
-        devices,
-        W(),
-        time_steps,
-    )
+    add_to_expression!(container, expression, variable, devices, W(), time_steps)
     return
 end
 
 # ReserveDown Upper/Lower Limit Expression
-function add_to_expression_totalreservedown!(
+function add_to_expression!(
     container::PSI.OptimizationContainer,
     ::Type{T},
     ::Type{U},
@@ -96,6 +124,41 @@ function add_to_expression_totalreservedown!(
     return
 end
 
+# ReserveDown Upper/Lower Limit Expression
+function add_to_expression!(
+    container::PSI.OptimizationContainer,
+    ::Type{T},
+    ::Type{U},
+    devices::Union{Vector{V}, IS.FlattenIteratorWrapper{V}},
+    ::W,
+    time_steps::UnitRange{Int64},
+) where {
+    T <: ServedReserveDownExpression,
+    U <: PSI.VariableType,
+    V <: PSY.HybridSystem,
+    W <: AbstractHybridFormulation,
+}
+    expression = PSI.get_expression(container, T(), V)
+    for d in devices
+        name = PSY.get_name(d)
+        services = PSY.get_services(d)
+        for service in services
+            if isa(service, PSY.Reserve{PSY.ReserveUp})
+                continue
+            end
+            # TODO: This could be improved without requiring to read services for each component independently
+            variable =
+                PSI.get_variable(container, U(), typeof(service), PSY.get_name(service))
+            fraction = PSY.get_ext(service)["served_fraction"]
+            mult = PSI.get_variable_multiplier(U, d, W(), service) * fraction
+            for t in time_steps
+                PSI._add_to_jump_expression!(expression[name, t], variable[name, t], mult)
+            end
+        end
+    end
+    return
+end
+
 function PSI.add_to_expression!(
     container::PSI.OptimizationContainer,
     expression::Type{T},
@@ -111,14 +174,7 @@ function PSI.add_to_expression!(
     X <: PM.AbstractPowerModel,
 }
     time_steps = PSI.get_time_steps(container)
-    add_to_expression_totalreservedown!(
-        container,
-        expression,
-        variable,
-        devices,
-        W(),
-        time_steps,
-    )
+    add_to_expression!(container, expression, variable, devices, W(), time_steps)
     return
 end
 

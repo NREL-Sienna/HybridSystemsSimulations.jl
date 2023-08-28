@@ -12,6 +12,7 @@ using PowerSystemCaseBuilder
 using InfrastructureSystems
 using PowerNetworkMatrices
 using HybridSystemsSimulations
+using HydroPowerSimulations
 using StorageSystemsSimulations
 import OrderedCollections: OrderedDict
 const PSY = PowerSystems
@@ -47,21 +48,22 @@ sys_rts_rt = build_system(PSISystems, "modified_RTS_GMLC_RT_sys_noForecast")
 # There is no Wind + Thermal in a Single Bus.
 # We will try to pick the Wind in 317 bus Chuhsi
 # It does not have thermal and load, so we will pick the adjacent bus 318: Clark
+bus_to_add = "Chuhsi" # "Barton"
+add_da_forecast_in_5_mins_to_rt!(sys_rts_rt, sys_rts_da)
+modify_ren_curtailment_cost!(sys_rts_da)
+add_hybrid_to_chuhsi_bus!(sys_rts_da)
+modify_ren_curtailment_cost!(sys_rts_rt)
+add_hybrid_to_chuhsi_bus!(sys_rts_rt)
 
-for sys in [sys_rts_da, sys_rts_rt]
-    bus_to_add = "Chuhsi" # "Barton"
-    modify_ren_curtailment_cost!(sys)
-    add_hybrid_to_chuhsi_bus!(sys)
-    #for l in get_components(PowerLoad, sys)
-    #    set_max_active_power!(l, get_max_active_power(l) * 1.3)
-    #end
-end
-
+#interval_DA = Hour(24)
+#horizon_DA = 72
 interval_DA = Hour(24)
-horizon_DA = 48
+horizon_DA = 72
 transform_single_time_series!(sys_rts_da, horizon_DA, interval_DA)
-interval_RT = Minute(5)
-horizon_RT = 24
+#interval_RT = Minute(5)
+#horizon_RT = 24
+interval_RT = Hour(1)
+horizon_RT = 12 * 3
 transform_single_time_series!(sys_rts_rt, horizon_RT, interval_RT)
 
 ###############################
@@ -89,8 +91,8 @@ template_ed_dcp = get_ed_dcp_template()
 ###############################
 
 mipgap = 0.005
-num_steps = 3
-starttime = DateTime("2020-10-03T00:00:00")
+num_steps = 8
+starttime = DateTime("2020-10-02T00:00:00")
 
 ###############################
 ##### Run DCP Simulation ######
@@ -130,8 +132,8 @@ p_out_centr_da =
 p_in_centr_da =
     read_realized_variable(results_uc_dcp, "ActivePowerInVariable__HybridSystem")[!, 2] /
     100.0
-p_load =
-    read_realized_parameter(results_ed_dcp, "ElectricLoadTimeSeries__HybridSystem")[!, 2]
+#p_load =
+#    read_realized_parameter(results_ed_dcp, "ElectricLoadTimeSeries__HybridSystem")[!, 2]
 #p_asset = read_realized_variable(results_uc_dcp, "ActivePowerVariable__HybridSystem")
 plot(p_re)
 

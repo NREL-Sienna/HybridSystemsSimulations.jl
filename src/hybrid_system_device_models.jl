@@ -322,7 +322,7 @@ PSI.get_variable_multiplier(
 PSI.get_parameter_multiplier(
     ::PSI.FixValueParameter,
     ::PSY.HybridSystem,
-    ::HybridEnergyOnlyFixedDA,
+    ::Union{HybridEnergyOnlyFixedDA, HybridEnergyOnlyDispatch},
 ) = 1.0
 
 ###################################################################
@@ -858,6 +858,72 @@ function _add_constraints_energyassetbalance!(
     return
 end
 
+function add_expressions!(
+    container::PSI.OptimizationContainer,
+    ::Type{T},
+    devices::U,
+) where {
+    T <: AssetPowerBalance,
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+} where {D <: PSY.HybridSystem}
+    names = PSY.get_name.(devices)
+    time_steps = PSI.get_time_steps(container)
+    exp_container = PSI.add_expression_container!(container, T(), D, names, time_steps)
+    for device in devices
+        ci_name = PSY.get_name(device)
+        vars_pos = Set{JUMP_SET_TYPE}()
+        vars_neg = Set{JUMP_SET_TYPE}()
+        load_set = Set()
+
+        if !isnothing(PSY.get_thermal_unit(device))
+            p_th = PSI.get_variable(container, ThermalPower(), D)
+            push!(vars_pos, p_th[ci_name, :])
+        end
+        if !isnothing(PSY.get_renewable_unit(device))
+            p_re = PSI.get_variable(container, RenewablePower(), D)
+            push!(vars_pos, p_re[ci_name, :])
+        end
+        if !isnothing(PSY.get_storage(device))
+            p_ch = PSI.get_variable(container, BatteryCharge(), D)
+            p_ds = PSI.get_variable(container, BatteryDischarge(), D)
+            push!(vars_pos, p_ds[ci_name, :])
+            push!(vars_neg, p_ch[ci_name, :])
+        end
+        if !isnothing(PSY.get_electric_load(device))
+            P = ElectricLoadTimeSeries
+            param_container = PSI.get_parameter(container, P(), D)
+            param = PSI.get_parameter_column_refs(param_container, ci_name).data
+            multiplier = PSY.get_max_active_power(PSY.get_electric_load(device))
+            push!(load_set, param * multiplier)
+        end
+        for t in time_steps
+            for vp in vars_pos
+                JuMP.add_to_expression!(exp_container[ci_name, t], vp[t])
+            end
+            for vn in vars_neg
+                JuMP.add_to_expression!(exp_container[ci_name, t], -vn[t])
+            end
+            for load in load_set
+                JuMP.add_to_expression!(exp_container[ci_name, t], -load[t])
+            end
+        end
+    end
+    return
+end
+
+function PSI.add_expressions!(
+    container::PSI.OptimizationContainer,
+    ::Type{T},
+    devices::U,
+    model::PSI.DeviceModel{D, W},
+) where {
+    T <: AssetPowerBalance,
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
+    add_expressions!(container, T, devices)
+end
+
 function PSI.add_constraints!(
     container::PSI.OptimizationContainer,
     T::Type{<:EnergyAssetBalance},
@@ -877,7 +943,7 @@ end
 # ThermalOn Variable ON
 function _add_constraints_thermalon_variableon!(
     container::PSI.OptimizationContainer,
-    T::Type{<:ThermalOnVariableOn},
+    T::Type{<:ThermalOnVariableUb},
     devices::U,
     ::W,
 ) where {
@@ -903,7 +969,7 @@ end
 
 function PSI.add_constraints!(
     container::PSI.OptimizationContainer,
-    T::Type{<:ThermalOnVariableOn},
+    T::Type{<:ThermalOnVariableUb},
     devices::U,
     ::PSI.DeviceModel{D, W},
     network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
@@ -918,7 +984,7 @@ end
 # ThermalOn Variable OFF
 function _add_constraints_thermalon_variableoff!(
     container::PSI.OptimizationContainer,
-    T::Type{<:ThermalOnVariableOff},
+    T::Type{<:ThermalOnVariableLb},
     devices::U,
     ::W,
 ) where {
@@ -944,7 +1010,7 @@ end
 
 function PSI.add_constraints!(
     container::PSI.OptimizationContainer,
-    T::Type{<:ThermalOnVariableOff},
+    T::Type{<:ThermalOnVariableLb},
     devices::U,
     ::PSI.DeviceModel{D, W},
     network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
@@ -1297,7 +1363,7 @@ end
 
 ############## Storage Constraints ReserveLimit, HybridSystem ###################
 
-# Range Constraint Coverage Discharge
+# Range Constraint Coverage Discharge (RegUp)
 function _add_constraints_reservecoverage_withreserves!(
     container::PSI.OptimizationContainer,
     T::Type{<:ReserveCoverageConstraint},
@@ -1312,9 +1378,8 @@ function _add_constraints_reservecoverage_withreserves!(
     time_steps = PSI.get_time_steps(container)
     resolution = PSI.get_resolution(container)
     fraction_of_hour = Dates.value(Dates.Minute(resolution)) / PSI.MINUTES_IN_HOUR
-    num_periods =
-        Dates.value(Dates.Minute(PSY.get_sustained_time(service))) /
-        Dates.value(Dates.Minute(resolution))
+    sustained_time = PSY.get_sustained_time(service) # in seconds
+    num_periods = sustained_time / Dates.value(Dates.Second(resolution))
     initial_conditions = PSI.get_initial_condition(container, PSI.InitialEnergyLevel(), D)
     energy_var = PSI.get_variable(container, PSI.EnergyVariable(), D)
     service_name = PSY.get_name(service)
@@ -1366,7 +1431,7 @@ function PSI.add_constraints!(
     return
 end
 
-# Range Constraint Coverage Discharge
+# Range Constraint Coverage Charge (RegDown)
 function _add_constraints_reservecoverage_withreserves!(
     container::PSI.OptimizationContainer,
     T::Type{<:ReserveCoverageConstraint},
@@ -1433,6 +1498,135 @@ function PSI.add_constraints!(
     W <: HybridDispatchWithReserves,
 } where {D <: PSY.HybridSystem}
     _add_constraints_reservecoverage_withreserves!(container, T, devices, service, W())
+    return
+end
+
+# Reserve Coverage Constraints End Of Period Discharge (RegUP)
+function _add_constraints_reservecoverage_withreserves_endofperiod!(
+    container::PSI.OptimizationContainer,
+    T::Type{<:ReserveCoverageConstraintEndOfPeriod},
+    devices::U,
+    service::V,
+    ::W,
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    V <: PSY.Reserve{PSY.ReserveUp},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
+    time_steps = PSI.get_time_steps(container)
+    resolution = PSI.get_resolution(container)
+    fraction_of_hour = Dates.value(Dates.Minute(resolution)) / PSI.MINUTES_IN_HOUR
+    sustained_time = PSY.get_sustained_time(service) # in seconds
+    num_periods = sustained_time / Dates.value(Dates.Second(resolution))
+    energy_var = PSI.get_variable(container, PSI.EnergyVariable(), D)
+    service_name = PSY.get_name(service)
+    reserve_var = PSI.get_variable(container, DischargingReserveVariable(), V, service_name)
+    names = [PSY.get_name(d) for d in devices]
+    con = PSI.add_constraints_container!(
+        container,
+        T(),
+        D,
+        names,
+        time_steps,
+        meta=service_name,
+    )
+    for device in devices, t in time_steps
+        ci_name = PSY.get_name(device)
+        storage = PSY.get_storage(device)
+        inv_efficiency = 1.0 / PSY.get_efficiency(storage).out
+        sustained_param = inv_efficiency * fraction_of_hour * num_periods
+        con[ci_name, t] = JuMP.@constraint(
+            container.JuMPmodel,
+            sustained_param * reserve_var[ci_name, t] <= energy_var[ci_name, t]
+        )
+    end
+    return
+end
+
+function PSI.add_constraints!(
+    container::PSI.OptimizationContainer,
+    T::Type{ReserveCoverageConstraintEndOfPeriod},
+    devices::U,
+    service::V,
+    model::PSI.DeviceModel{D, W},
+    network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    V <: PSY.Reserve{PSY.ReserveUp},
+    W <: HybridDispatchWithReserves,
+} where {D <: PSY.HybridSystem}
+    _add_constraints_reservecoverage_withreserves_endofperiod!(
+        container,
+        T,
+        devices,
+        service,
+        W(),
+    )
+    return
+end
+
+# Reserve Coverage Constraints End Of Period Charge (RegDown)
+function _add_constraints_reservecoverage_withreserves_endofperiod!(
+    container::PSI.OptimizationContainer,
+    T::Type{<:ReserveCoverageConstraintEndOfPeriod},
+    devices::U,
+    service::V,
+    ::W,
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    V <: PSY.Reserve{PSY.ReserveDown},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
+    time_steps = PSI.get_time_steps(container)
+    resolution = PSI.get_resolution(container)
+    fraction_of_hour = Dates.value(Dates.Minute(resolution)) / PSI.MINUTES_IN_HOUR
+    sustained_time = PSY.get_sustained_time(service) # in seconds
+    num_periods = sustained_time / Dates.value(Dates.Second(resolution))
+    energy_var = PSI.get_variable(container, PSI.EnergyVariable(), D)
+    service_name = PSY.get_name(service)
+    reserve_var = PSI.get_variable(container, ChargingReserveVariable(), V, service_name)
+    names = [PSY.get_name(d) for d in devices]
+    con = PSI.add_constraints_container!(
+        container,
+        T(),
+        D,
+        names,
+        time_steps,
+        meta=service_name,
+    )
+    for device in devices, t in time_steps
+        ci_name = PSY.get_name(device)
+        storage = PSY.get_storage(device)
+        E_max = PSY.get_state_of_charge_limits(storage).max
+        efficiency = PSY.get_efficiency(storage).in
+        sustained_param = efficiency * fraction_of_hour * num_periods
+        con[ci_name, t] = JuMP.@constraint(
+            container.JuMPmodel,
+            sustained_param * reserve_var[ci_name, t] <= E_max - energy_var[ci_name, t]
+        )
+    end
+    return
+end
+
+function PSI.add_constraints!(
+    container::PSI.OptimizationContainer,
+    T::Type{ReserveCoverageConstraintEndOfPeriod},
+    devices::U,
+    service::V,
+    model::PSI.DeviceModel{D, W},
+    network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    V <: PSY.Reserve{PSY.ReserveDown},
+    W <: HybridDispatchWithReserves,
+} where {D <: PSY.HybridSystem}
+    _add_constraints_reservecoverage_withreserves_endofperiod!(
+        container,
+        T,
+        devices,
+        service,
+        W(),
+    )
     return
 end
 

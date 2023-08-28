@@ -17,7 +17,14 @@ struct DischargeReserveDownExpression <: ComponentReserveDownExpressionType end
 struct ComponentReserveBalanceExpression <: PSI.ExpressionType end
 abstract type TotalReserveUpExpression <: PSI.ExpressionType end
 abstract type TotalReserveDownExpression <: PSI.ExpressionType end
+abstract type ServedReserveUpExpression <: PSI.ExpressionType end
+abstract type ServedReserveDownExpression <: PSI.ExpressionType end
 struct TotalReserveOutUpExpression <: TotalReserveUpExpression end
 struct TotalReserveOutDownExpression <: TotalReserveDownExpression end
 struct TotalReserveInUpExpression <: TotalReserveUpExpression end
 struct TotalReserveInDownExpression <: TotalReserveDownExpression end
+struct ServedReserveInUpExpression <: ServedReserveUpExpression end
+struct ServedReserveInDownExpression <: ServedReserveDownExpression end
+struct ServedReserveOutUpExpression <: ServedReserveUpExpression end
+struct ServedReserveOutDownExpression <: ServedReserveDownExpression end
+struct AssetPowerBalance <: PSI.ExpressionType end

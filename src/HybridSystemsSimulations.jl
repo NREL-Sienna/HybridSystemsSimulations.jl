@@ -78,6 +78,13 @@ include("core/expressions.jl")
 include("add_to_expression.jl")
 include("hybrid_system_decision_models.jl")
 include("hybrid_system_device_models.jl")
+include("add_variables.jl")
+include("add_parameters.jl")
+include("add_constraints.jl")
+include("objective_function.jl")
+include("decision_models/only_energy_decision_model.jl")
+include("decision_models/cooptimizer_decision_model.jl")
+include("decision_models/bilevel_decision_model.jl")
 include("hybrid_system_constructor.jl")
 
 end

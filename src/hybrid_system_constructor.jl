@@ -1,4 +1,7 @@
-### ArgumentConstruct Only Energy ###
+
+###################################################################
+########## Argument Constructor for Hybrid Energy Only  ###########
+###################################################################
 function PSI.construct_device!(
     container::PSI.OptimizationContainer,
     sys::PSY.System,
@@ -83,7 +86,7 @@ function PSI.construct_device!(
 end
 
 ###################################################################
-########## Argument Constructor for Hybrid with Reserves  #########
+########## Model Constructor for Hybrid Energy Only  ##############
 ###################################################################
 ### ModelConstruct Hybrid Only Energy ###
 function PSI.construct_device!(
@@ -228,6 +231,7 @@ function PSI.construct_device!(
         model,
         network_model,
     )
+    
 
     PSI.add_to_expression!(
         container,
@@ -260,6 +264,9 @@ function PSI.construct_device!(
             PSY.get_name.(devices),
             time_steps,
         )
+
+        PSI.get_expression(container, TotalReserveOutUpExpression(), PSY.HybridSystem)
+
 
         PSI.lazy_container_addition!(
             container,

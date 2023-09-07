@@ -4,6 +4,7 @@ module HybridSystemsSimulations
 export HybridEnergyOnlyDispatch
 export HybridEnergyOnlyFixedDA
 export HybridDispatchWithReserves
+export HybridWithReservesFixedDA
 
 # Decision Models
 export MerchantHybridEnergyCase
@@ -18,6 +19,9 @@ export EnergyRTBidOut
 export EnergyRTBidIn
 export BidReserveVariableOut
 export BidReserveVariableIn
+export ReserveVariableOut
+export ReserveVariableIn
+export TotalBidReserve
 
 # Constraints
 export OptConditionRenewablePower
@@ -79,6 +83,7 @@ include("add_to_expression.jl")
 include("hybrid_system_decision_models.jl")
 include("hybrid_system_device_models.jl")
 include("add_variables.jl")
+include("add_aux_variables.jl")
 include("add_parameters.jl")
 include("add_constraints.jl")
 include("objective_function.jl")

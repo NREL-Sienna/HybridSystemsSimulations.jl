@@ -192,7 +192,8 @@ function PSI.add_variables!(
 ) where {
     U <: PSY.HybridSystem,
     W <: Union{ComponentReserveVariableType, ReserveVariableOut, ReserveVariableIn},
-    V <: Union{HybridDispatchWithReserves, MerchantModelWithReserves, HybridWithReservesFixedDA},
+    V <:
+    Union{HybridDispatchWithReserves, MerchantModelWithReserves, HybridWithReservesFixedDA},
 }
     time_steps = PSI.get_time_steps(container)
     # TODO

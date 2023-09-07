@@ -22,7 +22,6 @@ transform_single_time_series!(sys_rts_da, horizon_DA, interval_DA)
 transform_single_time_series!(sys_rts_merchant_da, horizon_DA * 12, interval_DA)
 transform_single_time_series!(sys_rts_merchant_rt, horizon_RT, interval_RT)
 
-
 mipgap = 1e-2
 #########################################
 ######## Add Services to Hybrid #########
@@ -45,10 +44,10 @@ for sys in [sys_rts_da, sys_rts_merchant_da, sys_rts_merchant_rt]
         serv_name = get_name(service)
         serv_ext = get_ext(service)
         serv_ext["served_fraction"] = served_fraction_map[serv_name]
-        if  contains(serv_name, "Spin_Up_R1") |
-            contains(serv_name, "Spin_Up_R2") |
-            contains(serv_name, "Flex")
-                continue
+        if contains(serv_name, "Spin_Up_R1") |
+           contains(serv_name, "Spin_Up_R2") |
+           contains(serv_name, "Flex")
+            continue
         else
             add_service!(hy_sys, service, sys)
         end
@@ -64,18 +63,14 @@ dic["λ_da_df"] =
     CSV.read("scripts/cooptimizer_pipeline/inputs/$(bus_name)_DA_prices.csv", DataFrame)
 dic["λ_rt_df"] =
     CSV.read("scripts/cooptimizer_pipeline/inputs/$(bus_name)_RT_prices.csv", DataFrame)
-dic["λ_Reg_Up"] = CSV.read(
-    "scripts/cooptimizer_pipeline/inputs/$(bus_name)_RegUp_prices.csv",
-    DataFrame,
-)
+dic["λ_Reg_Up"] =
+    CSV.read("scripts/cooptimizer_pipeline/inputs/$(bus_name)_RegUp_prices.csv", DataFrame)
 dic["λ_Reg_Down"] = CSV.read(
     "scripts/cooptimizer_pipeline/inputs/$(bus_name)_RegDown_prices.csv",
     DataFrame,
 )
-dic["λ_Spin_Up_R3"] = CSV.read(
-    "scripts/cooptimizer_pipeline/inputs/$(bus_name)_Spin_prices.csv",
-    DataFrame,
-)
+dic["λ_Spin_Up_R3"] =
+    CSV.read("scripts/cooptimizer_pipeline/inputs/$(bus_name)_Spin_prices.csv", DataFrame)
 dic["horizon_RT"] = horizon_RT
 dic["horizon_DA"] = horizon_DA
 
@@ -122,11 +117,14 @@ set_device_model!(
     ),
 )
 
-set_service_model!(template_uc_copperplate, ServiceModel(VariableReserve{ReserveUp}, RangeReserve, use_slacks = false))
-    set_service_model!(
-        template_uc_copperplate,
-        ServiceModel(VariableReserve{ReserveDown}, RangeReserve, use_slacks = false),
-    )
+set_service_model!(
+    template_uc_copperplate,
+    ServiceModel(VariableReserve{ReserveUp}, RangeReserve, use_slacks=false),
+)
+set_service_model!(
+    template_uc_copperplate,
+    ServiceModel(VariableReserve{ReserveDown}, RangeReserve, use_slacks=false),
+)
 
 ######################################################
 ####### Systems for RT Bids and Realized ED ##########
@@ -154,8 +152,6 @@ decision_optimizer_RT = DecisionModel(
 
 decision_optimizer_RT.ext = Dict{String, Any}("RT" => true)
 
-
-
 # Construct decision models for simulation
 models = SimulationModels(
     decision_models=[
@@ -175,7 +171,7 @@ models = SimulationModels(
             #check_numerical_bounds=false,
         ),
         decision_optimizer_RT,
-    ]
+    ],
 )
 
 sequence = SimulationSequence(
@@ -234,7 +230,7 @@ sequence = SimulationSequence(
                 source=BidReserveVariableIn,
                 affected_values=[BidReserveVariableIn],
             ),
-        ]
+        ],
     ),
     ini_cond_chronology=InterProblemChronology(),
 )
@@ -309,33 +305,39 @@ p1 = plot([
     scatter(x=dates_uc, y=da_in_realized, name="DA Bid In", line_shape="hv"),
     scatter(x=uc_p_out[!, 1], y=uc_p_out[!, 2] / 100.0, name="UC P Out", line_shape="hv"),
     scatter(x=uc_p_in[!, 1], y=uc_p_in[!, 2] / 100.0, name="UC P In", line_shape="hv"),
-    scatter(
-        x=dates_uc,
-        y=da_out_rt_realized,
-        name="DA Bid Out RT",
-        line_shape="hv",
-    ),
-    scatter(
-        x=dates_uc,
-        y=da_in_rt_realized,
-        name="DA Bid In RT",
-        line_shape="hv",
-    ),
+    scatter(x=dates_uc, y=da_out_rt_realized, name="DA Bid Out RT", line_shape="hv"),
+    scatter(x=dates_uc, y=da_in_rt_realized, name="DA Bid In RT", line_shape="hv"),
 ])
 
-
-regup_da_out = read_variable(result_merch_DA, "BidReserveVariableOut__VariableReserve__ReserveUp__Reg_Up")
+regup_da_out = read_variable(
+    result_merch_DA,
+    "BidReserveVariableOut__VariableReserve__ReserveUp__Reg_Up",
+)
 regup_da_out_realized = vcat([values(vdf)[!, 2][1:24] for vdf in values(regup_da_out)]...)
 
-regup_da_in = read_variable(result_merch_DA, "BidReserveVariableIn__VariableReserve__ReserveUp__Reg_Up")
+regup_da_in = read_variable(
+    result_merch_DA,
+    "BidReserveVariableIn__VariableReserve__ReserveUp__Reg_Up",
+)
 regup_da_in_realized = vcat([values(vdf)[!, 2][1:24] for vdf in values(regup_da_in)]...)
 
-regup_uc_out = read_realized_variable(results_uc, "ReserveVariableOut__VariableReserve__ReserveUp__Reg_Up")
-regup_uc_in = read_realized_variable(results_uc, "ReserveVariableIn__VariableReserve__ReserveUp__Reg_Up")
+regup_uc_out = read_realized_variable(
+    results_uc,
+    "ReserveVariableOut__VariableReserve__ReserveUp__Reg_Up",
+)
+regup_uc_in = read_realized_variable(
+    results_uc,
+    "ReserveVariableIn__VariableReserve__ReserveUp__Reg_Up",
+)
 
 p2 = plot([
     scatter(x=dates_uc, y=regup_da_out_realized, name="RegUp DA Bid Out", line_shape="hv"),
     scatter(x=dates_uc, y=regup_da_in_realized, name="RegUp DA Bid In", line_shape="hv"),
-    scatter(x=regup_uc_out[!, 1], y=regup_uc_out[!, 2], name="UC RegUp Out", line_shape="hv"),
+    scatter(
+        x=regup_uc_out[!, 1],
+        y=regup_uc_out[!, 2],
+        name="UC RegUp Out",
+        line_shape="hv",
+    ),
     scatter(x=regup_uc_in[!, 1], y=regup_uc_in[!, 2], name="UC RegUp In", line_shape="hv"),
 ])

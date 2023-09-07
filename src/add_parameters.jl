@@ -349,7 +349,7 @@ function PSI._update_parameter_values!(
         component_names, time = axes(parameter_array)
         hybrid_filter = contains.(component_names, "Hybrid")
         other_names = component_names[.!hybrid_filter]
-        component_names = component_names[hybrid_filter]        
+        component_names = component_names[hybrid_filter]
         resolution = PSI.get_resolution(model)
 
         state_data = PSI.get_dataset(state, PSI.get_attribute_key(attributes))
@@ -357,10 +357,11 @@ function PSI._update_parameter_values!(
         max_state_index = PSI.get_num_rows(state_data)
 
         state_data_index = PSI.find_timestamp_index(state_timestamps, current_time)
-        sim_timestamps = range(current_time; step = resolution, length = time[end])
+        sim_timestamps = range(current_time; step=resolution, length=time[end])
         for t in time
             timestamp_ix = min(max_state_index, state_data_index + 1)
-            @debug "parameter horizon is over the step" max_state_index > state_data_index + 1
+            @debug "parameter horizon is over the step" max_state_index >
+                                                        state_data_index + 1
             if state_timestamps[timestamp_ix] <= sim_timestamps[t]
                 state_data_index = timestamp_ix
             end
@@ -382,7 +383,7 @@ function PSI._update_parameter_values!(
             end
         end
         return
-    end    
+    end
 end
 
 function PSI._fix_parameter_value!(
@@ -398,10 +399,10 @@ function PSI._fix_parameter_value!(
         for t in time
             for name in component_names
                 if contains(name, "Hybrid")
-                    JuMP.fix(variable[name, t], parameter_array[name, t]; force = true)
+                    JuMP.fix(variable[name, t], parameter_array[name, t]; force=true)
                 else
                     JuMP.set_upper_bound(variable[name, t], 9999.0)
-                end                
+                end
             end
         end
     end

@@ -231,7 +231,6 @@ function PSI.construct_device!(
         model,
         network_model,
     )
-    
 
     PSI.add_to_expression!(
         container,
@@ -266,7 +265,6 @@ function PSI.construct_device!(
         )
 
         PSI.get_expression(container, TotalReserveOutUpExpression(), PSY.HybridSystem)
-
 
         PSI.lazy_container_addition!(
             container,
@@ -805,7 +803,7 @@ function PSI.construct_device!(
     S <: PM.AbstractActivePowerModel,
 }
     devices = PSI.get_available_components(T, sys)
-    
+
     # Constraints
     PSI.add_constraints!(
         container,

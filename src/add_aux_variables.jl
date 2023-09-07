@@ -47,7 +47,8 @@ function PSI.calculate_aux_variable_value!(
         tot_res = PSI.get_aux_variable(container, TotalBidReserve(), V, service_name)
         for d in devices, t in time_steps
             name = PSY.get_name(d)
-            tot_res[name, t] = PSI.jump_value(res_out[name, t]) + PSI.jump_value(res_in[name, t])
+            tot_res[name, t] =
+                PSI.jump_value(res_out[name, t]) + PSI.jump_value(res_in[name, t])
         end
     end
 

@@ -76,15 +76,14 @@ for sys in [sys_rts_da, sys_rts_rt]
     for service in services
         serv_name = get_name(service)
         if contains(serv_name, "Spin_Up_R1") |
-        contains(serv_name, "Spin_Up_R2") |
-        contains(serv_name, "Flex")
+           contains(serv_name, "Spin_Up_R2") |
+           contains(serv_name, "Flex")
             continue
         else
             add_service!(hy_sys, service, sys)
         end
     end
 end
-
 
 ###############################
 ###### Create Templates #######
@@ -106,23 +105,22 @@ template_ed_unbounded_ptdf = get_ed_ptdf_unbounded_template(sys_rts_rt)
 template_uc_dcp = get_uc_dcp_template()
 template_ed_dcp = get_ed_dcp_template()
 
-
 set_device_model!(
-        template_uc_copperplate,
-        DeviceModel(
-            PSY.HybridSystem,
-            HybridDispatchWithReserves;
-            attributes=Dict{String, Any}("cycling" => false),
-        ),
+    template_uc_copperplate,
+    DeviceModel(
+        PSY.HybridSystem,
+        HybridDispatchWithReserves;
+        attributes=Dict{String, Any}("cycling" => false),
+    ),
 )
 
 set_device_model!(
-        template_ed_copperplate,
-        DeviceModel(
-            PSY.HybridSystem,
-            HybridDispatchWithReserves;
-            attributes=Dict{String, Any}("cycling" => false),
-        ),
+    template_ed_copperplate,
+    DeviceModel(
+        PSY.HybridSystem,
+        HybridDispatchWithReserves;
+        attributes=Dict{String, Any}("cycling" => false),
+    ),
 )
 
 ###############################
@@ -143,10 +141,7 @@ models = SimulationModels(
             template_uc_copperplate,
             sys_rts_da;
             name="UC",
-            optimizer=optimizer_with_attributes(
-                Xpress.Optimizer,
-                "MIPRELSTOP" => mipgap,
-            ),
+            optimizer=optimizer_with_attributes(Xpress.Optimizer, "MIPRELSTOP" => mipgap),
             system_to_file=false,
             initialize_model=true,
             optimizer_solve_log_print=false,

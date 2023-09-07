@@ -1199,7 +1199,7 @@ function PSI.add_constraints!(
 ) where {
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     V <: PSY.Reserve,
-    W <: HybridDispatchWithReserves,
+    W <: Union{HybridDispatchWithReserves, HybridWithReservesFixedDA},
 } where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     service_name = PSY.get_name(service)
@@ -1692,6 +1692,13 @@ function _add_constraints_in_marketconvergence!(
     end
     return
 end
+
+
+###################################################################
+###################################################################
+################### Bi-level KKT Constraints  #####################
+###################################################################
+###################################################################
 
 function add_constraints!(
     container::PSI.OptimizationContainer,

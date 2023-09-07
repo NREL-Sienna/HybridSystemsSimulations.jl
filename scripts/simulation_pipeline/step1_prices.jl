@@ -73,7 +73,7 @@ transform_single_time_series!(sys_rts_rt, horizon_RT, interval_RT)
 # CopperPlate
 template_uc_copperplate = get_uc_copperplate_template(sys_rts_da)
 template_ed_copperplate = get_ed_copperplate_template(sys_rts_rt)
-
+empty!(template_ed_copperplate.services)
 # PTDF Bounded
 template_uc_ptdf = get_uc_ptdf_template(sys_rts_da)
 template_ed_ptdf = get_ed_ptdf_template(sys_rts_rt)

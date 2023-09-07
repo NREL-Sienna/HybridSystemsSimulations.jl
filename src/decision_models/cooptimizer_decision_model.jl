@@ -70,6 +70,9 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
         PSI.add_variables!(container, v, hybrids, MerchantModelWithReserves())
     end
 
+    # Add Auxiliary Variables
+    PSI.add_variables!(container, TotalBidReserve, hybrids, MerchantModelWithReserves())
+
     # Add Reserve Up/Down Out/In Expression
     PSI.lazy_container_addition!(
         container,

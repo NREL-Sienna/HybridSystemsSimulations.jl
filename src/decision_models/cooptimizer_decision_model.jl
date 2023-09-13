@@ -637,11 +637,6 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
             PSI.add_to_objective_invariant_expression!(container, lin_cost_p_ds)
         end
     end
-    JuMP.@objective(
-        model,
-        MOI.MIN_SENSE,
-        PSI.get_objective_function(container.objective_function)
-    )
 
     ###############################
     ######## Constraints ##########

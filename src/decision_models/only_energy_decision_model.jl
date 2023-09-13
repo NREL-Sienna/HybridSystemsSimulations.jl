@@ -266,11 +266,6 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
             end
         end
     end
-    JuMP.@objective(
-        model,
-        MOI.MIN_SENSE,
-        PSI.get_objective_function(container.objective_function)
-    )
 
     ###############################
     ######## Constraints ##########

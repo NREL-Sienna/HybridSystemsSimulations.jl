@@ -610,12 +610,6 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridBilevel
         PSI.add_to_objective_variant_expression!(container, lin_cost_dart_in)
     end
 
-    JuMP.@objective(
-        container.JuMPmodel,
-        MOI.MIN_SENSE,
-        PSI.get_objective_function(container.objective_function)
-    )
-
     add_expressions!(container, AssetPowerBalance, hybrids)
 
     ###############################

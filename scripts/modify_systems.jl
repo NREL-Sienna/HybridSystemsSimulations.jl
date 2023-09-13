@@ -20,7 +20,7 @@ function _build_battery(
         name=name,
         available=true,
         bus=bus,
-        prime_mover=PSY.PrimeMovers.BA,
+        prime_mover_type=PSY.PrimeMovers.BA,
         initial_energy=0.0,
         state_of_charge_limits=(min=energy_capacity * 0.0, max=energy_capacity),
         rating=rating,

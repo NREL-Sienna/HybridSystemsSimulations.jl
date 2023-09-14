@@ -2,9 +2,8 @@ module HybridSystemsSimulations
 
 # Device Formulations
 export HybridEnergyOnlyDispatch
-export HybridEnergyOnlyFixedDA
+export HybridFixedDA
 export HybridDispatchWithReserves
-export HybridWithReservesFixedDA
 
 # Decision Models
 export MerchantHybridEnergyCase
@@ -21,6 +20,8 @@ export BidReserveVariableOut
 export BidReserveVariableIn
 export ReserveVariableOut
 export ReserveVariableIn
+
+# Auxiliary variables
 export TotalBidReserve
 
 # Constraints
@@ -76,6 +77,7 @@ using DocStringExtensions
 include("core/decision_models.jl")
 include("core/formulations.jl")
 include("core/parameters.jl")
+include("core/aux_variables.jl")
 include("core/variables.jl")
 include("core/constraints.jl")
 include("core/expressions.jl")

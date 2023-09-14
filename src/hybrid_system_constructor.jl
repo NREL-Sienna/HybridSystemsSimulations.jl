@@ -822,7 +822,15 @@ function PSI.construct_device!(
     )
 
     if PSI.has_service_model(model)
-
+        PSI.add_constraints!(
+            container,
+            HybridReserveAssignmentConstraint,
+            devices,
+            service,
+            model,
+            network_model,
+        )
+    end
 
     return
 end

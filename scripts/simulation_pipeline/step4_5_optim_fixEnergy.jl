@@ -50,7 +50,7 @@ set_device_model!(
     template_ed_copperplate,
     DeviceModel(
         PSY.HybridSystem,
-        HybridEnergyOnlyFixedDA;
+        HybridFixedDA;
         attributes=Dict{String, Any}("cycling" => false),
     ),
 )

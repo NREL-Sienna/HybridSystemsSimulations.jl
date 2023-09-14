@@ -60,7 +60,7 @@ set_device_model!(
     template_uc_copperplate,
     DeviceModel(
         PSY.HybridSystem,
-        HybridEnergyOnlyFixedDA;
+        HybridFixedDA;
         attributes=Dict{String, Any}("cycling" => false),
     ),
 )
@@ -72,7 +72,7 @@ set_device_model!(
     rt_template,
     DeviceModel(
         PSY.HybridSystem,
-        HybridEnergyOnlyFixedDA;
+        HybridFixedDA;
         attributes=Dict{String, Any}("cycling" => false),
     ),
 )
@@ -173,7 +173,7 @@ sequence = SimulationSequence(
     ini_cond_chronology=InterProblemChronology(),
 )
 
-sim_steps = 3 # num_steps - 2
+sim_steps = num_steps - 2
 sim = Simulation(
     name="compact_sim",
     steps=sim_steps,
@@ -202,10 +202,11 @@ prices_uc_upd =
 uc_out = read_realized_variable(results_uc, "ActivePowerOutVariable__HybridSystem")
 uc_in = read_realized_variable(results_uc, "ActivePowerOutVariable__HybridSystem")
 
+plotting_dates_uc = dates_uc[1:(24 * sim_steps)]
 plot(
     [
         scatter(
-            x=dates_uc[1:(24 * sim_steps)],
+            x=plotting_dates_uc,
             y=prices_uc_centralized[1:(24 * sim_steps)],
             name="Centralized DA Price",
             line_shape="hv",
@@ -262,6 +263,8 @@ da_out_realized = vcat([values(vdf)[!, 2][1:24] for vdf in values(da_out)]...)
 da_in = read_variable(result_merch_DA, "EnergyDABidIn__HybridSystem")
 da_in_realized = vcat([values(vdf)[!, 2][1:24] for vdf in values(da_in)]...)
 
+
+# WARN: The timestamps in these results don't make sense. These are Hourly, requires a fix in PSI.
 da_out_rt = read_variable(result_merch_RT, "EnergyDABidOut__HybridSystem")
 da_in_rt = read_variable(result_merch_RT, "EnergyDABidIn__HybridSystem")
 
@@ -269,19 +272,19 @@ uc_p_out = read_realized_variable(results_uc, "ActivePowerOutVariable__HybridSys
 uc_p_in = read_realized_variable(results_uc, "ActivePowerInVariable__HybridSystem")
 
 p1 = plot([
-    scatter(x=dates_uc, y=da_out_realized, name="DA Bid Out", line_shape="hv"),
-    scatter(x=dates_uc, y=da_in_realized, name="DA Bid In", line_shape="hv"),
+    scatter(x=plotting_dates_uc, y=da_out_realized, name="DA Bid Out", line_shape="hv"),
+    scatter(x=plotting_dates_uc, y=da_in_realized, name="DA Bid In", line_shape="hv"),
     scatter(x=uc_p_out[!, 1], y=uc_p_out[!, 2] / 100.0, name="UC P Out", line_shape="hv"),
     scatter(x=uc_p_in[!, 1], y=uc_p_in[!, 2] / 100.0, name="UC P In", line_shape="hv"),
     scatter(
-        x=dates_uc,
-        y=vcat(values(da_out_rt)...)[!, 2],
+        x=plotting_dates_uc,
+        y=[v[1,2] for v in values(da_out_rt)],
         name="DA Bid Out RT",
         line_shape="hv",
     ),
     scatter(
-        x=dates_uc,
-        y=vcat(values(da_in_rt)...)[!, 2],
+        x=plotting_dates_uc,
+        y=[v[1,2] for v in values(da_in_rt)],
         name="DA Bid In RT",
         line_shape="hv",
     ),

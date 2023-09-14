@@ -22,7 +22,6 @@ transform_single_time_series!(sys_rts_da, horizon_DA, interval_DA)
 transform_single_time_series!(sys_rts_merchant_da, horizon_DA * 12, interval_DA)
 transform_single_time_series!(sys_rts_merchant_rt, horizon_RT, interval_RT)
 
-mipgap = 1e-2
 #########################################
 ######## Add Services to Hybrid #########
 #########################################
@@ -112,7 +111,7 @@ set_device_model!(
     template_uc_copperplate,
     DeviceModel(
         PSY.HybridSystem,
-        HybridWithReservesFixedDA;
+        HybridFixedDA;
         attributes=Dict{String, Any}("cycling" => false),
     ),
 )
@@ -134,7 +133,7 @@ set_device_model!(
     rt_template,
     DeviceModel(
         PSY.HybridSystem,
-        HybridEnergyOnlyFixedDA;
+        HybridFixedDA;
         attributes=Dict{String, Any}("cycling" => false),
     ),
 )
@@ -188,17 +187,18 @@ sequence = SimulationSequence(
                 source=EnergyDABidIn,
                 affected_values=[ActivePowerInVariable],
             ),
-            FixValueFeedforward(
+            LowerBoundFeedforward(
                 component_type=PSY.VariableReserve{ReserveUp},
                 source=TotalBidReserve,
                 affected_values=[ActivePowerReserveVariable],
             ),
-            FixValueFeedforward(
+            LowerBoundFeedforward(
                 component_type=PSY.VariableReserve{ReserveDown},
                 source=TotalBidReserve,
                 affected_values=[ActivePowerReserveVariable],
             ),
         ],
+        #=
         "MerchantHybridCooptimizer_RT" => [
             FixValueFeedforward(
                 component_type=PSY.HybridSystem,
@@ -210,27 +210,28 @@ sequence = SimulationSequence(
                 source=EnergyDABidIn,
                 affected_values=[EnergyDABidIn],
             ),
-            FixValueFeedforward(
+            LowerBoundFeedforward(
                 component_type=PSY.VariableReserve{ReserveUp},
                 source=BidReserveVariableOut,
                 affected_values=[BidReserveVariableOut],
             ),
-            FixValueFeedforward(
+            LowerBoundFeedforward(
                 component_type=PSY.VariableReserve{ReserveDown},
                 source=BidReserveVariableOut,
                 affected_values=[BidReserveVariableOut],
             ),
-            FixValueFeedforward(
+            LowerBoundFeedforward(
                 component_type=PSY.VariableReserve{ReserveUp},
                 source=BidReserveVariableIn,
                 affected_values=[BidReserveVariableIn],
             ),
-            FixValueFeedforward(
+            LowerBoundFeedforward(
                 component_type=PSY.VariableReserve{ReserveDown},
                 source=BidReserveVariableIn,
                 affected_values=[BidReserveVariableIn],
             ),
         ],
+        =#
     ),
     ini_cond_chronology=InterProblemChronology(),
 )

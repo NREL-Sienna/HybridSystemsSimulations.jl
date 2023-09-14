@@ -21,7 +21,7 @@ function set_uc_models!(template_uc)
             attributes=Dict{String, Any}("cycling" => false),
         ),
     )
-    #set_device_model!(template_uc, GenericBattery, BookKeeping)
+    set_device_model!(template_uc, GenericBattery, StorageDispatchWithReserves)
     set_service_model!(template_uc, ServiceModel(VariableReserve{ReserveUp}, RangeReserve))
     set_service_model!(
         template_uc,

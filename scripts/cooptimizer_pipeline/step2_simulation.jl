@@ -187,18 +187,12 @@ sequence = SimulationSequence(
                 source=EnergyDABidIn,
                 affected_values=[ActivePowerInVariable],
             ),
-            LowerBoundFeedforward(
-                component_type=PSY.VariableReserve{ReserveUp},
+            FixValueFeedforward(
+                component_type=PSY.HybridSystem,
                 source=TotalBidReserve,
-                affected_values=[ActivePowerReserveVariable],
-            ),
-            LowerBoundFeedforward(
-                component_type=PSY.VariableReserve{ReserveDown},
-                source=TotalBidReserve,
-                affected_values=[ActivePowerReserveVariable],
+                affected_values=[ReserveAssignment],
             ),
         ],
-        #=
         "MerchantHybridCooptimizer_RT" => [
             FixValueFeedforward(
                 component_type=PSY.HybridSystem,
@@ -207,31 +201,44 @@ sequence = SimulationSequence(
             ),
             FixValueFeedforward(
                 component_type=PSY.HybridSystem,
-                source=EnergyDABidIn,
-                affected_values=[EnergyDABidIn],
-            ),
-            LowerBoundFeedforward(
-                component_type=PSY.VariableReserve{ReserveUp},
-                source=BidReserveVariableOut,
-                affected_values=[BidReserveVariableOut],
-            ),
-            LowerBoundFeedforward(
-                component_type=PSY.VariableReserve{ReserveDown},
-                source=BidReserveVariableOut,
-                affected_values=[BidReserveVariableOut],
-            ),
-            LowerBoundFeedforward(
-                component_type=PSY.VariableReserve{ReserveUp},
-                source=BidReserveVariableIn,
+                source=BidReserveVariable,
                 affected_values=[BidReserveVariableIn],
             ),
-            LowerBoundFeedforward(
-                component_type=PSY.VariableReserve{ReserveDown},
-                source=BidReserveVariableIn,
-                affected_values=[BidReserveVariableIn],
+            FixValueFeedforward(
+                component_type=PSY.HybridSystem,
+                source=TotalBidReserve,
+                affected_values=[TotalBidReserve],
             ),
         ],
-        =#
+        "ED" => [
+            SemiContinuousFeedforward(
+                component_type=ThermalStandard,
+                source=OnVariable,
+                affected_values=[ActivePowerVariable],
+            ),
+            FixValueFeedforward(
+                component_type=PSY.HybridSystem,
+                source=EnergyRTBidOut,
+                affected_values=[ActivePowerOutVariable],
+            ),
+            FixValueFeedforward(
+                component_type=PSY.HybridSystem,
+                source=EnergyRTBidIn,
+                affected_values=[ActivePowerInVariable],
+            ),
+            LowerBoundFeedforward(
+                component_type=PSY.VariableReserve{ReserveUp},
+                source=ActivePowerReserveVariable,
+                affected_values=[ActivePowerReserveVariable],
+                add_slacks = true
+            ),
+            LowerBoundFeedforward(
+                component_type=PSY.VariableReserve{ReserveDown},
+                source=ActivePowerReserveVariable,
+                affected_values=[ActivePowerReserveVariable],
+                add_slacks = true
+            ),
+        ],
     ),
     ini_cond_chronology=InterProblemChronology(),
 )

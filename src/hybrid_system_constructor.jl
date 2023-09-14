@@ -754,7 +754,7 @@ function PSI.construct_device!(
     ::PSI.ArgumentConstructStage,
     model::PSI.DeviceModel{T, D},
     network_model::PSI.NetworkModel{S},
-) where {T <: PSY.HybridSystem, D <: HybridWithReservesFixedDA, S <: PM.AbstractPowerModel}
+) where {T <: PSY.HybridSystem, D <: HybridFixedDA, S <: PM.AbstractPowerModel}
     devices = PSI.get_available_components(T, sys)
     # Add Common Variables
     PSI.add_variables!(container, PSI.ActivePowerOutVariable, devices, D())
@@ -778,10 +778,9 @@ function PSI.construct_device!(
         network_model,
     )
 
-    #if PSI.has_service_model(model)
-    #    PSI.add_variables!(container, ReserveVariableOut, devices, D())
-    #    PSI.add_variables!(container, ReserveVariableIn, devices, D())
-    #end
+    if PSI.has_service_model(model)
+        PSI.add_variables!(container, ReserveAssignment, devices, D())
+    end
 
     PSI.add_feedforward_arguments!(container, model, devices)
 
@@ -799,7 +798,7 @@ function PSI.construct_device!(
     network_model::PSI.NetworkModel{S},
 ) where {
     T <: PSY.HybridSystem,
-    D <: HybridWithReservesFixedDA,
+    D <: HybridFixedDA,
     S <: PM.AbstractActivePowerModel,
 }
     devices = PSI.get_available_components(T, sys)
@@ -821,85 +820,9 @@ function PSI.construct_device!(
         model,
         network_model,
     )
-
-    return
-end
-
-###################################################################
-############### Argument Constructor for FixedDA  #################
-###################################################################
-function PSI.construct_device!(
-    container::PSI.OptimizationContainer,
-    sys::PSY.System,
-    ::PSI.ArgumentConstructStage,
-    model::PSI.DeviceModel{T, D},
-    network_model::PSI.NetworkModel{S},
-) where {T <: PSY.HybridSystem, D <: HybridEnergyOnlyFixedDA, S <: PM.AbstractPowerModel}
-    devices = PSI.get_available_components(T, sys)
-    # Add Common Variables
-    PSI.add_variables!(container, PSI.ActivePowerOutVariable, devices, D())
-    PSI.add_variables!(container, PSI.ActivePowerInVariable, devices, D())
-
-    PSI.add_to_expression!(
-        container,
-        PSI.ActivePowerBalance,
-        PSI.ActivePowerInVariable,
-        devices,
-        model,
-        network_model,
-    )
-
-    PSI.add_to_expression!(
-        container,
-        PSI.ActivePowerBalance,
-        PSI.ActivePowerOutVariable,
-        devices,
-        model,
-        network_model,
-    )
-
-    PSI.add_feedforward_arguments!(container, model, devices)
 
     if PSI.has_service_model(model)
-        error("Services are not supported by $D")
-    end
 
-    return
-end
-
-###################################################################
-################# Model Constructor for FixedDA  ##################
-###################################################################
-function PSI.construct_device!(
-    container::PSI.OptimizationContainer,
-    sys::PSY.System,
-    ::PSI.ModelConstructStage,
-    model::PSI.DeviceModel{T, D},
-    network_model::PSI.NetworkModel{S},
-) where {
-    T <: PSY.HybridSystem,
-    D <: HybridEnergyOnlyFixedDA,
-    S <: PM.AbstractActivePowerModel,
-}
-    devices = PSI.get_available_components(T, sys)
-
-    # Constraints
-    PSI.add_constraints!(
-        container,
-        PSI.InputActivePowerVariableLimitsConstraint,
-        PSI.ActivePowerInVariable,
-        devices,
-        model,
-        network_model,
-    )
-    PSI.add_constraints!(
-        container,
-        PSI.OutputActivePowerVariableLimitsConstraint,
-        PSI.ActivePowerOutVariable,
-        devices,
-        model,
-        network_model,
-    )
 
     return
 end

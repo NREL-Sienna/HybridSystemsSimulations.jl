@@ -14,7 +14,6 @@ struct EnergyBatteryDischargeBid <: PSI.VariableType end
 # AS Total DA Bids
 struct BidReserveVariableOut <: PSI.VariableType end
 struct BidReserveVariableIn <: PSI.VariableType end
-struct TotalBidReserve <: PSI.AuxVariableType end
 
 # Component Variables
 abstract type HybridAssetVariableType <: PSI.VariableType end
@@ -25,12 +24,14 @@ struct BatteryDischarge <: HybridAssetVariableType end
 struct BatteryStatus <: HybridAssetVariableType end
 
 # AS Variable for Hybrid
+abstract type ReserveVariableType <: PSI.VariableType end
+abstract type AssetReserveVariableType <: ReserveVariableType end
 struct ReserveVariableOut <: PSI.VariableType end
 struct ReserveVariableIn <: PSI.VariableType end
-struct ReserveReservationVariable <: PSI.VariableType end
+struct TotalReserve <: PSI.VariableType end
+struct TotalBidReserve <: PSI.VariableType end
 
-abstract type ComponentReserveVariableType <: PSI.VariableType end
-
+abstract type ComponentReserveVariableType <: ReserveVariableType end
 struct ChargingReserveVariable <: ComponentReserveVariableType end
 struct DischargingReserveVariable <: ComponentReserveVariableType end
 struct ThermalReserveVariable <: ComponentReserveVariableType end

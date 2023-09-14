@@ -1188,10 +1188,9 @@ function PSI.add_constraints!(
 end
 
 ############## Reserve Balance and Output Constraints, HybridSystem ###################
-
 function PSI.add_constraints!(
     container::PSI.OptimizationContainer,
-    T::Type{AuxiliaryReserveConstraint},
+    T::Type{HybridReserveAssignmentConstraint},
     devices::U,
     service::V,
     model::PSI.DeviceModel{D, W},
@@ -1199,12 +1198,11 @@ function PSI.add_constraints!(
 ) where {
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     V <: PSY.Reserve,
-    W <: Union{HybridDispatchWithReserves, HybridWithReservesFixedDA},
+    W <: HybridFixedDA,
 } where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     service_name = PSY.get_name(service)
-    res_out = PSI.get_variable(container, ReserveVariableOut(), V, service_name)
-    res_in = PSI.get_variable(container, ReserveVariableIn(), V, service_name)
+    res_assignment = PSI.get_variable(container, ReserveAssignment(), V, service_name)
     res_var = PSI.get_variable(container, PSI.ActivePowerReserveVariable(), V, service_name)
     names = [PSY.get_name(d) for d in devices]
     con = PSI.add_constraints_container!(
@@ -1219,7 +1217,7 @@ function PSI.add_constraints!(
         ci_name = PSY.get_name(device)
         con[ci_name, t] = JuMP.@constraint(
             PSI.get_jump_model(container),
-            res_out[ci_name, t] + res_in[ci_name, t] == res_var[ci_name, t]
+            res_assignment[ci_name, t] == res_var[ci_name, t]
         )
     end
     return

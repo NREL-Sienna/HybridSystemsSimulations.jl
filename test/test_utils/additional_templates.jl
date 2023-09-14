@@ -12,7 +12,7 @@ function set_uc_models!(template_uc)
     set_device_model!(template_uc, PowerLoad, StaticPowerLoad)
     #set_device_model!(template_uc, Transformer2W, StaticBranchUnbounded)
     set_device_model!(template_uc, TapTransformer, StaticBranchUnbounded)
-    set_device_model!(template_uc, HydroDispatch, HydroDispatchRunOfRiver)
+    set_device_model!(template_uc, HydroDispatch, FixedOutput)
     set_device_model!(
         template_uc,
         DeviceModel(
@@ -33,8 +33,8 @@ end
 function update_ed_models!(template_ed)
     #set_device_model!(template_ed, ThermalMultiStart, ThermalStandardDispatch)
     set_device_model!(template_ed, ThermalStandard, ThermalBasicDispatch)
-    set_device_model!(template_ed, HydroDispatch, HydroDispatchRunOfRiver)
-    #set_device_model!(template_ed, HydroEnergyReservoir, HydroDispatchRunOfRiver)
+    set_device_model!(template_ed, HydroDispatch, FixedOutput)
+    #set_device_model!(template_ed, HydroEnergyReservoir, FixedOutput)
     empty!(template_ed.services)
     return
 end

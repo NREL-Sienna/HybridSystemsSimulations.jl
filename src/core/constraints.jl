@@ -47,9 +47,8 @@ struct ThermalReserveLimit <: PSI.ConstraintType end
 struct RenewableReserveLimit <: PSI.ConstraintType end
 
 ## Auxiliary for Output
-struct AuxiliaryReserveConstraint <: PSI.ConstraintType end
 struct ReserveBalance <: PSI.ConstraintType end
-# Used for DeviceModels inside UC/ED etc
+# Used for DeviceModels inside UC/ED to equate with the ActivePowerReserveVariable
 struct HybridReserveAssignmentConstraint <: PSI.ConstraintType end
 
 ###################

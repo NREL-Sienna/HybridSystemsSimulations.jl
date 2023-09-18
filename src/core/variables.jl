@@ -26,10 +26,9 @@ struct BatteryStatus <: HybridAssetVariableType end
 # AS Variable for Hybrid
 abstract type ReserveVariableType <: PSI.VariableType end
 abstract type AssetReserveVariableType <: ReserveVariableType end
-struct ReserveVariableOut <: PSI.VariableType end
-struct ReserveVariableIn <: PSI.VariableType end
-struct TotalReserve <: PSI.VariableType end
-struct TotalBidReserve <: PSI.VariableType end
+struct ReserveVariableOut <: AssetReserveVariableType end
+struct ReserveVariableIn <: AssetReserveVariableType end
+struct TotalReserve <: AssetReserveVariableType end
 
 abstract type ComponentReserveVariableType <: ReserveVariableType end
 struct ChargingReserveVariable <: ComponentReserveVariableType end

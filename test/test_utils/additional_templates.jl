@@ -21,7 +21,7 @@ function set_uc_models!(template_uc)
             attributes=Dict{String, Any}("cycling" => false),
         ),
     )
-    set_device_model!(template_uc, GenericBattery, StorageDispatchWithReserves)
+    set_device_model!(template_uc, GenericBattery, BookKeeping)
     set_service_model!(template_uc, ServiceModel(VariableReserve{ReserveUp}, RangeReserve))
     set_service_model!(
         template_uc,
@@ -34,7 +34,7 @@ function update_ed_models!(template_ed)
     #set_device_model!(template_ed, ThermalMultiStart, ThermalStandardDispatch)
     set_device_model!(template_ed, ThermalStandard, ThermalBasicDispatch)
     set_device_model!(template_ed, HydroDispatch, FixedOutput)
-    #set_device_model!(template_ed, HydroEnergyReservoir, FixedOutput)
+    #set_device_model!(template_ed, HydroEnergyReservoir, HydroDispatchRunOfRiver)
     empty!(template_ed.services)
     return
 end

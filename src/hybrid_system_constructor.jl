@@ -725,7 +725,7 @@ function PSI.construct_device!(
         for service in services
             PSI.add_constraints!(
                 container,
-                AuxiliaryReserveConstraint,
+                HybridReserveAssignmentConstraint,
                 devices,
                 service,
                 model,

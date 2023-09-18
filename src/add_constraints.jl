@@ -1198,6 +1198,42 @@ function PSI.add_constraints!(
 ) where {
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     V <: PSY.Reserve,
+    W <: HybridDispatchWithReserves
+} where {D <: PSY.HybridSystem}
+    time_steps = PSI.get_time_steps(container)
+    service_name = PSY.get_name(service)
+    res_out = PSI.get_variable(container, ReserveVariableOut(), V, service_name)
+    res_in = PSI.get_variable(container, ReserveVariableIn(), V, service_name)
+    res_var = PSI.get_variable(container, PSI.ActivePowerReserveVariable(), V, service_name)
+    names = [PSY.get_name(d) for d in devices]
+    con = PSI.add_constraints_container!(
+        container,
+        T(),
+        D,
+        names,
+        time_steps,
+        meta=service_name,
+    )
+    for device in devices, t in time_steps
+        ci_name = PSY.get_name(device)
+        con[ci_name, t] = JuMP.@constraint(
+            PSI.get_jump_model(container),
+            res_out[ci_name, t] + res_in[ci_name, t] == res_var[ci_name, t]
+        )
+    end
+    return
+end
+
+function PSI.add_constraints!(
+    container::PSI.OptimizationContainer,
+    T::Type{HybridReserveAssignmentConstraint},
+    devices::U,
+    service::V,
+    model::PSI.DeviceModel{D, W},
+    network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    V <: PSY.Reserve,
     W <: HybridFixedDA,
 } where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)

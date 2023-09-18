@@ -55,9 +55,13 @@ add_hybrid_to_chuhsi_bus!(sys_rts_da)
 modify_ren_curtailment_cost!(sys_rts_rt)
 add_hybrid_to_chuhsi_bus!(sys_rts_rt)
 
+#interval_DA = Hour(24)
+#horizon_DA = 72
 interval_DA = Hour(24)
 horizon_DA = 72
 transform_single_time_series!(sys_rts_da, horizon_DA, interval_DA)
+#interval_RT = Minute(5)
+#horizon_RT = 24
 interval_RT = Hour(1)
 horizon_RT = 12 * 3
 transform_single_time_series!(sys_rts_rt, horizon_RT, interval_RT)
@@ -69,7 +73,7 @@ transform_single_time_series!(sys_rts_rt, horizon_RT, interval_RT)
 # CopperPlate
 template_uc_copperplate = get_uc_copperplate_template(sys_rts_da)
 template_ed_copperplate = get_ed_copperplate_template(sys_rts_rt)
-empty!(template_ed_copperplate.services)
+
 # PTDF Bounded
 template_uc_ptdf = get_uc_ptdf_template(sys_rts_da)
 template_ed_ptdf = get_ed_ptdf_template(sys_rts_rt)
@@ -87,7 +91,7 @@ template_ed_dcp = get_ed_dcp_template()
 ###############################
 
 mipgap = 0.005
-num_steps = 5
+num_steps = 8
 starttime = DateTime("2020-10-02T00:00:00")
 
 ###############################

@@ -6,13 +6,11 @@
 # Some models are commented for RTS model
 
 function set_uc_models!(template_uc)
-    #set_device_model!(template_uc, ThermalMultiStart, ThermalStandardUnitCommitment)
-    #set_device_model!(template_uc, ThermalStandard, ThermalStandardUnitCommitment)
     set_device_model!(template_uc, ThermalStandard, ThermalBasicUnitCommitment)
     set_device_model!(template_uc, RenewableDispatch, RenewableFullDispatch)
     set_device_model!(template_uc, RenewableFix, FixedOutput)
     set_device_model!(template_uc, PowerLoad, StaticPowerLoad)
-    #set_device_model!(template_uc, Transformer2W, StaticBranchUnbounded)
+    set_device_model!(template_uc, Transformer2W, StaticBranchUnbounded)
     set_device_model!(template_uc, TapTransformer, StaticBranchUnbounded)
     set_device_model!(template_uc, HydroDispatch, FixedOutput)
     set_device_model!(
@@ -37,7 +35,9 @@ function update_ed_models!(template_ed)
     set_device_model!(template_ed, ThermalStandard, ThermalBasicDispatch)
     set_device_model!(template_ed, HydroDispatch, FixedOutput)
     #set_device_model!(template_ed, HydroEnergyReservoir, FixedOutput)
-    #empty!(template_ed.services)
+    for s in values(template_ed.services)
+        s.use_slacks = true
+    end
     return
 end
 

@@ -335,6 +335,7 @@ function _update_parameter_values!(
     return
 end
 
+#=
 function PSI._update_parameter_values!(
     parameter_array::AbstractArray{T},
     attributes::PSI.VariableValueAttributes{PSI.AuxVarKey{TotalBidReserve, S}},
@@ -408,3 +409,4 @@ function PSI._fix_parameter_value!(
     end
     return
 end
+=#

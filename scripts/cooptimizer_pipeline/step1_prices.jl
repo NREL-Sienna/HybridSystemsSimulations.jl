@@ -177,6 +177,16 @@ sequence = SimulationSequence(
                 source=OnVariable,
                 affected_values=[ActivePowerVariable],
             ),
+            LowerBoundFeedforward(
+                component_type=VariableReserve{ReserveUp},
+                source=ActivePowerReserveVariable,
+                affected_values=[ActivePowerReserveVariable],
+            ),
+            LowerBoundFeedforward(
+                component_type=VariableReserve{ReserveDown},
+                source=ActivePowerReserveVariable,
+                affected_values=[ActivePowerReserveVariable],
+            ),
         ],
     ),
     ini_cond_chronology=InterProblemChronology(),

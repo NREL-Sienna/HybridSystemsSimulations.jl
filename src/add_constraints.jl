@@ -1238,7 +1238,7 @@ function PSI.add_constraints!(
 } where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     service_name = PSY.get_name(service)
-    res_assignment = PSI.get_variable(container, ReserveAssignment(), V, service_name)
+    res_assignment = PSI.get_variable(container, TotalReserve(), V, service_name)
     res_var = PSI.get_variable(container, PSI.ActivePowerReserveVariable(), V, service_name)
     names = [PSY.get_name(d) for d in devices]
     con = PSI.add_constraints_container!(

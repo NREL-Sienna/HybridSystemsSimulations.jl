@@ -20,9 +20,10 @@ export BidReserveVariableOut
 export BidReserveVariableIn
 export ReserveVariableOut
 export ReserveVariableIn
+export TotalReserve
 
 # Auxiliary variables
-export TotalBidReserve
+
 
 # Constraints
 export OptConditionRenewablePower

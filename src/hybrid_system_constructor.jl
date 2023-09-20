@@ -779,7 +779,7 @@ function PSI.construct_device!(
     )
 
     if PSI.has_service_model(model)
-        PSI.add_variables!(container, ReserveAssignment, devices, D())
+        PSI.add_variables!(container, TotalReserve, devices, D())
     end
 
     PSI.add_feedforward_arguments!(container, model, devices)

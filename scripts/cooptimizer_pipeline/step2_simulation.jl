@@ -170,6 +170,19 @@ models = SimulationModels(
             #check_numerical_bounds=false,
         ),
         decision_optimizer_RT,
+        DecisionModel(
+            template_ed_copperplate,
+            sys_rts_merchant_rt;
+            name="ED",
+            optimizer=optimizer_with_attributes(Xpress.Optimizer, "MIPRELSTOP" => mipgap),
+            system_to_file=false,
+            initialize_model=true,
+            optimizer_solve_log_print=false,
+            direct_mode_optimizer=true,
+            rebuild_model=false,
+            store_variable_names=true,
+            #check_numerical_bounds=false,
+        ),
     ],
 )
 
@@ -189,10 +202,12 @@ sequence = SimulationSequence(
             ),
             FixValueFeedforward(
                 component_type=PSY.HybridSystem,
-                source=TotalBidReserve,
-                affected_values=[ReserveAssignment],
+                source=TotalReserve,
+                affected_values=[TotalReserve],
             ),
         ],
+        # This FF configuration allows the Hybrid to re-assign reserves internally
+        # But it can't increase the reserve offer to the ED
         "MerchantHybridCooptimizer_RT" => [
             FixValueFeedforward(
                 component_type=PSY.HybridSystem,
@@ -201,13 +216,13 @@ sequence = SimulationSequence(
             ),
             FixValueFeedforward(
                 component_type=PSY.HybridSystem,
-                source=BidReserveVariable,
-                affected_values=[BidReserveVariableIn],
+                source=EnergyDABidIn,
+                affected_values=[EnergyDABidIn],
             ),
             FixValueFeedforward(
                 component_type=PSY.HybridSystem,
-                source=TotalBidReserve,
-                affected_values=[TotalBidReserve],
+                source=TotalReserve,
+                affected_values=[TotalReserve],
             ),
         ],
         "ED" => [
@@ -218,13 +233,13 @@ sequence = SimulationSequence(
             ),
             FixValueFeedforward(
                 component_type=PSY.HybridSystem,
-                source=EnergyRTBidOut,
-                affected_values=[ActivePowerOutVariable],
+                source=EnergyDABidOut,
+                affected_values=[EnergyDABidOut],
             ),
             FixValueFeedforward(
                 component_type=PSY.HybridSystem,
-                source=EnergyRTBidIn,
-                affected_values=[ActivePowerInVariable],
+                source=EnergyDABidIn,
+                affected_values=[EnergyDABidIn],
             ),
             LowerBoundFeedforward(
                 component_type=PSY.VariableReserve{ReserveUp},
@@ -237,6 +252,11 @@ sequence = SimulationSequence(
                 source=ActivePowerReserveVariable,
                 affected_values=[ActivePowerReserveVariable],
                 add_slacks=true,
+            ),
+            FixValueFeedforward(
+                component_type=PSY.HybridSystem,
+                source=TotalReserve,
+                affected_values=[TotalReserve],
             ),
         ],
     ),

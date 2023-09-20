@@ -230,13 +230,13 @@ sequence = SimulationSequence(
                 component_type=PSY.VariableReserve{ReserveUp},
                 source=ActivePowerReserveVariable,
                 affected_values=[ActivePowerReserveVariable],
-                add_slacks = true
+                add_slacks=true,
             ),
             LowerBoundFeedforward(
                 component_type=PSY.VariableReserve{ReserveDown},
                 source=ActivePowerReserveVariable,
                 affected_values=[ActivePowerReserveVariable],
-                add_slacks = true
+                add_slacks=true,
             ),
         ],
     ),

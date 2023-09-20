@@ -259,14 +259,20 @@ rt_out = read_realized_variable(result_merch_RT, "EnergyRTBidOut__HybridSystem")
 rt_in = read_realized_variable(result_merch_RT, "EnergyRTBidIn__HybridSystem")
 
 da_out = read_variable(result_merch_DA, "EnergyDABidOut__HybridSystem")
-da_out_realized = vcat([values(vdf)[!, 2][1:24] for vdf in values(da_out)]...)
+da_out_realized = vcat([values(vdf)[!, 1][1:24] for vdf in values(da_out)]...)
 da_in = read_variable(result_merch_DA, "EnergyDABidIn__HybridSystem")
-da_in_realized = vcat([values(vdf)[!, 2][1:24] for vdf in values(da_in)]...)
+da_in_realized = vcat([values(vdf)[!, 1][1:24] for vdf in values(da_in)]...)
 
-
-# WARN: The timestamps in these results don't make sense. These are Hourly, requires a fix in PSI.
 da_out_rt = read_variable(result_merch_RT, "EnergyDABidOut__HybridSystem")
 da_in_rt = read_variable(result_merch_RT, "EnergyDABidIn__HybridSystem")
+da_out_rt_p = read_realized_parameter(
+    result_merch_RT,
+    "FixValueParameter__HybridSystem__EnergyDABidOut",
+)
+da_in_rt_p = read_realized_parameter(
+    result_merch_RT,
+    "FixValueParameter__HybridSystem__EnergyDABidIn",
+)
 
 uc_p_out = read_realized_variable(results_uc, "ActivePowerOutVariable__HybridSystem")
 uc_p_in = read_realized_variable(results_uc, "ActivePowerInVariable__HybridSystem")
@@ -277,14 +283,21 @@ p1 = plot([
     scatter(x=uc_p_out[!, 1], y=uc_p_out[!, 2] / 100.0, name="UC P Out", line_shape="hv"),
     scatter(x=uc_p_in[!, 1], y=uc_p_in[!, 2] / 100.0, name="UC P In", line_shape="hv"),
     scatter(
+        x=da_out_rt_p[!, 1],
+        y=da_out_rt_p[!, 2],
+        name="DA Bid Out RT P",
+        line_shape="hv",
+    ),
+    scatter(x=da_in_rt_p[!, 1], y=da_in_rt_p[!, 2], name="DA Bid In RT P", line_shape="hv"),
+    scatter(
         x=plotting_dates_uc,
-        y=[v[1,2] for v in values(da_out_rt)],
+        y=[v[1, 1] for v in values(da_out_rt)],
         name="DA Bid Out RT",
         line_shape="hv",
     ),
     scatter(
         x=plotting_dates_uc,
-        y=[v[1,2] for v in values(da_in_rt)],
+        y=[v[1, 1] for v in values(da_in_rt)],
         name="DA Bid In RT",
         line_shape="hv",
     ),

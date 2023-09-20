@@ -191,6 +191,7 @@ function PSI.update_decision_state!(
     simulation_time::Dates.DateTime,
     model_params::PSI.ModelStoreParams,
 ) where {T <: Union{EnergyDABidOut, EnergyDABidIn}}
+    @error "updating decision state $simulation_time"
     state_data = PSI.get_decision_state_data(state, key)
     model_resolution = PSI.get_resolution(model_params) # var res: 1 hour
     model_resolution = Dates.Hour(1) #TODO: Find a ext hack
@@ -237,18 +238,16 @@ function PSI._update_parameter_values!(
     current_time = PSI.get_current_time(model)
     state_values = PSI.get_dataset_values(state, PSI.get_attribute_key(attributes))
     component_names, time = axes(parameter_array)
-    resolution = PSI.get_resolution(model)
+    model_resolution = PSI.get_resolution(model)
+    @error model.name
+    @error current_time
     state_data = PSI.get_dataset(state, PSI.get_attribute_key(attributes))
+    t_step = model_resolution ÷ state_data.resolution
     state_timestamps = state_data.timestamps
     max_state_index = PSI.get_num_rows(state_data)
     state_data_index = PSI.find_timestamp_index(state_timestamps, current_time)
-    sim_timestamps = range(current_time; step=resolution, length=time[end])
+    sim_timestamps = range(current_time; step=model_resolution, length=time[end])
     for t in time
-        if resolution < Dates.Minute(10)
-            t_step = 1
-        else
-            t_step = 12
-        end
         timestamp_ix = min(max_state_index, state_data_index + t_step)
         @debug "parameter horizon is over the step" max_state_index > state_data_index + 1
         if state_timestamps[timestamp_ix] <= sim_timestamps[t]
@@ -265,6 +264,34 @@ function PSI._update_parameter_values!(
                 )
             end
             PSI._set_param_value!(parameter_array, state_value, name, t)
+        end
+    end
+    return
+end
+
+function PSI._fix_parameter_value!(
+    container::PSI.OptimizationContainer,
+    parameter_array::PSI.JuMPFloatArray,
+    parameter_attributes::PSI.VariableValueAttributes{
+        PowerSimulations.VariableKey{U, PSY.HybridSystem},
+    },
+) where {U <: Union{EnergyDABidIn, EnergyDABidOut}}
+    affected_variable_keys = parameter_attributes.affected_keys
+    for var_key in affected_variable_keys
+        variable = PSI.get_variable(container, var_key)
+        component_name_var, time_var = axes(variable)
+        component_names, time = axes(parameter_array)
+        if time_var < time
+            for t in time_var, name in component_names
+                t_ = 1 + (t - 1) * time[end] ÷ time_var[end]
+                JuMP.fix(variable[name, t], parameter_array[name, t_]; force=true)
+            end
+        elseif time_var == time
+            for t in time_var, name in component_names
+                JuMP.fix(variable[name, t], parameter_array[name, t]; force=true)
+            end
+        else
+            error("invalid condition")
         end
     end
     return
@@ -294,24 +321,5 @@ function PSI._add_feedforward_arguments!(
 ) where {T <: PSY.HybridSystem}
     parameter_type = PSI.get_default_parameter_type(ff, T)
     PSI.add_parameters!(container, parameter_type, ff, model, devices)
-    return
-end
-
-function PSI._fix_parameter_value!(
-    container::PSI.OptimizationContainer,
-    parameter_array::PSI.JuMPFloatArray,
-    parameter_attributes::PSI.VariableValueAttributes{
-        PowerSimulations.VariableKey{U, PSY.HybridSystem},
-    },
-) where {U <: Union{EnergyDABidIn, EnergyDABidOut}}
-    affected_variable_keys = parameter_attributes.affected_keys
-    for var_key in affected_variable_keys
-        variable = PSI.get_variable(container, var_key)
-        component_name_var, time_var = axes(variable)
-        component_names, time = axes(parameter_array)
-        for t in time_var, name in component_names
-            JuMP.fix(variable[name, t], parameter_array[name, t]; force=true)
-        end
-    end
     return
 end

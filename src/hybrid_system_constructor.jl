@@ -796,11 +796,7 @@ function PSI.construct_device!(
     ::PSI.ModelConstructStage,
     model::PSI.DeviceModel{T, D},
     network_model::PSI.NetworkModel{S},
-) where {
-    T <: PSY.HybridSystem,
-    D <: HybridFixedDA,
-    S <: PM.AbstractActivePowerModel,
-}
+) where {T <: PSY.HybridSystem, D <: HybridFixedDA, S <: PM.AbstractActivePowerModel}
     devices = PSI.get_available_components(T, sys)
 
     # Constraints

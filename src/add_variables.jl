@@ -189,11 +189,7 @@ function PSI.add_variables!(
     ::Type{W},
     devices::Union{Vector{U}, IS.FlattenIteratorWrapper{U}},
     formulation::V,
-) where {
-    U <: PSY.HybridSystem,
-    W <: ReserveVariableType,
-    V <: AbstractHybridFormulation,
-}
+) where {U <: PSY.HybridSystem, W <: ReserveVariableType, V <: AbstractHybridFormulation}
     time_steps = PSI.get_time_steps(container)
     # TODO
     # Best way to create this variable? We need to have all services and its type.

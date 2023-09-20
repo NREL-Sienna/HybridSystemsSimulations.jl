@@ -1198,7 +1198,7 @@ function PSI.add_constraints!(
 ) where {
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     V <: PSY.Reserve,
-    W <: HybridDispatchWithReserves
+    W <: HybridDispatchWithReserves,
 } where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     service_name = PSY.get_name(service)

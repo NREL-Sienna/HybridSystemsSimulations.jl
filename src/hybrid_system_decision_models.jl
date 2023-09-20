@@ -239,10 +239,9 @@ function PSI._update_parameter_values!(
     state_values = PSI.get_dataset_values(state, PSI.get_attribute_key(attributes))
     component_names, time = axes(parameter_array)
     model_resolution = PSI.get_resolution(model)
-    @error model.name
-    @error current_time
     state_data = PSI.get_dataset(state, PSI.get_attribute_key(attributes))
     t_step = model_resolution ÷ state_data.resolution
+    @assert t_step > 0
     state_timestamps = state_data.timestamps
     max_state_index = PSI.get_num_rows(state_data)
     state_data_index = PSI.find_timestamp_index(state_timestamps, current_time)

@@ -280,12 +280,12 @@ function PSI._fix_parameter_value!(
         variable = PSI.get_variable(container, var_key)
         component_name_var, time_var = axes(variable)
         component_names, time = axes(parameter_array)
-        if time_var < time
+        if time_var[end] < time[end]
             for t in time_var, name in component_names
                 t_ = 1 + (t - 1) * time[end] ÷ time_var[end]
                 JuMP.fix(variable[name, t], parameter_array[name, t_]; force=true)
             end
-        elseif time_var == time
+        elseif time_var[end] == time[end]
             for t in time_var, name in component_names
                 JuMP.fix(variable[name, t], parameter_array[name, t]; force=true)
             end

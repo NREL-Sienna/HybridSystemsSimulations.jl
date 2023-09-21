@@ -716,31 +716,22 @@ function PSI.construct_device!(
         end
     end
 
-    # TODO: Reserve Balance Method
     if PSI.has_service_model(model)
-        services = Set()
-        for d in devices
-            union!(services, PSY.get_services(d))
-        end
-        for service in services
-            PSI.add_constraints!(
-                container,
-                HybridReserveAssignmentConstraint,
-                devices,
-                service,
-                model,
-                network_model,
-            )
+        PSI.add_constraints!(
+            container,
+            HybridReserveAssignmentConstraint,
+            devices,
+            model,
+            network_model,
+        )
 
-            PSI.add_constraints!(
-                container,
-                ReserveBalance,
-                devices,
-                service,
-                model,
-                network_model,
-            )
-        end
+        PSI.add_constraints!(
+            container,
+            ReserveBalance,
+            devices,
+            model,
+            network_model,
+        )
     end
     return
 end
@@ -822,7 +813,6 @@ function PSI.construct_device!(
             container,
             HybridReserveAssignmentConstraint,
             devices,
-            service,
             model,
             network_model,
         )

@@ -45,6 +45,10 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridBilevel
         union!(services, PSY.get_services(h))
     end
 
+    if !isempty(services)
+        PSI.add_variables!(container, TotalReserve, hybrids, MerchantModelWithReserves())
+    end
+
     ###############################
     ######## Variables ############
     ###############################
@@ -805,12 +809,20 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridBilevel
     )
 
     # Reserve Bid Balance
-    for service in services
+    if !isempty(services)
+        # Kinda Hacky. Undo this before merge
+        _add_constraints_reserve_assignment!(
+            container,
+            HybridReserveAssignmentConstraint,
+            hybrids,
+            BidReserveVariableIn(),
+            BidReserveVariableOut(),
+            TotalReserve()
+        )
         _add_constraints_reservebalance!(
             container,
             ReserveBalance,
             hybrids,
-            service,
             MerchantModelWithReserves(),
             time_steps,
         )

@@ -24,7 +24,6 @@ export TotalReserve
 
 # Auxiliary variables
 
-
 # Constraints
 export OptConditionRenewablePower
 export OptConditionBatteryCharge

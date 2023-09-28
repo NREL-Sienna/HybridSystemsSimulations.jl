@@ -1197,31 +1197,16 @@ function PSI.add_constraints!(
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     W <: HybridDispatchWithReserves,
 } where {D <: PSY.HybridSystem}
-    _add_constraints_reserve_assignment!(container, T, devices, ReserveVariableIn(), ReserveVariableOut(), PSI.ActivePowerReserveVariable())
-    return
-end
-
-function _add_constraints_reserve_assignment!(
-    container::PSI.OptimizationContainer,
-    T::Type{HybridReserveAssignmentConstraint},
-    devices::U,
-    in_var,
-    out_var,
-    assignment_var,
-) where {
-    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
-} where {D <: PSY.HybridSystem}
-
-    time_steps = PSI.get_time_steps(container)
     services = Set()
     for d in devices
         union!(services, PSY.get_services(d))
     end
     for service in services
         service_name = PSY.get_name(service)
-        res_out = PSI.get_variable(container, out_var, typeof(service), service_name)
-        res_in = PSI.get_variable(container, in_var, typeof(service), service_name)
-        res_var = PSI.get_variable(container, assignment_var, typeof(service), service_name)
+        res_out = PSI.get_variable(container, ReserveVariableOut(), typeof(service), service_name)
+        res_in = PSI.get_variable(container, ReserveVariableIn(), typeof(service), service_name)
+        res_var = PSI.get_variable(container, PSI.ActivePowerReserveVariable(), typeof(service), service_name)
+        _, time_steps = axes(res_out)
         names = [PSY.get_name(d) for d in devices]
         con = PSI.add_constraints_container!(
             container,
@@ -1236,6 +1221,45 @@ function _add_constraints_reserve_assignment!(
             con[ci_name, t] = JuMP.@constraint(
                 PSI.get_jump_model(container),
                 res_out[ci_name, t] + res_in[ci_name, t] == res_var[ci_name, t]
+            )
+        end
+    end
+    return
+end
+
+function _add_constraints_reserve_assignment!(
+    container::PSI.OptimizationContainer,
+    T::Type{HybridReserveAssignmentConstraint},
+    devices::U,
+    in_var,
+    out_var,
+    assignment_var,
+) where {U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}}} where {D <: PSY.HybridSystem}
+    services = Set()
+    for d in devices
+        union!(services, PSY.get_services(d))
+    end
+    time_steps = PSY.get_ext(first(devices))["T_da"]
+    con = PSI.add_constraints_container!(
+        container,
+        T(),
+        D,
+        [PSY.get_name(d) for d in devices],
+        PSY.get_name.(services),
+        time_steps
+    )
+
+    for service in services
+        service_name = PSY.get_name(service)
+        res_out = PSI.get_variable(container, out_var, typeof(service), service_name)
+        res_in = PSI.get_variable(container, in_var, typeof(service), service_name)
+        _, time_steps = axes(res_out)
+        res_var = PSI.get_variable(container, assignment_var, D)
+        for device in devices, t in time_steps
+            ci_name = PSY.get_name(device)
+            con[ci_name, service_name, t] = JuMP.@constraint(
+                PSI.get_jump_model(container),
+                res_out[ci_name, t] + res_in[ci_name, t] - res_var[ci_name, service_name, t] == 0.0
             )
         end
     end
@@ -1260,8 +1284,14 @@ function PSI.add_constraints!(
     for service in services
         time_steps = PSI.get_time_steps(container)
         service_name = PSY.get_name(service)
-        res_assignment = PSI.get_variable(container, TotalReserve(), typeof(service), service_name)
-        res_var = PSI.get_variable(container, PSI.ActivePowerReserveVariable(), typeof(service), service_name)
+        res_assignment =
+            PSI.get_variable(container, TotalReserve(), D)
+        res_var = PSI.get_variable(
+            container,
+            PSI.ActivePowerReserveVariable(),
+            typeof(service),
+            service_name,
+        )
         names = [PSY.get_name(d) for d in devices]
         con = PSI.add_constraints_container!(
             container,
@@ -1275,7 +1305,7 @@ function PSI.add_constraints!(
             ci_name = PSY.get_name(device)
             con[ci_name, t] = JuMP.@constraint(
                 PSI.get_jump_model(container),
-                res_assignment[ci_name, t] == res_var[ci_name, t]
+                res_assignment[ci_name, service_name, t] == res_var[ci_name, t]
             )
         end
     end
@@ -1299,8 +1329,10 @@ function PSI.add_constraints!(
     end
     for service in services
         service_name = PSY.get_name(service)
-        res_out = PSI.get_variable(container, ReserveVariableOut(), typeof(service), service_name)
-        res_in = PSI.get_variable(container, ReserveVariableIn(), typeof(service), service_name)
+        res_out =
+            PSI.get_variable(container, ReserveVariableOut(), typeof(service), service_name)
+        res_in =
+            PSI.get_variable(container, ReserveVariableIn(), typeof(service), service_name)
         names = [PSY.get_name(d) for d in devices]
         con = PSI.add_constraints_container!(
             container,
@@ -1315,18 +1347,36 @@ function PSI.add_constraints!(
             vars_pos = Set{JUMP_SET_TYPE}()
 
             if !isnothing(PSY.get_thermal_unit(device))
-                res_th = PSI.get_variable(container, ThermalReserveVariable(), typeof(service), service_name)
+                res_th = PSI.get_variable(
+                    container,
+                    ThermalReserveVariable(),
+                    typeof(service),
+                    service_name,
+                )
                 push!(vars_pos, res_th[ci_name, :])
             end
             if !isnothing(PSY.get_renewable_unit(device))
-                res_re =
-                    PSI.get_variable(container, RenewableReserveVariable(), typeof(service), service_name)
+                res_re = PSI.get_variable(
+                    container,
+                    RenewableReserveVariable(),
+                    typeof(service),
+                    service_name,
+                )
                 push!(vars_pos, res_re[ci_name, :])
             end
             if !isnothing(PSY.get_storage(device))
-                res_ch = PSI.get_variable(container, ChargingReserveVariable(), typeof(service), service_name)
-                res_ds =
-                    PSI.get_variable(container, DischargingReserveVariable(), typeof(service), service_name)
+                res_ch = PSI.get_variable(
+                    container,
+                    ChargingReserveVariable(),
+                    typeof(service),
+                    service_name,
+                )
+                res_ds = PSI.get_variable(
+                    container,
+                    DischargingReserveVariable(),
+                    typeof(service),
+                    service_name,
+                )
                 push!(vars_pos, res_ds[ci_name, :])
                 push!(vars_pos, res_ch[ci_name, :])
             end
@@ -1655,8 +1705,18 @@ function _add_constraints_reservebalance!(
     end
     for service in services
         service_name = PSY.get_name(service)
-        res_out = PSI.get_variable(container, BidReserveVariableOut(), typeof(service), service_name)
-        res_in = PSI.get_variable(container, BidReserveVariableIn(), typeof(service), service_name)
+        res_out = PSI.get_variable(
+            container,
+            BidReserveVariableOut(),
+            typeof(service),
+            service_name,
+        )
+        res_in = PSI.get_variable(
+            container,
+            BidReserveVariableIn(),
+            typeof(service),
+            service_name,
+        )
         names = [PSY.get_name(d) for d in devices]
         con = PSI.add_constraints_container!(
             container,
@@ -1672,18 +1732,36 @@ function _add_constraints_reservebalance!(
             vars_pos = Set{JUMP_SET_TYPE}()
 
             if !isnothing(PSY.get_thermal_unit(device))
-                res_th = PSI.get_variable(container, ThermalReserveVariable(), typeof(service), service_name)
+                res_th = PSI.get_variable(
+                    container,
+                    ThermalReserveVariable(),
+                    typeof(service),
+                    service_name,
+                )
                 push!(vars_pos, res_th[ci_name, :])
             end
             if !isnothing(PSY.get_renewable_unit(device))
-                res_re =
-                    PSI.get_variable(container, RenewableReserveVariable(), typeof(service), service_name)
+                res_re = PSI.get_variable(
+                    container,
+                    RenewableReserveVariable(),
+                    typeof(service),
+                    service_name,
+                )
                 push!(vars_pos, res_re[ci_name, :])
             end
             if !isnothing(PSY.get_storage(device))
-                res_ch = PSI.get_variable(container, ChargingReserveVariable(), typeof(service), service_name)
-                res_ds =
-                    PSI.get_variable(container, DischargingReserveVariable(), typeof(service), service_name)
+                res_ch = PSI.get_variable(
+                    container,
+                    ChargingReserveVariable(),
+                    typeof(service),
+                    service_name,
+                )
+                res_ds = PSI.get_variable(
+                    container,
+                    DischargingReserveVariable(),
+                    typeof(service),
+                    service_name,
+                )
                 push!(vars_pos, res_ds[ci_name, :])
                 push!(vars_pos, res_ch[ci_name, :])
             end
@@ -2545,5 +2623,40 @@ function add_constraints!(
 } where {D <: PSY.HybridSystem}
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
+    return
+end
+
+function PSI._add_parameters!(
+    container::PSI.OptimizationContainer,
+    ::T,
+    key::PSI.VariableKey{TotalReserve, S},
+    model::PSI.ServiceModel{S, W},
+    devices::V,
+) where {
+    S <: PSY.AbstractReserve,
+    T <: PSI.VariableValueParameter,
+    V <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: PSI.AbstractReservesFormulation,
+} where {D <: PSY.Component}
+    contributing_devices = PSI.get_contributing_devices(model)
+    names = [
+        PSY.get_name(device) for
+        device in contributing_devices if isa(device, PSY.HybridSystem)
+    ]
+    isempty(names) && return
+    time_steps = PSI.get_time_steps(container)
+    parameter_container = PSI.add_param_container!(
+        container,
+        T(),
+        S,
+        key,
+        names,
+        time_steps;
+        meta=PSI.get_service_name(model),
+    )
+    jump_model = PSI.get_jump_model(container)
+    for name in names, t in time_steps
+        PSI.set_parameter!(parameter_container, jump_model, 0.0, name, t)
+    end
     return
 end

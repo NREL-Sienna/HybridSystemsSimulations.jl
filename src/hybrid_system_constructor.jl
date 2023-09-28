@@ -725,13 +725,7 @@ function PSI.construct_device!(
             network_model,
         )
 
-        PSI.add_constraints!(
-            container,
-            ReserveBalance,
-            devices,
-            model,
-            network_model,
-        )
+        PSI.add_constraints!(container, ReserveBalance, devices, model, network_model)
     end
     return
 end

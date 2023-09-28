@@ -840,7 +840,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
             hybrids,
             BidReserveVariableIn(),
             BidReserveVariableOut(),
-            TotalReserve()
+            TotalReserve(),
         )
         _add_constraints_reservebalance!(
             container,

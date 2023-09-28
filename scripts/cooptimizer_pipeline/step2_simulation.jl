@@ -151,6 +151,7 @@ decision_optimizer_RT = DecisionModel(
 
 decision_optimizer_RT.ext = Dict{String, Any}("RT" => true)
 
+
 # Construct decision models for simulation
 models = SimulationModels(
     decision_models=[
@@ -201,7 +202,7 @@ sequence = SimulationSequence(
                 affected_values=[ActivePowerInVariable],
             ),
             FixValueFeedforward(
-                component_type=PSY.HybridSystem,
+                component_type=component_type=HybridSystem,
                 source=TotalReserve,
                 affected_values=[TotalReserve],
             ),
@@ -254,7 +255,7 @@ sequence = SimulationSequence(
                 add_slacks=true,
             ),
             FixValueFeedforward(
-                component_type=PSY.HybridSystem,
+                component_type=HybridSystem,
                 source=TotalReserve,
                 affected_values=[TotalReserve],
             ),

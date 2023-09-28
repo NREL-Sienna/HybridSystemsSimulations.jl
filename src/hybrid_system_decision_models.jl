@@ -187,11 +187,11 @@ end
 function PSI.update_decision_state!(
     state::PSI.SimulationState,
     key::PSI.VariableKey{T, PSY.HybridSystem},
-    store_data::PSI.DenseAxisArray{Float64},
+    store_data::PSI.DenseAxisArray{Float64, 2},
     simulation_time::Dates.DateTime,
     model_params::PSI.ModelStoreParams,
 ) where {T <: Union{EnergyDABidOut, EnergyDABidIn}}
-    @error "updating decision state $simulation_time"
+    @debug "updating decision state $simulation_time"
     state_data = PSI.get_decision_state_data(state, key)
     model_resolution = PSI.get_resolution(model_params) # var res: 1 hour
     model_resolution = Dates.Hour(1) #TODO: Find a ext hack

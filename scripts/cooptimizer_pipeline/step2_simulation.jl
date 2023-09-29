@@ -244,12 +244,12 @@ sequence = SimulationSequence(
             FixValueFeedforward(
                 component_type=PSY.HybridSystem,
                 source=EnergyDABidOut,
-                affected_values=[EnergyDABidOut],
+                affected_values=[ActivePowerOutVariable],
             ),
             FixValueFeedforward(
                 component_type=PSY.HybridSystem,
                 source=EnergyDABidIn,
-                affected_values=[EnergyDABidIn],
+                affected_values=[ActivePowerInVariable],
             ),
             LowerBoundFeedforward(
                 component_type=PSY.VariableReserve{ReserveUp},

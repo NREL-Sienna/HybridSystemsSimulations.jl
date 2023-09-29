@@ -270,7 +270,7 @@ end
 
 function PSI._fix_parameter_value!(
     container::PSI.OptimizationContainer,
-    parameter_array::PSI.JuMPFloatArray,
+    parameter_array::PSI.JuMPFloatMatrix,
     parameter_attributes::PSI.VariableValueAttributes{
         PowerSimulations.VariableKey{U, PSY.HybridSystem},
     },
@@ -306,6 +306,7 @@ function PSI.update_decision_state!(
     simulation_time::Dates.DateTime,
     model_params::PSI.ModelStoreParams,
 )
+    @assert all(isfinite.(store_data))
     state_data = PSI.get_decision_state_data(state, key)
     # column_Names
     device_names, service_names = PSI.get_column_names(key, state_data)
@@ -321,7 +322,7 @@ function PSI.update_decision_state!(
             range(
                 simulation_time;
                 step = state_resolution,
-                length = get_num_rows(state_data),
+                length = PSI.get_num_rows(state_data),
             )
     else
         state_data_index = PSI.find_timestamp_index(state_timestamps, simulation_time)
@@ -339,6 +340,17 @@ function PSI.update_decision_state!(
         PSI.set_last_recorded_row!(state_data, state_range[end])
         state_data_index += resolution_ratio
     end
+    return
+end
+
+function PSI.update_decision_state!(
+    state::PSI.SimulationState,
+    key::PSI.ParameterKey{PSI.FixValueParameter, PSY.HybridSystem},
+    store_data::PSI.DenseAxisArray{Float64, 3},
+    simulation_time::Dates.DateTime,
+    model_params::PSI.ModelStoreParams,
+)
+    # Not needed
     return
 end
 
@@ -373,12 +385,13 @@ function PSI._update_parameter_values!(
         if state_timestamps[timestamp_ix] <= sim_timestamps[t]
             state_data_index = timestamp_ix
         end
-        for name in component_names, service_name = service_names
+        for name in component_names, service_name in service_names
             # Pass indices in this way since JuMP DenseAxisArray don't support view()
             state_value = state_values[name, service_name, state_data_index]
             if !isfinite(state_value)
+                @error model.name
                 error(
-                    "The value for the system state used in $(encode_key_as_string(get_attribute_key(attributes))) is not a finite value $(state_value) \
+                    "The value for the system state used in $(PSI.encode_key_as_string(PSI.get_attribute_key(attributes))) is not a finite value $(state_value) \
                      This is commonly caused by referencing a state value at a time when such decision hasn't been made. \
                      Consider reviewing your models' horizon and interval definitions",
                 )
@@ -396,7 +409,7 @@ function PSI.update_decision_state!(
     store_data::PSI.DenseAxisArray{Float64, 3},
     simulation_time::Dates.DateTime,
     model_params::PSI.ModelStoreParams,
-) 
+)
     @debug "updating decision state $simulation_time"
     @show model_params
     state_data = PSI.get_decision_state_data(state, key)

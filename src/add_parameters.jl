@@ -337,6 +337,13 @@ end
 
 
 # Container for Total Reserve #
+
+function PSI._set_param_value!(param::AbstractArray, value::Float64, name::String, service_name::String, t::Int)
+    param[name, service_name, t] = value
+    #PSI.fix_parameter_value(param[name, service_name, t], value)
+    return
+end
+
 function PSI._add_parameters!(
     container::PSI.OptimizationContainer,
     ::T,
@@ -378,8 +385,19 @@ function PSI._add_parameters!(
     return
 end
 
-function PSI._set_param_value!(param::AbstractArray, value::Float64, name::String, service_name::String, t::Int)
-    param[name, service_name, t] = value
-    #PSI.fix_parameter_value(param[name, service_name, t], value)
+function PSI._fix_parameter_value!(
+    container::PSI.OptimizationContainer,
+    parameter_array::JuMP.Containers.DenseAxisArray{Float64, 3},
+    parameter_attributes::PSI.VariableValueAttributes{PowerSimulations.VariableKey{TotalReserve, PSY.HybridSystem}},
+)
+    affected_variable_keys = parameter_attributes.affected_keys
+    @assert !isempty(affected_variable_keys)
+    for var_key in affected_variable_keys
+        variable = PSI.get_variable(container, var_key)
+        component_names, services_names, time = axes(parameter_array)
+        for t in time, s_name in services_names, name in component_names
+            JuMP.fix(variable[name, s_name, t], parameter_array[name, s_name, t]; force = true)
+        end
+    end
     return
 end

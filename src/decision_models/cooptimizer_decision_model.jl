@@ -878,6 +878,9 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
         MerchantModelWithReserves(),
     )
 
+
+    device_model = PSI.get_model(PSI.get_template(decision_model), PSY.HybridSystem)
+    PSI.add_feedforward_arguments!(container, device_model, hybrids)
     PSI.serialize_metadata!(container, PSI.get_output_dir(decision_model))
     return
 end

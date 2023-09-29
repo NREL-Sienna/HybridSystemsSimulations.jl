@@ -125,6 +125,15 @@ set_service_model!(
     ServiceModel(VariableReserve{ReserveDown}, RangeReserve, use_slacks=false),
 )
 
+template_ed_copperplate = deepcopy(template_uc_copperplate)
+set_device_model!(template_ed_copperplate, ThermalStandard, ThermalBasicDispatch)
+set_device_model!(template_ed_copperplate, HydroDispatch, FixedOutput)
+#set_device_model!(template_ed, HydroEnergyReservoir, FixedOutput)
+for s in values(template_ed_copperplate.services)
+    s.use_slacks = true
+end
+
+
 ######################################################
 ####### Systems for RT Bids and Realized ED ##########
 ######################################################
@@ -278,13 +287,17 @@ build!(sim)
 
 execute!(sim; enable_progress_bar=true)
 
-#=
+da_merch = sim.models.decision_models[1]
 ucmod = sim.models.decision_models[2]
-vars = ucmod.internal.container.variables
+rt_merch = sim.models.decision_models[3]
+edmod = sim.models.decision_models[4]
+
+vars = edmod.internal.container.variables
 cons = ucmod.internal.container.constraints
+tot_reserve = vars[PSI.VariableKey{TotalReserve, HybridSystem}("")]
 regdn_var = vars[PSI.VariableKey{ActivePowerReserveVariable, VariableReserve{ReserveDown}}("Reg_Down")]
 regdn_con = cons[PSI.ConstraintKey{RequirementConstraint, VariableReserve{ReserveDown}}("Reg_Down")]
-=#
+
 ### Process Results
 
 results = SimulationResults(sim)

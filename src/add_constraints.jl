@@ -1239,7 +1239,8 @@ function _add_constraints_reserve_assignment!(
     for d in devices
         union!(services, PSY.get_services(d))
     end
-    time_steps = PSY.get_ext(first(devices))["T_da"]
+    #time_steps = PSY.get_ext(first(devices))["T_da"]
+    time_steps = PSI.get_time_steps(container)
     con = PSI.add_constraints_container!(
         container,
         T(),
@@ -1249,17 +1250,18 @@ function _add_constraints_reserve_assignment!(
         time_steps
     )
 
+    tmap = PSY.get_ext(first(devices))["tmap"]
+
     for service in services
         service_name = PSY.get_name(service)
         res_out = PSI.get_variable(container, out_var, typeof(service), service_name)
         res_in = PSI.get_variable(container, in_var, typeof(service), service_name)
-        _, time_steps = axes(res_out)
         res_var = PSI.get_variable(container, assignment_var, D)
         for device in devices, t in time_steps
             ci_name = PSY.get_name(device)
             con[ci_name, service_name, t] = JuMP.@constraint(
                 PSI.get_jump_model(container),
-                res_out[ci_name, t] + res_in[ci_name, t] - res_var[ci_name, service_name, t] == 0.0
+                res_out[ci_name, tmap[t]] + res_in[ci_name, tmap[t]] - res_var[ci_name, service_name, t] == 0.0
             )
         end
     end

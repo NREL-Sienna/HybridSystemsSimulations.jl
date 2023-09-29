@@ -334,3 +334,52 @@ function _update_parameter_values!(
     end
     return
 end
+
+
+# Container for Total Reserve #
+function PSI._add_parameters!(
+    container::PSI.OptimizationContainer,
+    ::T,
+    key::PSI.VariableKey{TotalReserve, D},
+    model::PSI.DeviceModel{D, W},
+    devices::V,
+) where {
+    T <: PSI.FixValueParameter,
+    V <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: PSI.AbstractDeviceFormulation,
+} where {D <: PSY.HybridSystem}
+    @show "param for total reserve"
+    var = PSI.get_variable(container, TotalReserve(), D)
+    device_names, service_names, time_steps = axes(var)
+    parameter_container =
+        PSI.add_param_container!(container, T(), D, key, device_names, service_names, time_steps; meta = "$TotalReserve")
+    jump_model = PSI.get_jump_model(container)
+    for d in devices
+        name = PSY.get_name(d)
+        inital_parameter_value = 0.0
+        for t in time_steps, service_name in service_names
+            PSI.set_multiplier!(
+                parameter_container,
+                1.0,
+                name,
+                service_name,
+                t,
+            )
+            PSI.set_parameter!(
+                parameter_container,
+                jump_model,
+                inital_parameter_value,
+                name,
+                service_name,
+                t,
+            )
+        end
+    end
+    return
+end
+
+function PSI._set_param_value!(param::AbstractArray, value::Float64, name::String, service_name::String, t::Int)
+    param[name, service_name, t] = value
+    #PSI.fix_parameter_value(param[name, service_name, t], value)
+    return
+end

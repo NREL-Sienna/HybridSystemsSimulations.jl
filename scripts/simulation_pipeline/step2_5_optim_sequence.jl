@@ -277,6 +277,20 @@ da_in_rt_p = read_realized_parameter(
 uc_p_out = read_realized_variable(results_uc, "ActivePowerOutVariable__HybridSystem")
 uc_p_in = read_realized_variable(results_uc, "ActivePowerInVariable__HybridSystem")
 
+#make the DART
+da_price_ = read_parameter(result_merch_DA, "DayAheadEnergyPrice__HybridSystem__EnergyDABidIn")
+rt_price = read_realized_parameter(result_merch_DA, "DayAheadEnergyPrice__HybridSystem__EnergyDABidOut")
+da_price = vcat([values(vdf)[!, 1][1:24] for vdf in values(da_price_)]...)
+
+
+plot([
+    scatter(x = rt_price[!, 1], y = rt_price[!, 2], line_shape="hv"),
+    scatter(x =plotting_dates_uc, y = da_price, line_shape="hv")
+    ]
+    )
+
+plot(scatter(y = da_price))
+
 p1 = plot([
     scatter(x=plotting_dates_uc, y=da_out_realized, name="DA Bid Out", line_shape="hv"),
     scatter(x=plotting_dates_uc, y=da_in_realized, name="DA Bid In", line_shape="hv"),
@@ -301,7 +315,11 @@ p1 = plot([
         name="DA Bid In RT",
         line_shape="hv",
     ),
+    scatter(
+
+    )
 ])
+
 
 p1 = plot(
     [

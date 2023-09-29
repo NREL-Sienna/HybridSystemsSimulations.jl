@@ -261,7 +261,7 @@ function _update_parameter_values!(
     initial_forecast_time = PSI.get_current_time(model)
     container = PSI.get_optimization_container(model)
     parameter_array = PSI.get_parameter_array(container, key)
-    parameter_multiplier = PSI.get_parameter_multiplier_array(container, key)
+    @show parameter_multiplier = PSI.get_parameter_multiplier_array(container, key)
     attributes = PSI.get_parameter_attributes(container, key)
     components = PSI.get_available_components(PSY.HybridSystem, PSI.get_system(model))
     resolution = PSI.get_resolution(container)

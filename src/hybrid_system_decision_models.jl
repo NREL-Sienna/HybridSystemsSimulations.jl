@@ -296,6 +296,145 @@ function PSI._fix_parameter_value!(
     return
 end
 
+
+### TotalReserve ###
+
+function PSI.update_decision_state!(
+    state::PSI.SimulationState,
+    key::PSI.VariableKey{TotalReserve, PSY.HybridSystem},
+    store_data::PSI.DenseAxisArray{Float64, 3},
+    simulation_time::Dates.DateTime,
+    model_params::PSI.ModelStoreParams,
+)
+    state_data = PSI.get_decision_state_data(state, key)
+    # column_Names
+    device_names, service_names = PSI.get_column_names(key, state_data)
+    model_resolution = PSI.get_resolution(model_params)
+    state_resolution = PSI.get_data_resolution(state_data)
+    resolution_ratio = model_resolution ÷ state_resolution
+    state_timestamps = state_data.timestamps
+    PSI.IS.@assert_op resolution_ratio >= 1
+
+    if simulation_time > PSI.get_end_of_step_timestamp(state_data)
+        state_data_index = 1
+        state_data.timestamps[:] .=
+            range(
+                simulation_time;
+                step = state_resolution,
+                length = get_num_rows(state_data),
+            )
+    else
+        state_data_index = PSI.find_timestamp_index(state_timestamps, simulation_time)
+    end
+
+    offset = resolution_ratio - 1
+    result_time_index = axes(store_data)[3]
+    PSI.set_update_timestamp!(state_data, simulation_time)
+    for t in result_time_index
+        state_range = state_data_index:(state_data_index + offset)
+        for name in device_names, service in service_names, i in state_range
+            # TODO: We could also interpolate here
+            state_data.values[name, service, i] = store_data[name, service, t]
+        end
+        PSI.set_last_recorded_row!(state_data, state_range[end])
+        state_data_index += resolution_ratio
+    end
+    return
+end
+
+function PSI._update_parameter_values!(
+    parameter_array::AbstractArray{T},
+    attributes::PSI.VariableValueAttributes{
+        PowerSimulations.VariableKey{TotalReserve, PSY.HybridSystem},
+    },
+    ::Type{<:PSY.HybridSystem},
+    model::PSI.DecisionModel,
+    state::PSI.DatasetContainer{PSI.InMemoryDataset},
+) where {T <: Union{JuMP.VariableRef, Float64}}
+    current_time = PSI.get_current_time(model)
+    state_values = PSI.get_dataset_values(state, PSI.get_attribute_key(attributes))
+    component_names, service_names, time = axes(parameter_array)
+    model_resolution = PSI.get_resolution(model)
+    state_data = PSI.get_dataset(state, PSI.get_attribute_key(attributes))
+    state_timestamps = state_data.timestamps
+    max_state_index = PSI.get_num_rows(state_data)
+    if model_resolution < state_data.resolution
+        t_step = 1
+    elseif model_resolution >= state_data.resolution
+        t_step = model_resolution ÷ state_data.resolution
+    else
+        @assert false
+    end
+    state_data_index = PSI.find_timestamp_index(state_timestamps, current_time)
+    sim_timestamps = range(current_time; step = model_resolution, length = time[end])
+    for t in time
+        timestamp_ix = min(max_state_index, state_data_index + t_step)
+        @debug "parameter horizon is over the step" max_state_index > state_data_index + 1
+        if state_timestamps[timestamp_ix] <= sim_timestamps[t]
+            state_data_index = timestamp_ix
+        end
+        for name in component_names, service_name = service_names
+            # Pass indices in this way since JuMP DenseAxisArray don't support view()
+            state_value = state_values[name, service_name, state_data_index]
+            if !isfinite(state_value)
+                error(
+                    "The value for the system state used in $(encode_key_as_string(get_attribute_key(attributes))) is not a finite value $(state_value) \
+                     This is commonly caused by referencing a state value at a time when such decision hasn't been made. \
+                     Consider reviewing your models' horizon and interval definitions",
+                )
+            end
+            PSI._set_param_value!(parameter_array, state_value, name, service_name, t)
+        end
+    end
+    return
+end
+
+#=
+function PSI.update_decision_state!(
+    state::PSI.SimulationState,
+    key::PSI.VariableKey{TotalReserve, PSY.HybridSystem},
+    store_data::PSI.DenseAxisArray{Float64, 3},
+    simulation_time::Dates.DateTime,
+    model_params::PSI.ModelStoreParams,
+) 
+    @debug "updating decision state $simulation_time"
+    @show model_params
+    state_data = PSI.get_decision_state_data(state, key)
+    model_resolution = PSI.get_resolution(model_params) # var res: 1 hour
+    model_resolution = Dates.Hour(1) #TODO: Find a ext hack
+    state_resolution = PSI.get_data_resolution(state_data) # 5 min
+    resolution_ratio = model_resolution ÷ state_resolution
+    state_timestamps = state_data.timestamps
+    PSI.IS.@assert_op resolution_ratio >= 1
+
+    if simulation_time > PSI.get_end_of_step_timestamp(state_data)
+        state_data_index = 1
+        state_data.timestamps[:] .= range(
+            simulation_time;
+            step=state_resolution,
+            length=PSI.get_num_rows(state_data),
+        )
+    else
+        state_data_index = PSI.find_timestamp_index(state_timestamps, simulation_time)
+    end
+
+    offset = resolution_ratio - 1
+    result_time_index = axes(store_data)[end]
+    PSI.set_update_timestamp!(state_data, simulation_time)
+    for t in result_time_index
+        @show state_range = state_data_index:(state_data_index + offset)
+        for name in axes(state_data.values)[1], service in axes(state_data.values)[2], i in state_range
+            # TODO: We could also interpolate here
+            aux = store_data[name, service, t]
+            state_data.values[name, service, i] = aux
+        end
+        PSI.set_last_recorded_row!(state_data, state_range[end])
+        state_data_index += resolution_ratio
+    end
+    return
+end
+=#
+
 ###################################################################
 #################### Feedforward Functions  #######################
 ###################################################################
@@ -318,6 +457,20 @@ function PSI._add_feedforward_arguments!(
     devices::Vector{T},
     ff::PSI.AbstractAffectFeedforward,
 ) where {T <: PSY.HybridSystem}
+    parameter_type = PSI.get_default_parameter_type(ff, T)
+    @show ff
+    PSI.add_parameters!(container, parameter_type, ff, model, devices)
+    return
+end
+
+function PSI._add_feedforward_arguments!(
+    container::PSI.OptimizationContainer,
+    model::PSI.DeviceModel,
+    devices::Vector{T},
+    ff::PSI.FixValueFeedforward,
+) where {T <: PSY.HybridSystem}
+    @show "fixvalueparam"
+    @show ff
     parameter_type = PSI.get_default_parameter_type(ff, T)
     PSI.add_parameters!(container, parameter_type, ff, model, devices)
     return

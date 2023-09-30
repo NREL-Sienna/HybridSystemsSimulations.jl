@@ -133,7 +133,6 @@ for s in values(template_ed_copperplate.services)
     s.use_slacks = true
 end
 
-
 ######################################################
 ####### Systems for RT Bids and Realized ED ##########
 ######################################################
@@ -159,7 +158,6 @@ decision_optimizer_RT = DecisionModel(
 )
 
 decision_optimizer_RT.ext = Dict{String, Any}("RT" => true)
-
 
 # Construct decision models for simulation
 models = SimulationModels(
@@ -211,7 +209,7 @@ sequence = SimulationSequence(
                 affected_values=[ActivePowerInVariable],
             ),
             FixValueFeedforward(
-                component_type=component_type=HybridSystem,
+                component_type=component_type = HybridSystem,
                 source=TotalReserve,
                 affected_values=[TotalReserve],
             ),
@@ -292,11 +290,31 @@ ucmod = sim.models.decision_models[2]
 rt_merch = sim.models.decision_models[3]
 edmod = sim.models.decision_models[4]
 
-vars = edmod.internal.container.variables
-cons = ucmod.internal.container.constraints
+params = rt_merch.internal.container.parameters
+tot_reserve_param =
+    params[PSI.ParameterKey{FixValueParameter, HybridSystem}("TotalReserve")]
+tot_reserve_param[:, :, 6]
+vars = rt_merch.internal.container.variables
+totres = vars[PSI.VariableKey{TotalReserve, HybridSystem}("")];
+JuMP.lower_bound(totres["317_Hybrid", "Reg_Up", 1])
+
+for (k, v) in rt_merch.internal.container.variables
+    @show k
+    for v_ in v
+        if v_.index.value == 110
+            @show v_
+        end
+    end
+end
+
+cons = rt_merch.internal.container.constraints
+cons[PSI.ConstraintKey{HSS.HybridReserveAssignmentConstraint, HybridSystem}("")]
 tot_reserve = vars[PSI.VariableKey{TotalReserve, HybridSystem}("")]
-regdn_var = vars[PSI.VariableKey{ActivePowerReserveVariable, VariableReserve{ReserveDown}}("Reg_Down")]
-regdn_con = cons[PSI.ConstraintKey{RequirementConstraint, VariableReserve{ReserveDown}}("Reg_Down")]
+regdn_var = vars[PSI.VariableKey{ActivePowerReserveVariable, VariableReserve{ReserveDown}}(
+    "Reg_Down",
+)]
+regdn_con =
+    cons[PSI.ConstraintKey{RequirementConstraint, VariableReserve{ReserveDown}}("Reg_Down")]
 
 ### Process Results
 

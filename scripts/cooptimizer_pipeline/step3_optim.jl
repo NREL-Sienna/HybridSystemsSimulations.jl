@@ -24,7 +24,7 @@ dic["λ_da_df"] =
     CSV.read("scripts/simulation_pipeline/inputs/$(bus_name)_DA_prices.csv", DataFrame)
 dic["λ_rt_df"] =
     CSV.read("scripts/simulation_pipeline/inputs/$(bus_name)_RT_prices.csv", DataFrame)
-    dic["λ_da_df"] =
+dic["λ_da_df"] =
     CSV.read("scripts/cooptimizer_pipeline/inputs/$(bus_name)_DA_prices.csv", DataFrame)
 dic["λ_rt_df"] =
     CSV.read("scripts/cooptimizer_pipeline/inputs/$(bus_name)_RT_prices.csv", DataFrame)

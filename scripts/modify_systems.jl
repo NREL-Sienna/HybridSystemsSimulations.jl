@@ -7,7 +7,7 @@ function modify_ren_curtailment_cost!(sys)
     end
     th_cheap = get_component(ThermalStandard, sys, "101_STEAM_3")
     set_rating!(th_cheap, 5.2)
-    set_active_power_limits!(th_cheap, (min = 0.3, max = 5.0))
+    set_active_power_limits!(th_cheap, (min=0.3, max=5.0))
     return
 end
 
@@ -59,7 +59,7 @@ function add_hybrid_to_chuhsi_bus!(sys::System; ren_name="317_WIND_1")
     set_rating!(renewable, 1.0)
     thermal = get_component(StaticInjection, sys, thermal_name)
     set_rating!(thermal, 1.0)
-    set_active_power_limits!(thermal, (min = 0.0, max = 0.95))
+    set_active_power_limits!(thermal, (min=0.0, max=0.95))
     load = get_component(PowerLoad, sys, load_name)
     load = nothing
     # Create the Hybrid

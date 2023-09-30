@@ -29,6 +29,8 @@ abstract type AssetReserveVariableType <: ReserveVariableType end
 struct ReserveVariableOut <: AssetReserveVariableType end
 struct ReserveVariableIn <: AssetReserveVariableType end
 struct TotalReserve <: AssetReserveVariableType end
+struct SlackReserveUp <: PSI.VariableType end
+struct SlackReserveDown <: PSI.VariableType end
 
 abstract type ComponentReserveVariableType <: ReserveVariableType end
 struct ChargingReserveVariable <: ComponentReserveVariableType end

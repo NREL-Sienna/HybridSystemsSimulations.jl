@@ -261,7 +261,7 @@ function _update_parameter_values!(
     initial_forecast_time = PSI.get_current_time(model)
     container = PSI.get_optimization_container(model)
     parameter_array = PSI.get_parameter_array(container, key)
-    @show parameter_multiplier = PSI.get_parameter_multiplier_array(container, key)
+    parameter_multiplier = PSI.get_parameter_multiplier_array(container, key)
     attributes = PSI.get_parameter_attributes(container, key)
     components = PSI.get_available_components(PSY.HybridSystem, PSI.get_system(model))
     resolution = PSI.get_resolution(container)
@@ -275,7 +275,7 @@ function _update_parameter_values!(
         name = PSY.get_name(component)
         for (t, value) in enumerate(λ)
             # Since the DA variables are hourly, this will revert the dt multiplication
-            PSI._set_param_value!(parameter_array, value * dt * 100.0, name, t)
+            PSI._set_param_value!(parameter_array, value * 1.0 * 100.0, name, t)
             PSI.update_variable_cost!(
                 container,
                 parameter_array,
@@ -316,11 +316,12 @@ function _update_parameter_values!(
         name = PSY.get_name(component)
         for (t, value) in enumerate(λ)
             mul_ = parameter_multiplier[name, t] * 100.0
-            PSI._set_param_value!(parameter_array, value, name, t)
+            _val = value * dt * mul_
+            PSI._set_param_value!(parameter_array, _val, name, t)
             if PSI.get_variable_type(attributes) ∈ (EnergyDABidOut, EnergyDABidIn)
-                hy_cost = variable[name, tmap[t]] * value * dt * mul_
+                hy_cost = - variable[name, tmap[t]] * _val
             else
-                hy_cost = variable[name, t] * value * dt * mul_
+                hy_cost = variable[name, t] * _val
             end
             PSI.add_to_objective_variant_expression!(container, hy_cost)
             PSI.set_expression!(

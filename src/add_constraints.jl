@@ -1203,9 +1203,16 @@ function PSI.add_constraints!(
     end
     for service in services
         service_name = PSY.get_name(service)
-        res_out = PSI.get_variable(container, ReserveVariableOut(), typeof(service), service_name)
-        res_in = PSI.get_variable(container, ReserveVariableIn(), typeof(service), service_name)
-        res_var = PSI.get_variable(container, PSI.ActivePowerReserveVariable(), typeof(service), service_name)
+        res_out =
+            PSI.get_variable(container, ReserveVariableOut(), typeof(service), service_name)
+        res_in =
+            PSI.get_variable(container, ReserveVariableIn(), typeof(service), service_name)
+        res_var = PSI.get_variable(
+            container,
+            PSI.ActivePowerReserveVariable(),
+            typeof(service),
+            service_name,
+        )
         _, time_steps = axes(res_out)
         names = [PSY.get_name(d) for d in devices]
         con = PSI.add_constraints_container!(
@@ -1247,7 +1254,7 @@ function _add_constraints_reserve_assignment!(
         D,
         [PSY.get_name(d) for d in devices],
         PSY.get_name.(services),
-        time_steps
+        time_steps,
     )
 
     tmap = PSY.get_ext(first(devices))["tmap"]
@@ -1258,11 +1265,25 @@ function _add_constraints_reserve_assignment!(
         res_in = PSI.get_variable(container, in_var, typeof(service), service_name)
         res_var = PSI.get_variable(container, assignment_var, D)
         for device in devices, t in time_steps
+            horizon_DA = PSY.get_ext(device)["horizon_DA"]
             ci_name = PSY.get_name(device)
-            con[ci_name, service_name, t] = JuMP.@constraint(
-                PSI.get_jump_model(container),
-                res_out[ci_name, tmap[t]] + res_in[ci_name, tmap[t]] - res_var[ci_name, service_name, t] == 0.0
-            )
+            if horizon_DA == 3
+                slack_up = PSI.get_variable(container, SlackReserveUp(), D)
+                slack_dn = PSI.get_variable(container, SlackReserveDown(), D)
+                con[ci_name, service_name, t] = JuMP.@constraint(
+                    PSI.get_jump_model(container),
+                    res_out[ci_name, tmap[t]] + res_in[ci_name, tmap[t]] -
+                    res_var[ci_name, service_name, t] -
+                    slack_up[ci_name, service_name, t] +
+                    slack_dn[ci_name, service_name, t] == 0.0
+                )
+            else
+                con[ci_name, service_name, t] = JuMP.@constraint(
+                    PSI.get_jump_model(container),
+                    res_out[ci_name, tmap[t]] + res_in[ci_name, tmap[t]] -
+                    res_var[ci_name, service_name, t] == 0.0
+                )
+            end
         end
     end
     return
@@ -1286,8 +1307,7 @@ function PSI.add_constraints!(
     for service in services
         time_steps = PSI.get_time_steps(container)
         service_name = PSY.get_name(service)
-        res_assignment =
-            PSI.get_variable(container, TotalReserve(), D)
+        res_assignment = PSI.get_variable(container, TotalReserve(), D)
         res_var = PSI.get_variable(
             container,
             PSI.ActivePowerReserveVariable(),

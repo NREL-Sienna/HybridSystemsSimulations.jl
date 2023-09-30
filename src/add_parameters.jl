@@ -319,7 +319,7 @@ function _update_parameter_values!(
             _val = value * dt * mul_
             PSI._set_param_value!(parameter_array, _val, name, t)
             if PSI.get_variable_type(attributes) ∈ (EnergyDABidOut, EnergyDABidIn)
-                hy_cost = - variable[name, tmap[t]] * _val
+                hy_cost = -variable[name, tmap[t]] * _val
             else
                 hy_cost = variable[name, t] * _val
             end
@@ -336,10 +336,15 @@ function _update_parameter_values!(
     return
 end
 
-
 # Container for Total Reserve #
 
-function PSI._set_param_value!(param::AbstractArray, value::Float64, name::String, service_name::String, t::Int)
+function PSI._set_param_value!(
+    param::AbstractArray,
+    value::Float64,
+    name::String,
+    service_name::String,
+    t::Int,
+)
     param[name, service_name, t] = value
     #PSI.fix_parameter_value(param[name, service_name, t], value)
     return
@@ -359,20 +364,22 @@ function PSI._add_parameters!(
     @show "param for total reserve"
     var = PSI.get_variable(container, TotalReserve(), D)
     device_names, service_names, time_steps = axes(var)
-    parameter_container =
-        PSI.add_param_container!(container, T(), D, key, device_names, service_names, time_steps; meta = "$TotalReserve")
+    parameter_container = PSI.add_param_container!(
+        container,
+        T(),
+        D,
+        key,
+        device_names,
+        service_names,
+        time_steps;
+        meta="$TotalReserve",
+    )
     jump_model = PSI.get_jump_model(container)
     for d in devices
         name = PSY.get_name(d)
         inital_parameter_value = 0.0
         for t in time_steps, service_name in service_names
-            PSI.set_multiplier!(
-                parameter_container,
-                1.0,
-                name,
-                service_name,
-                t,
-            )
+            PSI.set_multiplier!(parameter_container, 1.0, name, service_name, t)
             PSI.set_parameter!(
                 parameter_container,
                 jump_model,
@@ -389,7 +396,9 @@ end
 function PSI._fix_parameter_value!(
     container::PSI.OptimizationContainer,
     parameter_array::JuMP.Containers.DenseAxisArray{Float64, 3},
-    parameter_attributes::PSI.VariableValueAttributes{PowerSimulations.VariableKey{TotalReserve, PSY.HybridSystem}},
+    parameter_attributes::PSI.VariableValueAttributes{
+        PowerSimulations.VariableKey{TotalReserve, PSY.HybridSystem},
+    },
 )
     affected_variable_keys = parameter_attributes.affected_keys
     @assert !isempty(affected_variable_keys)
@@ -397,7 +406,11 @@ function PSI._fix_parameter_value!(
         variable = PSI.get_variable(container, var_key)
         component_names, services_names, time = axes(parameter_array)
         for t in time, s_name in services_names, name in component_names
-            JuMP.fix(variable[name, s_name, t], parameter_array[name, s_name, t]; force = true)
+            JuMP.fix(
+                variable[name, s_name, t],
+                parameter_array[name, s_name, t];
+                force=true,
+            )
         end
     end
     return

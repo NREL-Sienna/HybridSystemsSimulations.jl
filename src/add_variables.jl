@@ -223,10 +223,14 @@ end
 
 function PSI.add_variables!(
     container::PSI.OptimizationContainer,
-    ::Type{TotalReserve},
+    ::Type{W},
     devices::Union{Vector{U}, IS.FlattenIteratorWrapper{U}},
     formulation::V,
-) where {U <: PSY.HybridSystem, V <: AbstractHybridFormulation}
+) where {
+    U <: PSY.HybridSystem,
+    V <: AbstractHybridFormulation,
+    W <: Union{TotalReserve, SlackReserveUp, SlackReserveDown},
+}
     time_steps = PSI.get_time_steps(container)
     # TODO
     # Best way to create this variable? We need to have all services and its type.
@@ -237,7 +241,7 @@ function PSI.add_variables!(
 
     variable = PSI.add_variable_container!(
         container,
-        TotalReserve(),
+        W(),
         U,
         PSY.get_name.(devices),
         PSY.get_name.(services),
@@ -251,7 +255,7 @@ function PSI.add_variables!(
             for t in time_steps
                 variable[d_name, s_name, t] = JuMP.@variable(
                     PSI.get_jump_model(container),
-                    base_name = "TotalReserve_$(s_name)_{$(d_name), $(t)}",
+                    base_name = "$(W)_$(s_name)_{$(d_name), $(t)}",
                     lower_bound = 0.0
                 )
             end

@@ -296,16 +296,15 @@ function PSI._fix_parameter_value!(
     return
 end
 
-
 ### TotalReserve ###
 
 function PSI.update_decision_state!(
     state::PSI.SimulationState,
-    key::PSI.VariableKey{TotalReserve, PSY.HybridSystem},
+    key::PSI.VariableKey{W, PSY.HybridSystem},
     store_data::PSI.DenseAxisArray{Float64, 3},
     simulation_time::Dates.DateTime,
     model_params::PSI.ModelStoreParams,
-)
+) where {W <: Union{TotalReserve, SlackReserveDown, SlackReserveUp}}
     @assert all(isfinite.(store_data))
     state_data = PSI.get_decision_state_data(state, key)
     # column_Names
@@ -318,12 +317,11 @@ function PSI.update_decision_state!(
 
     if simulation_time > PSI.get_end_of_step_timestamp(state_data)
         state_data_index = 1
-        state_data.timestamps[:] .=
-            range(
-                simulation_time;
-                step = state_resolution,
-                length = PSI.get_num_rows(state_data),
-            )
+        state_data.timestamps[:] .= range(
+            simulation_time;
+            step=state_resolution,
+            length=PSI.get_num_rows(state_data),
+        )
     else
         state_data_index = PSI.find_timestamp_index(state_timestamps, simulation_time)
     end
@@ -378,7 +376,7 @@ function PSI._update_parameter_values!(
         @assert false
     end
     state_data_index = PSI.find_timestamp_index(state_timestamps, current_time)
-    sim_timestamps = range(current_time; step = model_resolution, length = time[end])
+    sim_timestamps = range(current_time; step=model_resolution, length=time[end])
     for t in time
         timestamp_ix = min(max_state_index, state_data_index + t_step)
         @debug "parameter horizon is over the step" max_state_index > state_data_index + 1

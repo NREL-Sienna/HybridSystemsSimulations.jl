@@ -5,6 +5,9 @@ function modify_ren_curtailment_cost!(sys)
         cost = TwoPartCost(15.0, 0.0)
         set_operation_cost!(ren, cost)
     end
+    th_cheap = get_component(ThermalStandard, sys, "101_STEAM_3")
+    set_rating!(th_cheap, 5.2)
+    set_active_power_limits!(th_cheap, (min = 0.3, max = 5.0))
     return
 end
 
@@ -45,7 +48,7 @@ end
 
 function add_hybrid_to_chuhsi_bus!(sys::System; ren_name="317_WIND_1")
     bus = get_component(Bus, sys, "Chuhsi")
-    bat = _build_battery(bus, 16.0, 4.0, 0.93, 0.93)
+    bat = _build_battery(bus, 4.0, 1.0, 0.93, 0.93)
     op_cost = get_operation_cost(bat)
     op_cost.variable = VariableCost(2.0)
     # Wind is taken from Bus 317: Chuhsi
@@ -53,8 +56,10 @@ function add_hybrid_to_chuhsi_bus!(sys::System; ren_name="317_WIND_1")
     thermal_name = "318_CC_1"
     load_name = "Clark"
     renewable = get_component(StaticInjection, sys, ren_name)
-    set_rating!(renewable, 4.0)
+    set_rating!(renewable, 1.0)
     thermal = get_component(StaticInjection, sys, thermal_name)
+    set_rating!(thermal, 1.0)
+    set_active_power_limits!(thermal, (min = 0.0, max = 0.95))
     load = get_component(PowerLoad, sys, load_name)
     load = nothing
     # Create the Hybrid
@@ -74,8 +79,8 @@ function add_hybrid_to_chuhsi_bus!(sys::System; ren_name="317_WIND_1")
         renewable_unit=renewable, #new_ren,
         interconnection_impedance=0.0 + 0.0im,
         interconnection_rating=nothing,
-        input_active_power_limits=(min=0.0, max=6.0),
-        output_active_power_limits=(min=0.0, max=6.0),
+        input_active_power_limits=(min=0.0, max=3.0),
+        output_active_power_limits=(min=0.0, max=3.0),
         reactive_power_limits=nothing,
     )
     # Add Hybrid

@@ -157,7 +157,7 @@ decision_optimizer_RT = DecisionModel(
     name="MerchantHybridCooptimizer_RT",
 )
 
-decision_optimizer_RT.ext = Dict{String, Any}("RT" => true)
+decision_optimizer_RT.ext = Dict{String, Any}("RT" => false)
 
 # Construct decision models for simulation
 models = SimulationModels(
@@ -322,6 +322,15 @@ results = SimulationResults(sim)
 result_merch_DA = get_decision_problem_results(results, "MerchantHybridCooptimizer_DA")
 result_merch_RT = get_decision_problem_results(results, "MerchantHybridCooptimizer_RT")
 results_uc = get_decision_problem_results(results, "UC")
+
+p_soc_da = read_realized_variable(result_merch_DA, "EnergyVariable__HybridSystem")
+p_soc_rt = read_realized_variable(result_merch_RT, "EnergyVariable__HybridSystem")
+
+p_tot_reserve = read_variable(result_merch_DA, "TotalReserve__HybridSystem")
+
+plot(p_soc_da[!, 2])
+
+
 
 ## Prices Comparison
 prices_uc_centralized = prices_uc_dcp

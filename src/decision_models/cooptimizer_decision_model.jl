@@ -48,7 +48,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
 
     if !isempty(services)
         PSI.add_variables!(container, TotalReserve, hybrids, MerchantModelWithReserves())
-        if len_DA == 3
+        if len_DA == 24
             PSI.add_variables!(
                 container,
                 SlackReserveUp,
@@ -630,7 +630,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
         p_ds = PSI.get_variable(container, BatteryDischarge(), PSY.HybridSystem)
     end
 
-    if len_DA == 3
+    if len_DA == 24
         res_slack_up = PSI.get_variable(container, SlackReserveUp(), PSY.HybridSystem)
         res_slack_dn = PSI.get_variable(container, SlackReserveDown(), PSY.HybridSystem)
     end
@@ -665,7 +665,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
             PSI.add_to_objective_invariant_expression!(container, lin_cost_p_ch)
             PSI.add_to_objective_invariant_expression!(container, lin_cost_p_ds)
         end
-        if len_DA == 3
+        if len_DA == 24
             dev_services = PSY.get_services(dev)
             for service in dev_services
                 service_name = PSY.get_name(service)
@@ -675,7 +675,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
                 )
                 PSI.add_to_objective_variant_expression!(
                     container,
-                    10000.0 * res_slack_dn[name, service_name, t],
+                    1000.0 * res_slack_dn[name, service_name, t],
                 )
             end
         end

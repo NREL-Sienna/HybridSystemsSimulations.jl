@@ -1267,7 +1267,7 @@ function _add_constraints_reserve_assignment!(
         for device in devices, t in time_steps
             horizon_DA = PSY.get_ext(device)["horizon_DA"]
             ci_name = PSY.get_name(device)
-            if horizon_DA == 3
+            if horizon_DA == 24
                 slack_up = PSI.get_variable(container, SlackReserveUp(), D)
                 slack_dn = PSI.get_variable(container, SlackReserveDown(), D)
                 con[ci_name, service_name, t] = JuMP.@constraint(

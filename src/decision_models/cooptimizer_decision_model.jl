@@ -46,6 +46,24 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
         union!(services, PSY.get_services(h))
     end
 
+    if !isempty(services)
+        PSI.add_variables!(container, TotalReserve, hybrids, MerchantModelWithReserves())
+        if len_DA == 24
+            PSI.add_variables!(
+                container,
+                SlackReserveUp,
+                hybrids,
+                MerchantModelWithReserves(),
+            )
+            PSI.add_variables!(
+                container,
+                SlackReserveDown,
+                hybrids,
+                MerchantModelWithReserves(),
+            )
+        end
+    end
+
     ###############################
     ######## Variables ############
     ###############################
@@ -239,12 +257,21 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
             _hybrids_with_renewable,
             MerchantModelWithReserves(),
         )
-        add_time_series_parameters!(
-            container,
-            RenewablePowerTimeSeries(),
-            _hybrids_with_renewable,
-            "RenewableDispatch__max_active_power_da",
-        )
+        if get(decision_model.ext, "RT", false)
+            add_time_series_parameters!(
+                container,
+                RenewablePowerTimeSeries(),
+                _hybrids_with_renewable,
+                "RenewableDispatch__max_active_power",
+            )
+        else
+            add_time_series_parameters!(
+                container,
+                RenewablePowerTimeSeries(),
+                _hybrids_with_renewable,
+                "RenewableDispatch__max_active_power_da",
+            )
+        end
         PSI.add_variables!(
             container,
             RenewableReserveVariable,
@@ -603,6 +630,11 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
         p_ds = PSI.get_variable(container, BatteryDischarge(), PSY.HybridSystem)
     end
 
+    if len_DA == 24
+        res_slack_up = PSI.get_variable(container, SlackReserveUp(), PSY.HybridSystem)
+        res_slack_dn = PSI.get_variable(container, SlackReserveDown(), PSY.HybridSystem)
+    end
+
     # RT bids and DART arbitrage
     for t in T_rt, dev in hybrids
         name = PSY.get_name(dev)
@@ -633,12 +665,21 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
             PSI.add_to_objective_invariant_expression!(container, lin_cost_p_ch)
             PSI.add_to_objective_invariant_expression!(container, lin_cost_p_ds)
         end
+        if len_DA == 24
+            dev_services = PSY.get_services(dev)
+            for service in dev_services
+                service_name = PSY.get_name(service)
+                PSI.add_to_objective_invariant_expression!(
+                    container,
+                    1000.0 * res_slack_up[name, service_name, t],
+                )
+                PSI.add_to_objective_invariant_expression!(
+                    container,
+                    1000.0 * res_slack_dn[name, service_name, t],
+                )
+            end
+        end
     end
-    JuMP.@objective(
-        model,
-        MOI.MIN_SENSE,
-        PSI.get_objective_function(container.objective_function)
-    )
 
     ###############################
     ######## Constraints ##########
@@ -833,12 +874,20 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
     )
 
     # Reserve Bid Balance
-    for service in services
+    if !isempty(services)
+        # Kinda Hacky. Undo this before merge
+        _add_constraints_reserve_assignment!(
+            container,
+            HybridReserveAssignmentConstraint,
+            hybrids,
+            BidReserveVariableIn(),
+            BidReserveVariableOut(),
+            TotalReserve(),
+        )
         _add_constraints_reservebalance!(
             container,
             ReserveBalance,
             hybrids,
-            service,
             MerchantModelWithReserves(),
             time_steps,
         )
@@ -871,6 +920,9 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
         MerchantModelWithReserves(),
     )
 
+    device_model = PSI.get_model(PSI.get_template(decision_model), PSY.HybridSystem)
+    PSI.add_feedforward_arguments!(container, device_model, hybrids)
+    PSI.update_objective_function!(container)
     PSI.serialize_metadata!(container, PSI.get_output_dir(decision_model))
     return
 end

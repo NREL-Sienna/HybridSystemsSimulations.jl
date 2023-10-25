@@ -266,11 +266,6 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
             end
         end
     end
-    JuMP.@objective(
-        model,
-        MOI.MIN_SENSE,
-        PSI.get_objective_function(container.objective_function)
-    )
 
     ###############################
     ######## Constraints ##########
@@ -500,6 +495,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
     end
     device_model = PSI.get_model(PSI.get_template(decision_model), PSY.HybridSystem)
     PSI.add_feedforward_arguments!(container, device_model, hybrids)
+    PSI.update_objective_function!(container)
     PSI.serialize_metadata!(container, PSI.get_output_dir(decision_model))
     return
 end

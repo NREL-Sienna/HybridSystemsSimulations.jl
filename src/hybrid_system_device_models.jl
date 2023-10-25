@@ -254,6 +254,17 @@ PSI.get_expression_type_for_reserve(
     ::Type{<:PSY.Reserve{PSY.ReserveDown}},
 ) = PSI.ReserveRangeExpressionLB
 
+PSI.get_variable_binary(
+    ::ReserveVariableOut,
+    ::Type{PSY.HybridSystem},
+    ::AbstractHybridFormulation,
+) = false
+PSI.get_variable_binary(
+    ::ReserveVariableIn,
+    ::Type{PSY.HybridSystem},
+    ::AbstractHybridFormulation,
+) = false
+
 PSI.get_variable_multiplier(
     ::Type{<:ComponentReserveVariableType},
     d::PSY.HybridSystem,
@@ -322,7 +333,7 @@ PSI.get_variable_multiplier(
 PSI.get_parameter_multiplier(
     ::PSI.FixValueParameter,
     ::PSY.HybridSystem,
-    ::Union{HybridEnergyOnlyFixedDA, HybridEnergyOnlyDispatch},
+    ::Union{HybridFixedDA, HybridEnergyOnlyDispatch, HybridDispatchWithReserves},
 ) = 1.0
 
 ###################################################################

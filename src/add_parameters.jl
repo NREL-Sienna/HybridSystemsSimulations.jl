@@ -275,7 +275,7 @@ function _update_parameter_values!(
         name = PSY.get_name(component)
         for (t, value) in enumerate(λ)
             # Since the DA variables are hourly, this will revert the dt multiplication
-            PSI._set_param_value!(parameter_array, value * dt * 100.0, name, t)
+            PSI._set_param_value!(parameter_array, value * 1.0 * 100.0, name, t)
             PSI.update_variable_cost!(
                 container,
                 parameter_array,
@@ -316,11 +316,12 @@ function _update_parameter_values!(
         name = PSY.get_name(component)
         for (t, value) in enumerate(λ)
             mul_ = parameter_multiplier[name, t] * 100.0
-            PSI._set_param_value!(parameter_array, value, name, t)
+            _val = value * dt * mul_
+            PSI._set_param_value!(parameter_array, _val, name, t)
             if PSI.get_variable_type(attributes) ∈ (EnergyDABidOut, EnergyDABidIn)
-                hy_cost = variable[name, tmap[t]] * value * dt * mul_
+                hy_cost = -variable[name, tmap[t]] * _val
             else
-                hy_cost = variable[name, t] * value * dt * mul_
+                hy_cost = variable[name, t] * _val
             end
             PSI.add_to_objective_variant_expression!(container, hy_cost)
             PSI.set_expression!(
@@ -329,6 +330,86 @@ function _update_parameter_values!(
                 hy_cost,
                 component,
                 t,
+            )
+        end
+    end
+    return
+end
+
+# Container for Total Reserve #
+
+function PSI._set_param_value!(
+    param::AbstractArray,
+    value::Float64,
+    name::String,
+    service_name::String,
+    t::Int,
+)
+    param[name, service_name, t] = value
+    #PSI.fix_parameter_value(param[name, service_name, t], value)
+    return
+end
+
+function PSI._add_parameters!(
+    container::PSI.OptimizationContainer,
+    ::T,
+    key::PSI.VariableKey{TotalReserve, D},
+    model::PSI.DeviceModel{D, W},
+    devices::V,
+) where {
+    T <: PSI.FixValueParameter,
+    V <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: PSI.AbstractDeviceFormulation,
+} where {D <: PSY.HybridSystem}
+    @show "param for total reserve"
+    var = PSI.get_variable(container, TotalReserve(), D)
+    device_names, service_names, time_steps = axes(var)
+    parameter_container = PSI.add_param_container!(
+        container,
+        T(),
+        D,
+        key,
+        device_names,
+        service_names,
+        time_steps;
+        meta="$TotalReserve",
+    )
+    jump_model = PSI.get_jump_model(container)
+    for d in devices
+        name = PSY.get_name(d)
+        inital_parameter_value = 0.0
+        for t in time_steps, service_name in service_names
+            PSI.set_multiplier!(parameter_container, 1.0, name, service_name, t)
+            PSI.set_parameter!(
+                parameter_container,
+                jump_model,
+                inital_parameter_value,
+                name,
+                service_name,
+                t,
+            )
+        end
+    end
+    return
+end
+
+function PSI._fix_parameter_value!(
+    container::PSI.OptimizationContainer,
+    parameter_array::JuMP.Containers.DenseAxisArray{Float64, 3},
+    parameter_attributes::PSI.VariableValueAttributes{
+        PowerSimulations.VariableKey{TotalReserve, PSY.HybridSystem},
+    },
+)
+    affected_variable_keys = parameter_attributes.affected_keys
+    @assert !isempty(affected_variable_keys)
+    for var_key in affected_variable_keys
+        variable = PSI.get_variable(container, var_key)
+        component_names, services_names, time = axes(parameter_array)
+        for t in time, s_name in services_names, name in component_names
+            JuMP.fix(
+                variable[name, s_name, t],
+                parameter_array[name, s_name, t];
+                force=true,
             )
         end
     end

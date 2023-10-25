@@ -45,6 +45,10 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridBilevel
         union!(services, PSY.get_services(h))
     end
 
+    if !isempty(services)
+        PSI.add_variables!(container, TotalReserve, hybrids, MerchantModelWithReserves())
+    end
+
     ###############################
     ######## Variables ############
     ###############################
@@ -610,12 +614,6 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridBilevel
         PSI.add_to_objective_variant_expression!(container, lin_cost_dart_in)
     end
 
-    JuMP.@objective(
-        container.JuMPmodel,
-        MOI.MIN_SENSE,
-        PSI.get_objective_function(container.objective_function)
-    )
-
     add_expressions!(container, AssetPowerBalance, hybrids)
 
     ###############################
@@ -811,12 +809,20 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridBilevel
     )
 
     # Reserve Bid Balance
-    for service in services
+    if !isempty(services)
+        # Kinda Hacky. Undo this before merge
+        _add_constraints_reserve_assignment!(
+            container,
+            HybridReserveAssignmentConstraint,
+            hybrids,
+            BidReserveVariableIn(),
+            BidReserveVariableOut(),
+            TotalReserve(),
+        )
         _add_constraints_reservebalance!(
             container,
             ReserveBalance,
             hybrids,
-            service,
             MerchantModelWithReserves(),
             time_steps,
         )

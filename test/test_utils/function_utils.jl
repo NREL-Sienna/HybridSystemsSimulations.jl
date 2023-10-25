@@ -59,7 +59,7 @@ function get_thermal_params(t_gen)
     first_part = three_cost.variable[1]
     second_part = three_cost.variable[2]
     slope = (second_part[1] - first_part[1]) / (second_part[2] - first_part[2]) # $/MWh
-    fix_cost = three_cost.fixed # $/h    
+    fix_cost = three_cost.fixed # $/h
     return DataFrame(
         ParamName=["P_min", "P_max", "C_var", "C_fix"],
         Value=[P_min, P_max, slope, fix_cost],
@@ -92,7 +92,7 @@ function _build_battery(
         name=name,
         available=true,
         bus=bus,
-        prime_mover=PSY.PrimeMovers.BA,
+        prime_mover_type=PSY.PrimeMovers.BA,
         initial_energy=energy_capacity / 2,
         state_of_charge_limits=(min=energy_capacity * 0.05, max=energy_capacity),
         rating=rating,

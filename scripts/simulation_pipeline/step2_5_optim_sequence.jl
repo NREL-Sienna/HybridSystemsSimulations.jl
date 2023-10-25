@@ -278,21 +278,23 @@ uc_p_out = read_realized_variable(results_uc, "ActivePowerOutVariable__HybridSys
 uc_p_in = read_realized_variable(results_uc, "ActivePowerInVariable__HybridSystem")
 
 #make the DART
-da_price_ = read_parameter(result_merch_DA, "DayAheadEnergyPrice__HybridSystem__EnergyDABidIn")
-rt_price = read_realized_parameter(result_merch_DA, "RealTimeEnergyPrice__HybridSystem__EnergyDABidOut")
+da_price_ =
+    read_parameter(result_merch_DA, "DayAheadEnergyPrice__HybridSystem__EnergyDABidIn")
+rt_price = read_realized_parameter(
+    result_merch_DA,
+    "RealTimeEnergyPrice__HybridSystem__EnergyDABidOut",
+)
 da_price = vcat([values(vdf)[!, 1][1:24] for vdf in values(da_price_)]...)
 
-
 plot([
-    scatter(x = rt_price[!, 1], y = rt_price[!, 2], line_shape="hv"),
-    scatter(x =plotting_dates_uc, y = da_price, line_shape="hv")
-    ]
-)
+    scatter(x=rt_price[!, 1], y=rt_price[!, 2], line_shape="hv"),
+    scatter(x=plotting_dates_uc, y=da_price, line_shape="hv"),
+])
 
 custom_dart = [da_price[tmap2[t]] - rt_price[!, 2][t] * 12 for t in 1:1152]
-custom_dart[1:24*12] = [da_price[tmap2][t] - rt_price[!, 2][t] for t in 1:288] .* 100.0
+custom_dart[1:(24 * 12)] = [da_price[tmap2][t] - rt_price[!, 2][t] for t in 1:288] .* 100.0
 
-plot(scatter(y = da_price))
+plot(scatter(y=da_price))
 
 p1 = plot([
     scatter(x=plotting_dates_uc, y=da_out_realized, name="DA Bid Out", line_shape="hv"),
@@ -305,7 +307,12 @@ p1 = plot([
         name="DA Bid Out RT P",
         line_shape="hv",
     ),
-    scatter(x=da_in_rt_p[!, 1], y=-da_in_rt_p[!, 2], name="DA Bid In RT P", line_shape="hv"),
+    scatter(
+        x=da_in_rt_p[!, 1],
+        y=-da_in_rt_p[!, 2],
+        name="DA Bid In RT P",
+        line_shape="hv",
+    ),
     scatter(
         x=plotting_dates_uc,
         y=[v[1, 1] for v in values(da_out_rt)],
@@ -318,14 +325,8 @@ p1 = plot([
         name="DA Bid In RT",
         line_shape="hv",
     ),
-    scatter(
-        x = rt_price[!, 1],
-        y = DART / 8.0,
-        name = "DART",
-        line_shape="hv",
-    )
+    scatter(x=rt_price[!, 1], y=DART / 8.0, name="DART", line_shape="hv"),
 ])
-
 
 p1 = plot(
     [

@@ -669,11 +669,11 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
             dev_services = PSY.get_services(dev)
             for service in dev_services
                 service_name = PSY.get_name(service)
-                PSI.add_to_objective_variant_expression!(
+                PSI.add_to_objective_invariant_expression!(
                     container,
-                    10000.0 * res_slack_up[name, service_name, t],
+                    1000.0 * res_slack_up[name, service_name, t],
                 )
-                PSI.add_to_objective_variant_expression!(
+                PSI.add_to_objective_invariant_expression!(
                     container,
                     1000.0 * res_slack_dn[name, service_name, t],
                 )

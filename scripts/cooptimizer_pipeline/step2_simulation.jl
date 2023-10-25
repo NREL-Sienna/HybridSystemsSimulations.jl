@@ -285,27 +285,28 @@ build!(sim)
 
 execute!(sim; enable_progress_bar=true)
 
-da_merch = sim.models.decision_models[1]
-ucmod = sim.models.decision_models[2]
-rt_merch = sim.models.decision_models[3]
-edmod = sim.models.decision_models[4]
+#=
+#da_merch = sim.models.decision_models[1]
+#ucmod = sim.models.decision_models[2]
+#rt_merch = sim.models.decision_models[3]
+#edmod = sim.models.decision_models[4]
 
-params = rt_merch.internal.container.parameters
-tot_reserve_param =
-    params[PSI.ParameterKey{FixValueParameter, HybridSystem}("TotalReserve")]
-tot_reserve_param[:, :, 6]
-vars = rt_merch.internal.container.variables
-totres = vars[PSI.VariableKey{TotalReserve, HybridSystem}("")];
-JuMP.lower_bound(totres["317_Hybrid", "Reg_Up", 1])
+#params = rt_merch.internal.container.parameters
+#tot_reserve_param =
+#    params[PSI.ParameterKey{FixValueParameter, HybridSystem}("TotalReserve")]
+#tot_reserve_param[:, :, 6]
+#vars = rt_merch.internal.container.variables
+#totres = vars[PSI.VariableKey{TotalReserve, HybridSystem}("")];
+#JuMP.lower_bound(totres["317_Hybrid", "Reg_Up", 1])
 
-for (k, v) in rt_merch.internal.container.variables
-    @show k
-    for v_ in v
-        if v_.index.value == 110
-            @show v_
-        end
-    end
-end
+#for (k, v) in rt_merch.internal.container.variables
+#    @show k
+#    for v_ in v
+#        if v_.index.value == 110
+#            @show v_
+#        end
+#    end
+#end
 
 cons = rt_merch.internal.container.constraints
 cons[PSI.ConstraintKey{HSS.HybridReserveAssignmentConstraint, HybridSystem}("")]
@@ -315,6 +316,8 @@ regdn_var = vars[PSI.VariableKey{ActivePowerReserveVariable, VariableReserve{Res
 )]
 regdn_con =
     cons[PSI.ConstraintKey{RequirementConstraint, VariableReserve{ReserveDown}}("Reg_Down")]
+=#
+
 
 ### Process Results
 
@@ -322,6 +325,7 @@ results = SimulationResults(sim)
 result_merch_DA = get_decision_problem_results(results, "MerchantHybridCooptimizer_DA")
 result_merch_RT = get_decision_problem_results(results, "MerchantHybridCooptimizer_RT")
 results_uc = get_decision_problem_results(results, "UC")
+results_ed = get_decision_problem_results(results, "ED")
 
 p_soc_da = read_realized_variable(result_merch_DA, "EnergyVariable__HybridSystem")
 p_soc_rt = read_realized_variable(result_merch_RT, "EnergyVariable__HybridSystem")
@@ -357,17 +361,21 @@ plot(
 ### Bid Comparison
 
 da_out = read_variable(result_merch_DA, "EnergyDABidOut__HybridSystem")
-da_out_realized = vcat([values(vdf)[!, 2][1:24] for vdf in values(da_out)]...)
+da_out_realized = vcat([values(vdf)[!, 1][1:24] for vdf in values(da_out)]...)
 da_in = read_variable(result_merch_DA, "EnergyDABidIn__HybridSystem")
-da_in_realized = vcat([values(vdf)[!, 2][1:24] for vdf in values(da_in)]...)
+da_in_realized = vcat([values(vdf)[!, 1][1:24] for vdf in values(da_in)]...)
 
 uc_p_out = read_realized_variable(results_uc, "ActivePowerOutVariable__HybridSystem")
 uc_p_in = read_realized_variable(results_uc, "ActivePowerInVariable__HybridSystem")
 
 da_out_rt = read_variable(result_merch_RT, "EnergyDABidOut__HybridSystem")
-da_out_rt_realized = vcat([values(vdf)[!, 2][1] for vdf in values(da_out_rt)]...)
+da_out_rt_realized = vcat([values(vdf)[!, 1][1] for vdf in values(da_out_rt)]...)
 da_in_rt = read_variable(result_merch_RT, "EnergyDABidIn__HybridSystem")
-da_in_rt_realized = vcat([values(vdf)[!, 2][1] for vdf in values(da_in_rt)]...)
+da_in_rt_realized = vcat([values(vdf)[!, 1][1] for vdf in values(da_in_rt)]...)
+
+ed_p_out = read_realized_variable(results_ed, "ActivePowerOutVariable__HybridSystem")
+ed_p_in = read_realized_variable(results_ed, "ActivePowerInVariable__HybridSystem")
+
 
 p1 = plot([
     scatter(x=dates_uc, y=da_out_realized, name="DA Bid Out", line_shape="hv"),
@@ -376,37 +384,169 @@ p1 = plot([
     scatter(x=uc_p_in[!, 1], y=uc_p_in[!, 2] / 100.0, name="UC P In", line_shape="hv"),
     scatter(x=dates_uc, y=da_out_rt_realized, name="DA Bid Out RT", line_shape="hv"),
     scatter(x=dates_uc, y=da_in_rt_realized, name="DA Bid In RT", line_shape="hv"),
+    scatter(x=dates_ed, y=ed_p_out[!, 2] / 100.0, name="ED P Out", line_shape="hv"),
+    scatter(x=dates_ed, y=ed_p_in[!, 2] / 100.0, name="ED P In", line_shape="hv"),
 ])
 
 regup_da_out = read_variable(
     result_merch_DA,
     "BidReserveVariableOut__VariableReserve__ReserveUp__Reg_Up",
 )
-regup_da_out_realized = vcat([values(vdf)[!, 2][1:24] for vdf in values(regup_da_out)]...)
+regup_da_out_realized = vcat([values(vdf)[!, 1][1:24] for vdf in values(regup_da_out)]...)
 
 regup_da_in = read_variable(
     result_merch_DA,
     "BidReserveVariableIn__VariableReserve__ReserveUp__Reg_Up",
 )
-regup_da_in_realized = vcat([values(vdf)[!, 2][1:24] for vdf in values(regup_da_in)]...)
+regup_da_in_realized = vcat([values(vdf)[!, 1][1:24] for vdf in values(regup_da_in)]...)
 
 regup_uc_out = read_realized_variable(
     results_uc,
-    "ReserveVariableOut__VariableReserve__ReserveUp__Reg_Up",
-)
-regup_uc_in = read_realized_variable(
-    results_uc,
-    "ReserveVariableIn__VariableReserve__ReserveUp__Reg_Up",
+    "ActivePowerReserveVariable__VariableReserve__ReserveUp__Reg_Up",
 )
 
+regup_ed_out = read_realized_variable(
+    results_ed,
+    "ActivePowerReserveVariable__VariableReserve__ReserveUp__Reg_Up",
+)
+
+regup_rt_out = read_variable(
+    result_merch_RT,
+    "BidReserveVariableOut__VariableReserve__ReserveUp__Reg_Up",
+)
+regup_rt_out_realized = vcat([values(vdf)[!, 1][1] for vdf in values(regup_rt_out)]...)
+
+regup_rt_in = read_variable(
+    result_merch_RT,
+    "BidReserveVariableIn__VariableReserve__ReserveUp__Reg_Up",
+)
+regup_rt_in_realized = vcat([values(vdf)[!, 1][1] for vdf in values(regup_rt_in)]...)
+
+slackup = read_variable(result_merch_RT, "SlackReserveUp__HybridSystem")
+slackdn =  read_variable(result_merch_RT, "SlackReserveDown__HybridSystem")
+slackup_regup = vcat([values(vdf)[!, "(\"317_Hybrid\", \"Reg_Up\")"][1:12] for vdf in values(slackup)]...)
+slackdn_regup = vcat([values(vdf)[!, "(\"317_Hybrid\", \"Reg_Up\")"][1:12] for vdf in values(slackdn)]...)
+
+
 p2 = plot([
-    scatter(x=dates_uc, y=regup_da_out_realized, name="RegUp DA Bid Out", line_shape="hv"),
-    scatter(x=dates_uc, y=regup_da_in_realized, name="RegUp DA Bid In", line_shape="hv"),
+    #scatter(x=dates_uc, y=regup_da_out_realized, name="RegUp DA Bid Out", line_shape="hv"),
+    #scatter(x=dates_uc, y=regup_da_in_realized, name="RegUp DA Bid In", line_shape="hv"),
+    scatter(x=dates_uc, y=regup_da_out_realized + regup_da_in_realized, name="RegUp DA Bid Out+In", line_shape="hv"),
     scatter(
         x=regup_uc_out[!, 1],
-        y=regup_uc_out[!, 2],
-        name="UC RegUp Out",
+        y=regup_uc_out[!, 2] / 100.0,
+        name="UC RegUp",
         line_shape="hv",
     ),
-    scatter(x=regup_uc_in[!, 1], y=regup_uc_in[!, 2], name="UC RegUp In", line_shape="hv"),
+    scatter(
+        x=regup_ed_out[!, 1],
+        y=regup_ed_out[!, 2] / 100.0,
+        name="ED RegUp",
+        line_shape="hv",
+    ),
+    scatter(x=dates_uc, y=regup_rt_out_realized + regup_rt_in_realized, name="RegUp RT Bid Out+In", line_shape="hv"),
+    scatter(x=dates_ed, y=-slackup_regup, line_shape = "hv", name = "- SlackUp RegUp"),
+    scatter(x=dates_ed, y=slackdn_regup, line_shape = "hv", name = "SlackDown RegUp"),
+])
+
+
+sum(slackup_regup)
+plot(scatter(x = dates_ed, y = slackup_regup))
+
+total_res_da = read_variable(result_merch_DA, "TotalReserve__HybridSystem")
+total_res_da_realized = vcat([values(vdf)[!, "(\"317_Hybrid\", \"Reg_Up\")"][1:288] for vdf in values(total_res_da)]...)
+
+total_res_uc = read_variable(results_uc, "TotalReserve__HybridSystem")
+total_res_uc_realized = vcat([values(vdf)[!, "(\"317_Hybrid\", \"Reg_Up\")"][1:24] for vdf in values(total_res_uc)]...)
+
+total_res_rt = read_variable(result_merch_RT, "TotalReserve__HybridSystem")
+total_res_rt_realized = vcat([values(vdf)[!, "(\"317_Hybrid\", \"Reg_Up\")"][1:12] for vdf in values(total_res_rt)]...)
+
+plot([scatter(x = dates_ed, y = total_res_da_realized, line_shape = "hv", name = "Merch DA Tot Reserve RegUp"),
+scatter(x = dates_uc, y = total_res_uc_realized, line_shape = "hv", name = "UC Tot Reserve RegUp"),
+scatter(x = dates_ed, y = total_res_rt_realized, line_shape = "hv", name = "Merch RT Tot Reserve RegUp"),
+])
+
+#ucmod = sim.models.decision_models[2]
+#rt_merch = sim.models.decision_models[3]
+
+
+product_name = "Reg_Down"
+total_res_da = read_variable(result_merch_DA, "TotalReserve__HybridSystem")
+total_res_da_realized = vcat([values(vdf)[!, "(\"317_Hybrid\", \"Reg_Up\")"][1:288] for vdf in values(total_res_da)]...)
+
+total_res_uc = read_variable(results_uc, "TotalReserve__HybridSystem")
+total_res_uc_realized = vcat([values(vdf)[!, "(\"317_Hybrid\", \"Reg_Up\")"][1:24] for vdf in values(total_res_uc)]...)
+
+total_res_rt = read_variable(result_merch_RT, "TotalReserve__HybridSystem")
+total_res_rt_realized = vcat([values(vdf)[!, "(\"317_Hybrid\", \"Reg_Up\")"][1:12] for vdf in values(total_res_rt)]...)
+
+plot([scatter(x = dates_ed, y = total_res_da_realized, line_shape = "hv", name = "Merch DA Tot Reserve RegUp"),
+scatter(x = dates_uc, y = total_res_uc_realized, line_shape = "hv", name = "UC Tot Reserve RegUp"),
+scatter(x = dates_ed, y = total_res_rt_realized, line_shape = "hv", name = "Merch RT Tot Reserve RegUp"),
+])
+
+
+### RegDown
+
+
+regdn_da_out = read_variable(
+    result_merch_DA,
+    "BidReserveVariableOut__VariableReserve__ReserveDown__Reg_Down",
+)
+regdn_da_out_realized = vcat([values(vdf)[!, 1][1:24] for vdf in values(regdn_da_out)]...)
+
+regdn_da_in = read_variable(
+    result_merch_DA,
+    "BidReserveVariableIn__VariableReserve__ReserveDown__Reg_Down",
+)
+regdn_da_in_realized = vcat([values(vdf)[!, 1][1:24] for vdf in values(regdn_da_in)]...)
+
+regdn_uc_out = read_realized_variable(
+    results_uc,
+    "ActivePowerReserveVariable__VariableReserve__ReserveDown__Reg_Down",
+)
+
+regdn_ed_out = read_realized_variable(
+    results_ed,
+    "ActivePowerReserveVariable__VariableReserve__ReserveDown__Reg_Down",
+)
+
+regdn_rt_out = read_variable(
+    result_merch_RT,
+    "BidReserveVariableOut__VariableReserve__ReserveDown__Reg_Down",
+)
+regdn_rt_out_realized = vcat([values(vdf)[!, 1][1] for vdf in values(regdn_rt_out)]...)
+
+regdn_rt_in = read_variable(
+    result_merch_RT,
+    "BidReserveVariableIn__VariableReserve__ReserveDown__Reg_Down",
+)
+regdn_rt_in_realized = vcat([values(vdf)[!, 1][1] for vdf in values(regdn_rt_in)]...)
+
+slackup_rdn = vcat([values(vdf)[!, "(\"317_Hybrid\", \"Reg_Down\")"][1:12] for vdf in values(slackup)]...)
+slackdn =  read_variable(result_merch_RT, "SlackReserveDown__HybridSystem")
+slackdn_rdn = vcat([values(vdf)[!, "(\"317_Hybrid\", \"Reg_Down\")"][1:12] for vdf in values(slackdn)]...)
+
+
+
+p2 = plot([
+    #scatter(x=dates_uc, y=regup_da_out_realized, name="RegUp DA Bid Out", line_shape="hv"),
+    #scatter(x=dates_uc, y=regup_da_in_realized, name="RegUp DA Bid In", line_shape="hv"),
+    scatter(x=dates_uc, y=regdn_da_out_realized + regdn_da_in_realized, name="RegDown DA Bid Out+In", line_shape="hv"),
+    scatter(
+        x=regdn_uc_out[!, 1],
+        y=regdn_uc_out[!, 2] / 100.0,
+        name="UC RegDown",
+        line_shape="hv",
+    ),
+    scatter(
+        x=regdn_ed_out[!, 1],
+        y=regdn_ed_out[!, 2] / 100.0,
+        name="ED RegDown",
+        line_shape="hv",
+    ),
+    scatter(x=dates_uc, y=regdn_rt_out_realized + regdn_rt_in_realized, name="RegDown RT Bid Out+In", line_shape="hv"),
+    scatter(x=dates_ed, y=-slackup_rdn, line_shape = "hv", name = "- SlackUp RegDown"),
+    scatter(x=dates_ed, y=slackdn_rdn, line_shape = "hv", name = "SlackDown RegDown"),
 ])

@@ -70,11 +70,23 @@ transform_single_time_series!(sys_rts_rt, horizon_RT, interval_RT)
 ######## Add Services to Hybrid #########
 #########################################
 
+served_fraction_map = Dict(
+    "Spin_Up_R2" => 0.00,
+    "Spin_Up_R3" => 0.00,
+    "Reg_Up" => 0.3,
+    "Spin_Up_R1" => 0.00,
+    "Flex_Up" => 0.1,
+    "Reg_Down" => 0.3,
+    "Flex_Down" => 0.1,
+)
+
 for sys in [sys_rts_da, sys_rts_rt]
     services = get_components(VariableReserve, sys)
     hy_sys = first(get_components(HybridSystem, sys))
     for service in services
         serv_name = get_name(service)
+        serv_ext = get_ext(service)
+        serv_ext["served_fraction"] = served_fraction_map[serv_name]
         if contains(serv_name, "Spin_Up_R1") |
            contains(serv_name, "Spin_Up_R2") |
            contains(serv_name, "Flex")

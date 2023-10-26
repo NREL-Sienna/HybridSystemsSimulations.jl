@@ -327,6 +327,79 @@ function PSI.construct_device!(
             model,
             network_model,
         )
+
+        # Add Served Reserve Up/Down Out/In Expression
+        PSI.lazy_container_addition!(
+            container,
+            ServedReserveOutUpExpression(),
+            T,
+            PSY.get_name.(devices),
+            time_steps,
+        )
+
+        PSI.lazy_container_addition!(
+            container,
+            ServedReserveOutDownExpression(),
+            T,
+            PSY.get_name.(devices),
+            time_steps,
+        )
+
+        PSI.lazy_container_addition!(
+            container,
+            ServedReserveInUpExpression(),
+            T,
+            PSY.get_name.(devices),
+            time_steps,
+        )
+
+        PSI.lazy_container_addition!(
+            container,
+            ServedReserveInDownExpression(),
+            T,
+            PSY.get_name.(devices),
+            time_steps,
+        )
+
+        # Out Total Up
+        add_to_expression!(
+            container,
+            ServedReserveOutUpExpression,
+            ReserveVariableOut,
+            devices,
+            D(),
+            time_steps,
+        )
+
+        # Out Total Down
+        add_to_expression!(
+            container,
+            ServedReserveOutDownExpression,
+            ReserveVariableOut,
+            devices,
+            D(),
+            time_steps,
+        )
+
+        # In Total Up
+        add_to_expression!(
+            container,
+            ServedReserveInUpExpression,
+            ReserveVariableIn,
+            devices,
+            D(),
+            time_steps,
+        )
+
+        # In Total Down
+        add_to_expression!(
+            container,
+            ServedReserveInDownExpression,
+            ReserveVariableIn,
+            devices,
+            D(),
+            time_steps,
+        )
     end
 
     # Thermal

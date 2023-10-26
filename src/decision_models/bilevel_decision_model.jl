@@ -1,3 +1,4 @@
+
 ###################################################################
 ### Bi-level - Merchant Energy + Reserves Case Decision Model  ####
 ###################################################################
@@ -47,6 +48,20 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridBilevel
 
     if !isempty(services)
         PSI.add_variables!(container, TotalReserve, hybrids, MerchantModelWithReserves())
+        if len_DA == 24
+            PSI.add_variables!(
+                container,
+                SlackReserveUp,
+                hybrids,
+                MerchantModelWithReserves(),
+            )
+            PSI.add_variables!(
+                container,
+                SlackReserveDown,
+                hybrids,
+                MerchantModelWithReserves(),
+            )
+        end
     end
 
     ###############################
@@ -242,12 +257,21 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridBilevel
             _hybrids_with_renewable,
             MerchantModelWithReserves(),
         )
-        add_time_series_parameters!(
-            container,
-            RenewablePowerTimeSeries(),
-            _hybrids_with_renewable,
-            "RenewableDispatch__max_active_power_da",
-        )
+        if get(decision_model.ext, "RT", false)
+            add_time_series_parameters!(
+                container,
+                RenewablePowerTimeSeries(),
+                _hybrids_with_renewable,
+                "RenewableDispatch__max_active_power",
+            )
+        else
+            add_time_series_parameters!(
+                container,
+                RenewablePowerTimeSeries(),
+                _hybrids_with_renewable,
+                "RenewableDispatch__max_active_power_da",
+            )
+        end
         PSI.add_variables!(
             container,
             RenewableReserveVariable,
@@ -601,6 +625,16 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridBilevel
         MerchantModelWithReserves(),
     )
 
+    if !isempty(_hybrids_with_storage)
+        p_ch = PSI.get_variable(container, BatteryCharge(), PSY.HybridSystem)
+        p_ds = PSI.get_variable(container, BatteryDischarge(), PSY.HybridSystem)
+    end
+
+    if len_DA == 24
+        res_slack_up = PSI.get_variable(container, SlackReserveUp(), PSY.HybridSystem)
+        res_slack_dn = PSI.get_variable(container, SlackReserveDown(), PSY.HybridSystem)
+    end
+
     # RT bids and DART arbitrage
     for t in T_rt, dev in hybrids
         name = PSY.get_name(dev)
@@ -612,6 +646,39 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridBilevel
         PSI.add_to_objective_variant_expression!(container, lin_cost_rt_in)
         PSI.add_to_objective_variant_expression!(container, lin_cost_dart_out)
         PSI.add_to_objective_variant_expression!(container, lin_cost_dart_in)
+        if !isnothing(dev.thermal_unit)
+            # Workaround to add ThermalCost with a Linear Cost Since the model doesn't include PWL cost
+            t_gen = dev.thermal_unit
+            three_cost = PSY.get_operation_cost(t_gen)
+            first_part = three_cost.variable[1]
+            second_part = three_cost.variable[2]
+            slope = (second_part[1] - first_part[1]) / (second_part[2] - first_part[2]) # $/MWh
+
+            C_th_var = slope * 100.0 # Multiply by 100 to transform to $/pu
+            lin_cost_p_th = Δt_RT * C_th_var * p_th[name, t]
+            PSI.add_to_objective_invariant_expression!(container, lin_cost_p_th)
+        end
+        if !isnothing(dev.storage)
+            VOM = dev.storage.operation_cost.variable.cost
+            lin_cost_p_ch = 100.0 * Δt_RT * VOM * p_ch[name, t]
+            lin_cost_p_ds = 100.0 * Δt_RT * VOM * p_ds[name, t]
+            PSI.add_to_objective_invariant_expression!(container, lin_cost_p_ch)
+            PSI.add_to_objective_invariant_expression!(container, lin_cost_p_ds)
+        end
+        if len_DA == 24
+            dev_services = PSY.get_services(dev)
+            for service in dev_services
+                service_name = PSY.get_name(service)
+                PSI.add_to_objective_invariant_expression!(
+                    container,
+                    1000.0 * res_slack_up[name, service_name, t],
+                )
+                PSI.add_to_objective_invariant_expression!(
+                    container,
+                    1000.0 * res_slack_dn[name, service_name, t],
+                )
+            end
+        end
     end
 
     add_expressions!(container, AssetPowerBalance, hybrids)
@@ -982,7 +1049,9 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridBilevel
 
     add_constraints!(container, StrongDualityCut, hybrids, MerchantModelWithReserves())
 
+    device_model = PSI.get_model(PSI.get_template(decision_model), PSY.HybridSystem)
+    PSI.add_feedforward_arguments!(container, device_model, hybrids)
+    PSI.update_objective_function!(container)
     PSI.serialize_metadata!(container, PSI.get_output_dir(decision_model))
-
     return
 end

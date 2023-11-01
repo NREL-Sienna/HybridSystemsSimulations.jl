@@ -1052,7 +1052,7 @@ function _add_constraints_charging_reservelimit!(
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     status_st = PSI.get_variable(container, BatteryStatus(), D)
-    p_ch = PSI.get_variable(container, BatteryCharge(), D)
+    p_ch = PSI.get_variable(container, EnergyBatteryChargeBid(), D)
     reg_ch_up = PSI.get_expression(container, ChargeReserveUpExpression(), D)
     reg_ch_dn = PSI.get_expression(container, ChargeReserveDownExpression(), D)
     con_ub = PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="ub")
@@ -1101,7 +1101,7 @@ function _add_constraints_discharging_reservelimit!(
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     status_st = PSI.get_variable(container, BatteryStatus(), D)
-    p_ds = PSI.get_variable(container, BatteryDischarge(), D)
+    p_ds = PSI.get_variable(container, EnergyBatteryDischargeBid(), D)
     reg_ds_up = PSI.get_expression(container, DischargeReserveUpExpression(), D)
     reg_ds_dn = PSI.get_expression(container, DischargeReserveDownExpression(), D)
     con_ub = PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="ub")
@@ -1149,7 +1149,7 @@ function _add_constraints_renewablereserve_limit!(
     time_steps = PSI.get_time_steps(container)
     P = RenewablePowerTimeSeries
     names = [PSY.get_name(d) for d in devices]
-    p_re = PSI.get_variable(container, RenewablePower(), D)
+    p_re = PSI.get_variable(container, EnergyRenewableBid(), D)
     reg_re_up = PSI.get_expression(container, RenewableReserveUpExpression(), D)
     reg_re_dn = PSI.get_expression(container, RenewableReserveDownExpression(), D)
     con_ub = PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="ub")
@@ -1570,7 +1570,7 @@ function _add_thermallimit_withreserves!(
     time_steps = PSI.get_time_steps(container)
     names = [PSY.get_name(d) for d in devices]
     varon = PSI.get_variable(container, PSI.OnVariable(), D)
-    p_th = PSI.get_variable(container, ThermalPower(), D)
+    p_th = PSI.get_variable(container, EnergyThermalBid(), D)
     reg_th_up = PSI.get_expression(container, ThermalReserveUpExpression(), D)
     reg_th_dn = PSI.get_expression(container, ThermalReserveDownExpression(), D)
     con_ub = PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="ub")

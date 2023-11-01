@@ -86,7 +86,9 @@ for sys in [sys_rts_da, sys_rts_rt]
     for service in services
         serv_name = get_name(service)
         serv_ext = get_ext(service)
-        serv_ext["served_fraction"] = served_fraction_map[serv_name]
+        serv_frac = served_fraction_map[serv_name]
+        serv_ext["served_fraction"] = serv_frac
+        set_deployed_fraction!(service, serv_frac)
         if contains(serv_name, "Spin_Up_R1") |
            contains(serv_name, "Spin_Up_R2") |
            contains(serv_name, "Flex")
@@ -214,6 +216,21 @@ sim_dcp = Simulation(
 )
 
 build_dcp = build!(sim_dcp; console_level=Logging.Info, serialize=false)
+
+#! format: off
+
+uc = sim_dcp.models.decision_models[1]
+
+cons = uc.internal.container.constraints
+cons[PowerSimulations.ConstraintKey{HybridSystemsSimulations.ReserveCoverageConstraintEndOfPeriod, HybridSystem}("Spin_Up_R3")]["317_Hybrid", 1]
+cons[PowerSimulations.ConstraintKey{HybridSystemsSimulations.ReserveCoverageConstraint, HybridSystem}("Spin_Up_R3")]["317_Hybrid", 2]
+
+cons[PowerSimulations.ConstraintKey{HybridSystemsSimulations.ReserveCoverageConstraintEndOfPeriod, HybridSystem}("Reg_Down")]["317_Hybrid", 1]
+cons[PowerSimulations.ConstraintKey{HybridSystemsSimulations.ReserveCoverageConstraint, HybridSystem}("Reg_Down")]["317_Hybrid", 2]
+
+cons[PowerSimulations.ConstraintKey{HybridSystemsSimulations.EnergyAssetBalance, HybridSystem}("")]["317_Hybrid", 1]
+
+#! format: on
 
 execute_status = execute!(sim_dcp; enable_progress_bar=true);
 

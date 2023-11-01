@@ -268,6 +268,83 @@ function _add_constraints_energyassetbalance!(
     return
 end
 
+function _add_constraints_energyassetbalance_with_reserves!(
+    container::PSI.OptimizationContainer,
+    T::Type{<:EnergyAssetBalance},
+    devices::U,
+    ::W,
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
+    time_steps = PSI.get_time_steps(container)
+    names = [PSY.get_name(d) for d in devices]
+    p_out = PSI.get_variable(container, PSI.ActivePowerOutVariable(), D)
+    p_in = PSI.get_variable(container, PSI.ActivePowerInVariable(), D)
+    serv_reg_out_up = PSI.get_expression(container, ServedReserveOutUpExpression(), D)
+    serv_reg_out_down = PSI.get_expression(container, ServedReserveOutDownExpression(), D)
+    serv_reg_in_up = PSI.get_expression(container, ServedReserveInUpExpression(), D)
+    serv_reg_in_down = PSI.get_expression(container, ServedReserveInDownExpression(), D)
+    con_bal = PSI.add_constraints_container!(container, T(), D, names, time_steps)
+
+    for device in devices
+        ci_name = PSY.get_name(device)
+        vars_pos = Set{JUMP_SET_TYPE}()
+        vars_neg = Set{JUMP_SET_TYPE}()
+        load_set = Set()
+        expr_pos = Set()
+        expr_neg = Set()
+
+        if !isnothing(PSY.get_thermal_unit(device))
+            p_th = PSI.get_variable(container, ThermalPower(), D)
+            push!(vars_pos, p_th[ci_name, :])
+        end
+        if !isnothing(PSY.get_renewable_unit(device))
+            p_re = PSI.get_variable(container, RenewablePower(), D)
+            push!(vars_pos, p_re[ci_name, :])
+        end
+        if !isnothing(PSY.get_storage(device))
+            p_ch = PSI.get_variable(container, BatteryCharge(), D)
+            p_ds = PSI.get_variable(container, BatteryDischarge(), D)
+            push!(vars_pos, p_ds[ci_name, :])
+            push!(vars_neg, p_ch[ci_name, :])
+        end
+        if !isnothing(PSY.get_electric_load(device))
+            P = ElectricLoadTimeSeries
+            param_container = PSI.get_parameter(container, P(), D)
+            param = PSI.get_parameter_column_refs(param_container, ci_name).data
+            multiplier = PSY.get_max_active_power(PSY.get_electric_load(device))
+            push!(load_set, param * multiplier)
+        end
+        # Add Served Fraction services
+        push!(expr_neg, serv_reg_out_up[ci_name, :])
+        push!(expr_pos, serv_reg_in_up[ci_name, :])
+        push!(expr_pos, serv_reg_out_down[ci_name, :])
+        push!(expr_neg, serv_reg_in_down[ci_name, :])
+        for t in time_steps
+            total_power = -p_out[ci_name, t] + p_in[ci_name, t]
+            for vp in vars_pos
+                JuMP.add_to_expression!(total_power, vp[t])
+            end
+            for vn in vars_neg
+                JuMP.add_to_expression!(total_power, -vn[t])
+            end
+            for ep in expr_pos
+                JuMP.add_to_expression!(total_power, ep[t])
+            end
+            for en in expr_neg
+                JuMP.add_to_expression!(total_power, -en[t])
+            end
+            for load in load_set
+                JuMP.add_to_expression!(total_power, -load[t])
+            end
+            con_bal[ci_name, t] =
+                JuMP.@constraint(PSI.get_jump_model(container), total_power == 0.0)
+        end
+    end
+    return
+end
+
 function add_expressions!(
     container::PSI.OptimizationContainer,
     ::Type{T},
@@ -345,6 +422,20 @@ function PSI.add_constraints!(
     W <: AbstractHybridFormulation,
 } where {D <: PSY.HybridSystem}
     _add_constraints_energyassetbalance!(container, T, devices, W())
+    return
+end
+
+function PSI.add_constraints!(
+    container::PSI.OptimizationContainer,
+    T::Type{<:EnergyAssetBalance},
+    devices::U,
+    ::PSI.DeviceModel{D, W},
+    network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: AbstractHybridFormulationWithReserves,
+} where {D <: PSY.HybridSystem}
+    _add_constraints_energyassetbalance_with_reserves!(container, T, devices, W())
     return
 end
 

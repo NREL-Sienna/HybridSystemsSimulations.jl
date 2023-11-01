@@ -736,6 +736,14 @@ function PSI.construct_device!(
                     model,
                     network_model,
                 )
+                PSI.add_constraints!(
+                    container,
+                    ReserveCoverageConstraintEndOfPeriod,
+                    _hybrids_with_storage,
+                    service,
+                    model,
+                    network_model,
+                )
             end
             PSI.add_constraints!(
                 container,

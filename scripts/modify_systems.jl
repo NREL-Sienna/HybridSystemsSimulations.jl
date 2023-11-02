@@ -19,7 +19,7 @@ function _build_battery(
     efficiency_out,
 )
     name = string(bus.number) * "_BATTERY"
-    device = GenericBattery(;
+    device = BatteryEMS(;
         name=name,
         available=true,
         bus=bus,
@@ -35,6 +35,8 @@ function _build_battery(
         reactive_power_limits=nothing,
         base_power=100.0,
         operation_cost=PSY.StorageManagementCost(),
+        storage_target=energy_capacity / 2.0,
+        cycle_limits=999.0,
     )
     return device
 end
@@ -51,6 +53,10 @@ function add_hybrid_to_chuhsi_bus!(sys::System; ren_name="317_WIND_1")
     bat = _build_battery(bus, 4.0, 1.0, 0.93, 0.93)
     op_cost = get_operation_cost(bat)
     op_cost.variable = VariableCost(2.0)
+    energy_shortage_cost = 100.0
+    energy_surplus_cost = 0.5
+    op_cost.energy_shortage_cost = energy_shortage_cost
+    op_cost.energy_surplus_cost = energy_surplus_cost
     # Wind is taken from Bus 317: Chuhsi
     # Thermal and Load is taken from adjacent bus 318: Clark
     thermal_name = "318_CC_1"

@@ -124,7 +124,12 @@ set_device_model!(
     DeviceModel(
         PSY.HybridSystem,
         HybridDispatchWithReserves;
-        attributes=Dict{String, Any}("cycling" => false),
+        attributes=Dict{String, Any}(
+            "reservation" => true,
+            "storage_reservation" => true,
+            "energy_target" => true,
+            "cycling" => false,
+        ),
     ),
 )
 
@@ -133,7 +138,12 @@ set_device_model!(
     DeviceModel(
         PSY.HybridSystem,
         HybridDispatchWithReserves;
-        attributes=Dict{String, Any}("cycling" => false),
+        attributes=Dict{String, Any}(
+            "reservation" => true,
+            "storage_reservation" => true,
+            "energy_target" => true,
+            "cycling" => false,
+        ),
     ),
 )
 
@@ -229,7 +239,7 @@ cons[PowerSimulations.ConstraintKey{HybridSystemsSimulations.ReserveCoverageCons
 cons[PowerSimulations.ConstraintKey{HybridSystemsSimulations.ReserveCoverageConstraint, HybridSystem}("Reg_Down")]["317_Hybrid", 2]
 
 cons[PowerSimulations.ConstraintKey{HybridSystemsSimulations.EnergyAssetBalance, HybridSystem}("")]["317_Hybrid", 1]
-
+cons[PowerSimulations.ConstraintKey{HybridSystemsSimulations.StateofChargeTargetConstraint, HybridSystem}("")]
 #! format: on
 
 execute_status = execute!(sim_dcp; enable_progress_bar=true);

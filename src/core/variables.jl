@@ -22,6 +22,10 @@ struct RenewablePower <: HybridAssetVariableType end
 struct BatteryCharge <: HybridAssetVariableType end
 struct BatteryDischarge <: HybridAssetVariableType end
 struct BatteryStatus <: HybridAssetVariableType end
+struct BatteryEnergyShortageVariable <: PSI.VariableType end
+struct BatteryEnergySurplusVariable <: PSI.VariableType end
+struct BatteryChargeCyclingSlackVariable <: PSI.VariableType end
+struct BatteryDischargeCyclingSlackVariable <: PSI.VariableType end
 
 # AS Variable for Hybrid
 abstract type ReserveVariableType <: PSI.VariableType end

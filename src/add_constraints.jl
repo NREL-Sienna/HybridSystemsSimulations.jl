@@ -768,6 +768,42 @@ function PSI.add_constraints!(
     return
 end
 
+# Target Constraint
+function PSI.add_constraints!(
+    container::PSI.OptimizationContainer,
+    ::Type{StateofChargeTargetConstraint},
+    devices::U,
+    model::PSI.DeviceModel{D, W},
+    network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
+    energy_var = PSI.get_variable(container, PSI.EnergyVariable(), D)
+    surplus_var = PSI.get_variable(container, BatteryEnergySurplusVariable(), D)
+    shortfall_var = PSI.get_variable(container, BatteryEnergyShortageVariable(), D)
+
+    device_names, time_steps = axes(energy_var)
+    constraint_container = PSI.add_constraints_container!(
+        container,
+        StateofChargeTargetConstraint(),
+        D,
+        device_names,
+    )
+
+    for d in devices
+        name = PSY.get_name(d)
+        storage = PSY.get_storage(d)
+        target = PSY.get_storage_target(storage)
+        constraint_container[name] = JuMP.@constraint(
+            PSI.get_jump_model(container),
+            energy_var[name, time_steps[end]] - surplus_var[name] + shortfall_var[name] == target
+        )
+    end
+
+    return
+end
+
 ############## Renewable Constraints, HybridSystem ###################
 
 function _add_constraints_renewablelimit!(

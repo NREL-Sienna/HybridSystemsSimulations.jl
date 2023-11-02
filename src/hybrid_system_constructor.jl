@@ -64,6 +64,21 @@ function PSI.construct_device!(
         PSI.add_variables!(container, PSI.EnergyVariable, _hybrids_with_storage, D())
         PSI.add_variables!(container, BatteryStatus, _hybrids_with_storage, D())
 
+        if PSI.get_attribute(model, "energy_target")
+            PSI.add_variables!(
+                container,
+                BatteryEnergyShortageVariable,
+                _hybrids_with_storage,
+                D(),
+            )
+            PSI.add_variables!(
+                container,
+                BatteryEnergySurplusVariable,
+                _hybrids_with_storage,
+                D(),
+            )
+        end
+
         PSI.initial_conditions!(container, _hybrids_with_storage, D())
     end
 
@@ -188,6 +203,15 @@ function PSI.construct_device!(
             model,
             network_model,
         )
+        if PSI.get_attribute(model, "energy_target")
+            PSI.add_constraints!(
+                container,
+                StateofChargeTargetConstraint,
+                _hybrids_with_storage,
+                model,
+                network_model,
+            )
+        end
     end
 
     # Renewable
@@ -516,6 +540,21 @@ function PSI.construct_device!(
         PSI.add_variables!(container, PSI.EnergyVariable, _hybrids_with_storage, D())
         PSI.add_variables!(container, BatteryStatus, _hybrids_with_storage, D())
 
+        if PSI.get_attribute(model, "energy_target")
+            PSI.add_variables!(
+                container,
+                BatteryEnergyShortageVariable,
+                _hybrids_with_storage,
+                D(),
+            )
+            PSI.add_variables!(
+                container,
+                BatteryEnergySurplusVariable,
+                _hybrids_with_storage,
+                D(),
+            )
+        end
+
         # Add reserve variables and expressions for storage unit
         if PSI.has_service_model(model)
             # Reserve Variables
@@ -721,6 +760,15 @@ function PSI.construct_device!(
             model,
             network_model,
         )
+        if PSI.get_attribute(model, "energy_target")
+            PSI.add_constraints!(
+                container,
+                StateofChargeTargetConstraint,
+                _hybrids_with_storage,
+                model,
+                network_model,
+            )
+        end
         if PSI.has_service_model(model)
             # TODO FIX: We need to ensure that when creating the constraints the each device has only its own services
             services = Set()

@@ -317,10 +317,10 @@ function _add_constraints_energyassetbalance_with_reserves!(
             push!(load_set, param * multiplier)
         end
         # Add Served Fraction services
-        push!(expr_neg, serv_reg_out_up[ci_name, :])
-        push!(expr_pos, serv_reg_in_up[ci_name, :])
-        push!(expr_pos, serv_reg_out_down[ci_name, :])
-        push!(expr_neg, serv_reg_in_down[ci_name, :])
+        push!(expr_pos, serv_reg_out_up[ci_name, :])
+        push!(expr_neg, serv_reg_in_up[ci_name, :])
+        push!(expr_neg, serv_reg_out_down[ci_name, :])
+        push!(expr_pos, serv_reg_in_down[ci_name, :])
         for t in time_steps
             total_power = -p_out[ci_name, t] + p_in[ci_name, t]
             for vp in vars_pos

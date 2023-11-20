@@ -469,7 +469,6 @@ function PSI._add_feedforward_arguments!(
     ff::PSI.AbstractAffectFeedforward,
 ) where {T <: PSY.HybridSystem}
     parameter_type = PSI.get_default_parameter_type(ff, T)
-    @show ff
     PSI.add_parameters!(container, parameter_type, ff, model, devices)
     return
 end
@@ -480,8 +479,6 @@ function PSI._add_feedforward_arguments!(
     devices::Vector{T},
     ff::PSI.FixValueFeedforward,
 ) where {T <: PSY.HybridSystem}
-    @show "fixvalueparam"
-    @show ff
     parameter_type = PSI.get_default_parameter_type(ff, T)
     PSI.add_parameters!(container, parameter_type, ff, model, devices)
     return

@@ -124,7 +124,7 @@ set_device_model!(
 ##### Run DCP Simulation ######
 ###############################
 
-mipgap = 7.5e-3
+mipgap = 1.0e-2
 
 model = DecisionModel(
     template_uc_copperplate,
@@ -220,6 +220,8 @@ end
 dates_uc = p_re[!, 1]
 
 # Power
+p_hyb_out = read_variable(res, "ActivePowerOutVariable__HybridSystem")
+p_hyb_in = read_variable(res, "ActivePowerInVariable__HybridSystem")
 p_re_hyb = read_variable(res, "RenewablePower__HybridSystem")
 p_th_hyb = read_variable(res, "ThermalPower__HybridSystem")
 p_ch_hyb = read_variable(res, "BatteryCharge__HybridSystem")
@@ -243,8 +245,269 @@ regdown_in = read_variable(res, "ReserveVariableIn__VariableReserve__ReserveDown
 p_hybrid = (p_hyb_out[!, 2] - p_hyb_in[!, 2]) / 100.0
 p_energy_asset = p_th_hyb[!, 2] + p_re_hyb[!, 2] + p_ds_hyb[!, 2] - p_ch_hyb[!, 2]
 p_reserves =
-    +0.3 * regup_out[!, 2] + 0.3 * regup_in[!, 2] - 0.3 * regdown_out[!, 2] -
+    +0.3 * regup_out[!, 2] - 0.3 * regup_in[!, 2] - 0.3 * regdown_out[!, 2] +
     0.3 * regdown_in[!, 2]
+p_hybrid - p_energy_asset - p_reserves
+
+tot_reg_down = -0.3 * regdown_out[!, 2] + 0.3 * regdown_in[!, 2]
+
+p_hybrid
+ixs_pos = [ix for (ix, val) in enumerate(p_hybrid) if val > 0.0]
+ixs_neg = [ix for (ix, val) in enumerate(p_hybrid) if val <= 0.0]
+
+p_hybrid_pos = deepcopy(p_hybrid)
+p_energy_asset_pos = deepcopy(p_energy_asset)
+p_reserves_pos = deepcopy(p_reserves)
+
+p_hybrid_pos[ixs_neg] .= 0.0
+p_energy_asset_pos[ixs_neg] .= 0.0
+p_reserves_pos[ixs_neg] .= 0.0
+
+p3 = plot(
+    [
+        scatter(
+            x=dates_uc,
+            y=p_re_hyb[!, 2],
+            name="Hybrid Sys. Renewable",
+            line_shape="hv",
+            line_color="cyan",
+        ),
+        scatter(
+            x=dates_uc,
+            y=p_th_hyb[!, 2],
+            name="Hybrid Sys. Thermal",
+            line_shape="hv",
+            line_color="rosybrown",
+        ),
+        scatter(
+            x=dates_uc,
+            y=p_ds_hyb[!, 2] - p_ch_hyb[!, 2],
+            name="Hybrid Sys. Net Storage",
+            line_shape="hv",
+            line_color="orange",
+        ),
+        scatter(
+            x=dates_uc,
+            y=p_energy_asset,
+            name="Hybrid Total Asset Power",
+            line_shape="hv",
+            line_color="blue",
+            line=attr(dash="dot"),
+        ),
+    ],
+    Layout(
+        yaxis_title="x100 MW",
+        template="simply_white",
+        legend=attr(x=0.01, y=1.25, font_size=14, bordercolor="Black", borderwidth=1),
+    ),
+)
+
+savefig(p3, "energy_hybrid.pdf")
+
+soc = read_variable(res, "EnergyVariable__HybridSystem")
+
+p1 = plot(
+    [
+        scatter(
+            x=dates_uc,
+            y=p_ds_hyb[!, 2] - p_ch_hyb[!, 2],
+            name="Hybrid Sys. Net Storage",
+            line_shape="hv",
+            line_color="orange",
+        ),
+        scatter(
+            x=dates_uc,
+            y=soc[!, 2] / 100,
+            name="State of Charge",
+            yaxis="y2",
+            line_shape="hv",
+            line_color="blue",
+        ),
+    ],
+    Layout(
+        #xaxis_title="Time",
+        yaxis_title="Power [x100 MW]",
+        yaxis2=attr(
+            title="Energy [x100 MWh]",
+            overlaying="y",
+            side="right",
+            autorange=false,
+            range=[-0.05, 4.05],
+        ),
+        template="simply_white",
+        legend=attr(x=0.01, y=1.15, font_size=14, bordercolor="Black", borderwidth=1),
+    ),
+)
+
+savefig(p1, "soc.pdf")
+
+reg_dn_out =
+    read_variable(res, "ActivePowerReserveVariable__VariableReserve__ReserveDown__Reg_Down")[
+        !,
+        "317_Hybrid",
+    ] / 100.0
+reg_dn_re =
+    read_variable(res, "RenewableReserveVariable__VariableReserve__ReserveDown__Reg_Down")[
+        !,
+        2,
+    ]
+reg_dn_ch =
+    read_variable(res, "ChargingReserveVariable__VariableReserve__ReserveDown__Reg_Down")[
+        !,
+        2,
+    ]
+reg_dn_ds =
+    read_variable(res, "DischargingReserveVariable__VariableReserve__ReserveDown__Reg_Down")[
+        !,
+        2,
+    ]
+reg_dn_th =
+    read_variable(res, "ThermalReserveVariable__VariableReserve__ReserveDown__Reg_Down")[
+        !,
+        2,
+    ]
+
+p4 = plot(
+    [
+        scatter(
+            x=dates_uc,
+            y=reg_dn_th,
+            name="Reg Down Thermal",
+            line_shape="hv",
+            mode="none",
+            stackgroup="two",
+            fillcolor="black",
+        ),
+        scatter(
+            x=dates_uc,
+            y=reg_dn_re,
+            name="Reg Down Renewable",
+            line_shape="hv",
+            mode="none",
+            stackgroup="two",
+            fillcolor="cyan",
+        ),
+        scatter(
+            x=dates_uc,
+            y=reg_dn_ds,
+            name="Reg Down Discharge St.",
+            line_shape="hv",
+            mode="none",
+            stackgroup="two",
+            fillcolor="peachpuf",
+        ),
+        scatter(
+            x=dates_uc,
+            y=reg_dn_ch,
+            name="Reg Down Charge St.",
+            line_shape="hv",
+            mode="none",
+            stackgroup="two",
+            fillcolor="orange",
+        ),
+        scatter(
+            x=dates_uc,
+            y=reg_dn_out,
+            name="Reg Down Total",
+            line_shape="hv",
+            line_color="blue",
+        ),
+    ],
+    Layout(
+        yaxis_title="x100 MW",
+        template="simply_white",
+        legend=attr(x=0.01, y=1.0, font_size=14, bordercolor="Black", borderwidth=1),
+    ),
+)
+
+savefig(p4, "reg_down.pdf")
+
+reg_up_out =
+    read_variable(res, "ActivePowerReserveVariable__VariableReserve__ReserveUp__Reg_Up")[
+        !,
+        "317_Hybrid",
+    ] / 100.0
+reg_up_re =
+    read_variable(res, "RenewableReserveVariable__VariableReserve__ReserveUp__Reg_Up")[!, 2]
+reg_up_ch =
+    read_variable(res, "ChargingReserveVariable__VariableReserve__ReserveUp__Reg_Up")[!, 2]
+reg_up_ds =
+    read_variable(res, "DischargingReserveVariable__VariableReserve__ReserveUp__Reg_Up")[
+        !,
+        2,
+    ]
+reg_up_th =
+    read_variable(res, "ThermalReserveVariable__VariableReserve__ReserveUp__Reg_Up")[!, 2]
+
+p5 = plot(
+    [
+        scatter(
+            x=dates_uc,
+            y=reg_up_th,
+            name="Reg Up Thermal",
+            line_shape="hv",
+            mode="none",
+            stackgroup="two",
+            fillcolor="black",
+        ),
+        scatter(
+            x=dates_uc,
+            y=reg_up_re,
+            name="Reg Up Renewable",
+            line_shape="hv",
+            mode="none",
+            stackgroup="two",
+            fillcolor="cyan",
+        ),
+        scatter(
+            x=dates_uc,
+            y=reg_up_ds,
+            name="Reg Up Discharge St.",
+            line_shape="hv",
+            mode="none",
+            stackgroup="two",
+            fillcolor="peachpuf",
+        ),
+        scatter(
+            x=dates_uc,
+            y=reg_up_ch,
+            name="Reg Up Charge St.",
+            line_shape="hv",
+            mode="none",
+            stackgroup="two",
+            fillcolor="orange",
+        ),
+        scatter(
+            x=dates_uc,
+            y=reg_up_out,
+            name="Reg Up Total",
+            line_shape="hv",
+            line_color="blue",
+        ),
+    ],
+    Layout(
+        yaxis_title="x100 MW",
+        template="simply_white",
+        legend=attr(x=0.01, y=1.29, font_size=14, bordercolor="Black", borderwidth=1),
+    ),
+)
+
+savefig(p5, "reg_up.pdf")
+
+re_param = read_parameter(res, "ActivePowerTimeSeriesParameter__RenewableDispatch")
+re_power = read_variable(res, "ActivePowerVariable__RenewableDispatch")
+
+tot_re_param = zeros(72)
+tot_re_power = zeros(72)
+for col in eachcol(re_param[!, 2:end])
+    tot_re_param .+= col
+end
+
+for col in eachcol(re_power[!, 2:end])
+    tot_re_power .+= col
+end
+
+plot(tot_re_param - tot_re_power)
 
 p3 = plot(
     [
@@ -254,13 +517,6 @@ p3 = plot(
         #    name="Centralized RT Price",
         #    line_shape="hv",
         #),
-        scatter(
-            x=dates_uc,
-            y=p_hyb_out[!, 2] / 100.0,
-            name="Hybrid Sys. Out Power",
-            line_shape="hv",
-            line_color="blue",
-        ),
         #scatter(
         #    x=dates_uc,
         #    y=-p_hyb_in[!, 2] / 100.0,
@@ -303,18 +559,34 @@ p3 = plot(
         ),
         scatter(
             x=dates_uc,
-            y=p_ds_hyb[!, 2],
-            name="Hybrid Sys. Storage Discharge",
+            y=p_reserves,
+            name="Deployed Reserves (Up + Down)",
+            line_shape="hv",
+            mode="none",
+            stackgroup="two",
+            fillcolor="orange",
+        ),
+        scatter(
+            x=dates_uc,
+            y=p_ds_hyb[!, 2] - p_ch_hyb[!, 2],
+            name="Hybrid Sys. Storage Net",
             line_shape="hv",
             mode="none",
             stackgroup="two",
             fillcolor="peachpuff",
         ),
+        scatter(
+            x=dates_uc,
+            y=(p_hyb_out[!, 2] - p_hyb_in[!, 2]) / 100.0,
+            name="Hybrid Sys. Out Power",
+            line_shape="hv",
+            line_color="blue",
+        ),
     ],
     Layout(
         yaxis_title="x100 MW",
         template="simply_white",
-        legend=attr(x=0.01, y=1.5, font_size=14, bordercolor="Black", borderwidth=1),
+        legend=attr(x=0.01, y=1.0, font_size=14, bordercolor="Black", borderwidth=1),
     ),
 )
 

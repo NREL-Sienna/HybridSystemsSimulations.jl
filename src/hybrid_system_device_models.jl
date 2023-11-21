@@ -14,7 +14,11 @@ function PSI.get_default_attributes(
     ::Type{PSY.HybridSystem},
     ::Type{<:Union{PSI.FixedOutput, AbstractHybridFormulation}},
 )
-    return Dict{String, Any}("reservation" => true, "storage_reservation" => true)
+    return Dict{String, Any}(
+        "reservation" => true,
+        "storage_reservation" => true,
+        "energy_target" => false,
+    )
 end
 
 PSI.get_initial_conditions_device_model(
@@ -229,6 +233,26 @@ PSI.get_variable_binary(
     ::Type{PSY.HybridSystem},
     ::AbstractHybridFormulation,
 ) = true
+PSI.get_variable_binary(
+    ::BatteryEnergyShortageVariable,
+    ::Type{<:PSY.HybridSystem},
+    ::AbstractHybridFormulation,
+) = false
+PSI.get_variable_binary(
+    ::BatteryEnergySurplusVariable,
+    ::Type{<:PSY.HybridSystem},
+    ::AbstractHybridFormulation,
+) = false
+PSI.get_variable_binary(
+    ::BatteryChargeCyclingSlackVariable,
+    ::Type{<:PSY.HybridSystem},
+    ::AbstractHybridFormulation,
+) = false
+PSI.get_variable_binary(
+    ::BatteryDischargeCyclingSlackVariable,
+    ::Type{<:PSY.HybridSystem},
+    ::AbstractHybridFormulation,
+) = false
 
 PSI.initial_condition_default(
     ::PSI.InitialEnergyLevel,

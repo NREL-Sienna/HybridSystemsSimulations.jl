@@ -5,6 +5,11 @@ PSI.objective_function_multiplier(
 ) = PSI.OBJECTIVE_FUNCTION_POSITIVE
 
 PSI.objective_function_multiplier(
+    ::Union{BatteryEnergySurplusVariable, BatteryEnergySurplusVariable},
+    ::AbstractHybridFormulation,
+) = PSI.OBJECTIVE_FUNCTION_POSITIVE
+
+PSI.objective_function_multiplier(
     ::Union{BatteryCharge, BatteryDischarge},
     ::Union{MerchantModelEnergyOnly, MerchantModelWithReserves},
 ) = PSI.OBJECTIVE_FUNCTION_NEGATIVE
@@ -15,6 +20,19 @@ PSI.proportional_cost(
     ::PSY.HybridSystem,
     U::AbstractHybridFormulation,
 ) = PSY.get_variable(cost).cost
+
+PSI.proportional_cost(
+    cost::PSY.StorageManagementCost,
+    ::BatteryEnergySurplusVariable,
+    ::PSY.HybridSystem,
+    U::AbstractHybridFormulation,
+) = PSY.get_energy_surplus_cost(cost)
+PSI.proportional_cost(
+    cost::PSY.StorageManagementCost,
+    ::BatteryEnergyShortageVariable,
+    ::PSY.HybridSystem,
+    U::AbstractHybridFormulation,
+) = PSY.get_energy_shortage_cost(cost)
 
 function PSI.add_proportional_cost!(
     container::PSI.OptimizationContainer,
@@ -37,6 +55,26 @@ function PSI.add_proportional_cost!(
         end
     end
     return
+end
+
+function PSI.add_proportional_cost!(
+    container::PSI.OptimizationContainer,
+    ::T,
+    devices::U,
+    formulation::W,
+) where {
+    T <: Union{BatteryEnergyShortageVariable, BatteryEnergySurplusVariable},
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
+    variable = PSI.get_variable(container, T(), D)
+    for d in devices
+        name = PSY.get_name(d)
+        storage = PSY.get_storage(d)
+        op_cost_data = PSY.get_operation_cost(storage)
+        cost_term = PSI.proportional_cost(op_cost_data, T(), d, formulation)
+        PSI.add_to_objective_invariant_expression!(container, variable[name] * cost_term)
+    end
 end
 
 ############### Thermal costs, HybridSystem #######################
@@ -149,7 +187,7 @@ end
 function PSI.objective_function!(
     container::PSI.OptimizationContainer,
     devices::U,
-    ::PSI.DeviceModel{D, W},
+    model::PSI.DeviceModel{D, W},
     ::PSI.NetworkModel{<:PM.AbstractPowerModel},
 ) where {
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
@@ -169,6 +207,20 @@ function PSI.objective_function!(
             _hybrids_with_storage,
             W(),
         )
+        if PSI.get_attribute(model, "energy_target")
+            PSI.add_proportional_cost!(
+                container,
+                BatteryEnergySurplusVariable(),
+                _hybrids_with_storage,
+                W(),
+            )
+            PSI.add_proportional_cost!(
+                container,
+                BatteryEnergyShortageVariable(),
+                _hybrids_with_storage,
+                W(),
+            )
+        end
     end
     # Add Thermal Cost
     if !isempty(_hybrids_with_thermal)

@@ -61,7 +61,7 @@ function add_to_expression!(
             # TODO: This could be improved without requiring to read services for each component independently
             variable =
                 PSI.get_variable(container, U(), typeof(service), PSY.get_name(service))
-            fraction = PSY.get_ext(service)["served_fraction"]
+            fraction = PSY.get_deployed_fraction(service)
             mult = PSI.get_variable_multiplier(U, d, W(), service) * fraction
             for t in time_steps
                 PSI._add_to_jump_expression!(expression[name, t], variable[name, t], mult)
@@ -149,7 +149,7 @@ function add_to_expression!(
             # TODO: This could be improved without requiring to read services for each component independently
             variable =
                 PSI.get_variable(container, U(), typeof(service), PSY.get_name(service))
-            fraction = PSY.get_ext(service)["served_fraction"]
+            fraction = PSY.get_deployed_fraction(service)
             mult = PSI.get_variable_multiplier(U, d, W(), service) * fraction
             for t in time_steps
                 PSI._add_to_jump_expression!(expression[name, t], variable[name, t], mult)

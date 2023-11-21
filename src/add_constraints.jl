@@ -94,6 +94,44 @@ function _add_constraints_statusout_withreserves!(
     return
 end
 
+function _add_constraints_statusout_withreserves!(
+    container::PSI.OptimizationContainer,
+    T::Type{<:StatusOutOn},
+    devices::U,
+    ::W,
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: HybridDispatchWithReserves,
+} where {D <: PSY.HybridSystem}
+    time_steps = PSI.get_time_steps(container)
+    names = [PSY.get_name(d) for d in devices]
+    varon = PSI.get_variable(container, PSI.ReservationVariable(), D)
+    p_out = PSI.get_variable(container, PSI.ActivePowerOutVariable(), D)
+    res_out_up = PSI.get_expression(container, TotalReserveOutUpExpression(), D)
+    res_out_down = PSI.get_expression(container, TotalReserveOutDownExpression(), D)
+    serv_reg_out_up = PSI.get_expression(container, ServedReserveOutUpExpression(), D)
+    serv_reg_out_down = PSI.get_expression(container, ServedReserveOutDownExpression(), D)
+    con_ub = PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="ub")
+    con_lb = PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="lb")
+
+    for device in devices, t in time_steps
+        ci_name = PSY.get_name(device)
+        max_limit = PSI.get_variable_upper_bound(PSI.ActivePowerOutVariable(), device, W())
+        @assert max_limit !== nothing ci_name
+        con_ub[ci_name, t] = JuMP.@constraint(
+            PSI.get_jump_model(container),
+            p_out[ci_name, t] + (res_out_up[ci_name, t] - serv_reg_out_up[ci_name, t]) <=
+            max_limit * varon[ci_name, t]
+        )
+        con_lb[ci_name, t] = JuMP.@constraint(
+            PSI.get_jump_model(container),
+            p_out[ci_name, t] -
+            (res_out_down[ci_name, t] - serv_reg_out_down[ci_name, t]) >= 0.0
+        )
+    end
+    return
+end
+
 function PSI.add_constraints!(
     container::PSI.OptimizationContainer,
     T::Type{<:StatusOutOn},
@@ -186,6 +224,43 @@ function _add_constraints_statusin_withreserves!(
     return
 end
 
+function _add_constraints_statusin_withreserves!(
+    container::PSI.OptimizationContainer,
+    T::Type{<:StatusInOn},
+    devices::U,
+    ::W,
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: HybridDispatchWithReserves,
+} where {D <: PSY.HybridSystem}
+    time_steps = PSI.get_time_steps(container)
+    names = [PSY.get_name(d) for d in devices]
+    varon = PSI.get_variable(container, PSI.ReservationVariable(), D)
+    p_in = PSI.get_variable(container, PSI.ActivePowerInVariable(), D)
+    res_in_up = PSI.get_expression(container, TotalReserveInUpExpression(), D)
+    res_in_down = PSI.get_expression(container, TotalReserveInDownExpression(), D)
+    serv_reg_in_up = PSI.get_expression(container, ServedReserveInUpExpression(), D)
+    serv_reg_in_down = PSI.get_expression(container, ServedReserveInDownExpression(), D)
+    con_ub = PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="ub")
+    con_lb = PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="lb")
+
+    for device in devices, t in time_steps
+        ci_name = PSY.get_name(device)
+        max_limit = PSI.get_variable_upper_bound(PSI.ActivePowerInVariable(), device, W())
+        @assert max_limit !== nothing ci_name
+        con_ub[ci_name, t] = JuMP.@constraint(
+            PSI.get_jump_model(container),
+            p_in[ci_name, t] + (res_in_down[ci_name, t] - serv_reg_in_down[ci_name, t]) <=
+            max_limit * (1.0 - varon[ci_name, t])
+        )
+        con_lb[ci_name, t] = JuMP.@constraint(
+            PSI.get_jump_model(container),
+            p_in[ci_name, t] - (res_in_up[ci_name, t] - serv_reg_in_up[ci_name, t]) >= 0.0
+        )
+    end
+    return
+end
+
 function PSI.add_constraints!(
     container::PSI.OptimizationContainer,
     T::Type{<:StatusInOn},
@@ -257,6 +332,83 @@ function _add_constraints_energyassetbalance!(
             end
             for vn in vars_neg
                 JuMP.add_to_expression!(total_power, -vn[t])
+            end
+            for load in load_set
+                JuMP.add_to_expression!(total_power, -load[t])
+            end
+            con_bal[ci_name, t] =
+                JuMP.@constraint(PSI.get_jump_model(container), total_power == 0.0)
+        end
+    end
+    return
+end
+
+function _add_constraints_energyassetbalance_with_reserves!(
+    container::PSI.OptimizationContainer,
+    T::Type{<:EnergyAssetBalance},
+    devices::U,
+    ::W,
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
+    time_steps = PSI.get_time_steps(container)
+    names = [PSY.get_name(d) for d in devices]
+    p_out = PSI.get_variable(container, PSI.ActivePowerOutVariable(), D)
+    p_in = PSI.get_variable(container, PSI.ActivePowerInVariable(), D)
+    serv_reg_out_up = PSI.get_expression(container, ServedReserveOutUpExpression(), D)
+    serv_reg_out_down = PSI.get_expression(container, ServedReserveOutDownExpression(), D)
+    serv_reg_in_up = PSI.get_expression(container, ServedReserveInUpExpression(), D)
+    serv_reg_in_down = PSI.get_expression(container, ServedReserveInDownExpression(), D)
+    con_bal = PSI.add_constraints_container!(container, T(), D, names, time_steps)
+
+    for device in devices
+        ci_name = PSY.get_name(device)
+        vars_pos = Set{JUMP_SET_TYPE}()
+        vars_neg = Set{JUMP_SET_TYPE}()
+        load_set = Set()
+        expr_pos = Set()
+        expr_neg = Set()
+
+        if !isnothing(PSY.get_thermal_unit(device))
+            p_th = PSI.get_variable(container, ThermalPower(), D)
+            push!(vars_pos, p_th[ci_name, :])
+        end
+        if !isnothing(PSY.get_renewable_unit(device))
+            p_re = PSI.get_variable(container, RenewablePower(), D)
+            push!(vars_pos, p_re[ci_name, :])
+        end
+        if !isnothing(PSY.get_storage(device))
+            p_ch = PSI.get_variable(container, BatteryCharge(), D)
+            p_ds = PSI.get_variable(container, BatteryDischarge(), D)
+            push!(vars_pos, p_ds[ci_name, :])
+            push!(vars_neg, p_ch[ci_name, :])
+        end
+        if !isnothing(PSY.get_electric_load(device))
+            P = ElectricLoadTimeSeries
+            param_container = PSI.get_parameter(container, P(), D)
+            param = PSI.get_parameter_column_refs(param_container, ci_name).data
+            multiplier = PSY.get_max_active_power(PSY.get_electric_load(device))
+            push!(load_set, param * multiplier)
+        end
+        # Add Served Fraction services
+        push!(expr_pos, serv_reg_out_up[ci_name, :])
+        push!(expr_neg, serv_reg_in_up[ci_name, :])
+        push!(expr_neg, serv_reg_out_down[ci_name, :])
+        push!(expr_pos, serv_reg_in_down[ci_name, :])
+        for t in time_steps
+            total_power = -p_out[ci_name, t] + p_in[ci_name, t]
+            for vp in vars_pos
+                JuMP.add_to_expression!(total_power, vp[t])
+            end
+            for vn in vars_neg
+                JuMP.add_to_expression!(total_power, -vn[t])
+            end
+            for ep in expr_pos
+                JuMP.add_to_expression!(total_power, ep[t])
+            end
+            for en in expr_neg
+                JuMP.add_to_expression!(total_power, -en[t])
             end
             for load in load_set
                 JuMP.add_to_expression!(total_power, -load[t])
@@ -345,6 +497,20 @@ function PSI.add_constraints!(
     W <: AbstractHybridFormulation,
 } where {D <: PSY.HybridSystem}
     _add_constraints_energyassetbalance!(container, T, devices, W())
+    return
+end
+
+function PSI.add_constraints!(
+    container::PSI.OptimizationContainer,
+    T::Type{<:EnergyAssetBalance},
+    devices::U,
+    ::PSI.DeviceModel{D, W},
+    network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: AbstractHybridFormulationWithReserves,
+} where {D <: PSY.HybridSystem}
+    _add_constraints_energyassetbalance_with_reserves!(container, T, devices, W())
     return
 end
 
@@ -582,6 +748,129 @@ function PSI.add_constraints!(
     return
 end
 
+# Battery Balance
+function _add_constraints_batterybalance_withreserves!(
+    container::PSI.OptimizationContainer,
+    T::Type{<:BatteryBalance},
+    devices::U,
+    ::W,
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
+    time_steps = PSI.get_time_steps(container)
+    resolution = PSI.get_resolution(container)
+    fraction_of_hour = Dates.value(Dates.Minute(resolution)) / PSI.MINUTES_IN_HOUR
+    names = [PSY.get_name(d) for d in devices]
+    energy_var = PSI.get_variable(container, PSI.EnergyVariable(), D)
+    charge_var = PSI.get_variable(container, BatteryCharge(), D)
+    discharge_var = PSI.get_variable(container, BatteryDischarge(), D)
+    con_soc = PSI.add_constraints_container!(container, T(), D, names, time_steps)
+    initial_conditions = PSI.get_initial_condition(container, PSI.InitialEnergyLevel(), D)
+
+    for ic in initial_conditions
+        device = PSI.get_component(ic)
+        ci_name = PSY.get_name(device)
+        storage = PSY.get_storage(device)
+        efficiency = PSY.get_efficiency(storage)
+        services = PSY.get_services(device)
+        ch_expr_pos = Set()
+        ch_expr_neg = Set()
+        ds_expr_pos = Set()
+        ds_expr_neg = Set()
+        for service in services
+            fraction = PSY.get_deployed_fraction(service)
+            service_name = PSY.get_name(service)
+            ch_reserve_var = PSI.get_variable(
+                container,
+                ChargingReserveVariable(),
+                typeof(service),
+                service_name,
+            )
+            ds_reserve_var = PSI.get_variable(
+                container,
+                DischargingReserveVariable(),
+                typeof(service),
+                service_name,
+            )
+            if isa(service, PSY.Reserve{PSY.ReserveUp})
+                push!(ds_expr_pos, fraction * ds_reserve_var)
+                push!(ch_expr_neg, fraction * ch_reserve_var)
+            elseif isa(service, PSY.Reserve{PSY.ReserveDown})
+                push!(ds_expr_neg, fraction * ds_reserve_var)
+                push!(ch_expr_pos, fraction * ch_reserve_var)
+            else
+                error("Not supported type of service $(service_name)")
+            end
+        end
+        tot_discharge_res = JuMP.AffExpr()
+        tot_charge_res = JuMP.AffExpr()
+        for v in ds_expr_pos
+            tot_discharge_res += v[ci_name, 1]
+        end
+        for v in ds_expr_neg
+            tot_discharge_res -= v[ci_name, 1]
+        end
+        for v in ch_expr_pos
+            tot_charge_res += v[ci_name, 1]
+        end
+        for v in ch_expr_neg
+            tot_charge_res -= v[ci_name, 1]
+        end
+
+        con_soc[ci_name, 1] = JuMP.@constraint(
+            PSI.get_jump_model(container),
+            energy_var[ci_name, 1] ==
+            PSI.get_value(ic) +
+            fraction_of_hour * (
+                (charge_var[ci_name, 1] + tot_charge_res) * efficiency.in -
+                ((discharge_var[ci_name, 1] + tot_discharge_res) / efficiency.out)
+            )
+        )
+
+        for t in time_steps[2:end]
+            tot_discharge_res = JuMP.AffExpr()
+            tot_charge_res = JuMP.AffExpr()
+            for v in ds_expr_pos
+                tot_discharge_res += v[ci_name, t]
+            end
+            for v in ds_expr_neg
+                tot_discharge_res -= v[ci_name, t]
+            end
+            for v in ch_expr_pos
+                tot_charge_res += v[ci_name, t]
+            end
+            for v in ch_expr_neg
+                tot_charge_res -= v[ci_name, t]
+            end
+            con_soc[ci_name, t] = JuMP.@constraint(
+                PSI.get_jump_model(container),
+                energy_var[ci_name, t] ==
+                energy_var[ci_name, t - 1] +
+                fraction_of_hour * (
+                    (charge_var[ci_name, t] + tot_charge_res) * efficiency.in -
+                    ((discharge_var[ci_name, t] + tot_discharge_res) / efficiency.out)
+                )
+            )
+        end
+    end
+    return
+end
+
+function PSI.add_constraints!(
+    container::PSI.OptimizationContainer,
+    T::Type{<:BatteryBalance},
+    devices::U,
+    ::PSI.DeviceModel{D, W},
+    network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: HybridDispatchWithReserves,
+} where {D <: PSY.HybridSystem}
+    _add_constraints_batterybalance_withreserves!(container, T, devices, W())
+    return
+end
+
 # Cycling Charge
 function _add_constraints_cyclingcharge!(
     container::PSI.OptimizationContainer,
@@ -674,6 +963,42 @@ function PSI.add_constraints!(
     if PSI.get_attribute(model, "cycling")
         _add_constraints_cyclingdischarge!(container, T, devices, W())
     end
+    return
+end
+
+# Target Constraint
+function PSI.add_constraints!(
+    container::PSI.OptimizationContainer,
+    ::Type{StateofChargeTargetConstraint},
+    devices::U,
+    model::PSI.DeviceModel{D, W},
+    network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
+    energy_var = PSI.get_variable(container, PSI.EnergyVariable(), D)
+    surplus_var = PSI.get_variable(container, BatteryEnergySurplusVariable(), D)
+    shortfall_var = PSI.get_variable(container, BatteryEnergyShortageVariable(), D)
+
+    device_names, time_steps = axes(energy_var)
+    constraint_container = PSI.add_constraints_container!(
+        container,
+        StateofChargeTargetConstraint(),
+        D,
+        device_names,
+    )
+
+    for d in devices
+        name = PSY.get_name(d)
+        storage = PSY.get_storage(d)
+        target = PSY.get_storage_target(storage)
+        constraint_container[name] = JuMP.@constraint(
+            PSI.get_jump_model(container),
+            energy_var[name, time_steps[end]] - surplus_var[name] + shortfall_var[name] == target
+        )
+    end
+
     return
 end
 

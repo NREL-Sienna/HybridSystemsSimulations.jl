@@ -264,3 +264,26 @@ function PSI.add_variables!(
 
     return
 end
+
+function PSI.add_variables!(
+    container::PSI.OptimizationContainer,
+    ::Type{W},
+    devices::Union{Vector{U}, IS.FlattenIteratorWrapper{U}},
+    formulation::V,
+) where {
+    U <: PSY.HybridSystem,
+    V <: AbstractHybridFormulation,
+    W <: Union{BatteryEnergyShortageVariable, BatteryEnergySurplusVariable},
+}
+    @assert !isempty(devices)
+    variable = PSI.add_variable_container!(container, W(), U, PSY.get_name.(devices))
+    for d in devices
+        name = PSY.get_name(d)
+        variable[name] = JuMP.@variable(
+            PSI.get_jump_model(container),
+            base_name = "$(W)_{$(PSY.get_name(d))}",
+            lower_bound = 0.0
+        )
+    end
+    return
+end

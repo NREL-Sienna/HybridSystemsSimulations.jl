@@ -70,11 +70,25 @@ transform_single_time_series!(sys_rts_rt, horizon_RT, interval_RT)
 ######## Add Services to Hybrid #########
 #########################################
 
+served_fraction_map = Dict(
+    "Spin_Up_R2" => 0.00,
+    "Spin_Up_R3" => 0.00,
+    "Reg_Up" => 0.3,
+    "Spin_Up_R1" => 0.00,
+    "Flex_Up" => 0.1,
+    "Reg_Down" => 0.3,
+    "Flex_Down" => 0.1,
+)
+
 for sys in [sys_rts_da, sys_rts_rt]
     services = get_components(VariableReserve, sys)
     hy_sys = first(get_components(HybridSystem, sys))
     for service in services
         serv_name = get_name(service)
+        serv_ext = get_ext(service)
+        serv_frac = served_fraction_map[serv_name]
+        serv_ext["served_fraction"] = serv_frac
+        set_deployed_fraction!(service, serv_frac)
         if contains(serv_name, "Spin_Up_R1") |
            contains(serv_name, "Spin_Up_R2") |
            contains(serv_name, "Flex")
@@ -110,7 +124,12 @@ set_device_model!(
     DeviceModel(
         PSY.HybridSystem,
         HybridDispatchWithReserves;
-        attributes=Dict{String, Any}("cycling" => false),
+        attributes=Dict{String, Any}(
+            "reservation" => true,
+            "storage_reservation" => true,
+            "energy_target" => true,
+            "cycling" => false,
+        ),
     ),
 )
 
@@ -119,7 +138,12 @@ set_device_model!(
     DeviceModel(
         PSY.HybridSystem,
         HybridDispatchWithReserves;
-        attributes=Dict{String, Any}("cycling" => false),
+        attributes=Dict{String, Any}(
+            "reservation" => true,
+            "storage_reservation" => true,
+            "energy_target" => true,
+            "cycling" => false,
+        ),
     ),
 )
 
@@ -202,6 +226,21 @@ sim_dcp = Simulation(
 )
 
 build_dcp = build!(sim_dcp; console_level=Logging.Info, serialize=false)
+
+#! format: off
+
+uc = sim_dcp.models.decision_models[1]
+
+cons = uc.internal.container.constraints
+cons[PowerSimulations.ConstraintKey{HybridSystemsSimulations.ReserveCoverageConstraintEndOfPeriod, HybridSystem}("Spin_Up_R3")]["317_Hybrid", 1]
+cons[PowerSimulations.ConstraintKey{HybridSystemsSimulations.ReserveCoverageConstraint, HybridSystem}("Spin_Up_R3")]["317_Hybrid", 2]
+
+cons[PowerSimulations.ConstraintKey{HybridSystemsSimulations.ReserveCoverageConstraintEndOfPeriod, HybridSystem}("Reg_Down")]["317_Hybrid", 1]
+cons[PowerSimulations.ConstraintKey{HybridSystemsSimulations.ReserveCoverageConstraint, HybridSystem}("Reg_Down")]["317_Hybrid", 2]
+
+cons[PowerSimulations.ConstraintKey{HybridSystemsSimulations.EnergyAssetBalance, HybridSystem}("")]["317_Hybrid", 1]
+cons[PowerSimulations.ConstraintKey{HybridSystemsSimulations.StateofChargeTargetConstraint, HybridSystem}("")]
+#! format: on
 
 execute_status = execute!(sim_dcp; enable_progress_bar=true);
 

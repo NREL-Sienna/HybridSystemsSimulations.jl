@@ -11,5 +11,9 @@ struct AncillaryServicePrice <: PSI.ObjectiveFunctionParameter end
 struct ChargeCycleLimit <: PSI.RightHandSideParameter end
 struct DischargeCycleLimit <: PSI.RightHandSideParameter end
 
+struct EnergyTargetParameter <: PSI.VariableValueParameter end
+
 PSI.should_write_resulting_value(::Type{DayAheadEnergyPrice}) = true
 PSI.should_write_resulting_value(::Type{RealTimeEnergyPrice}) = true
+
+# convert_result_to_natural_units(::Type{EnergyTargetParameter}) = true

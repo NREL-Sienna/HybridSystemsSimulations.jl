@@ -270,7 +270,7 @@ end
 
 function PSI._fix_parameter_value!(
     container::PSI.OptimizationContainer,
-    parameter_array::PSI.JuMPFloatMatrix,
+    parameter_array::AbstractMatrix,
     parameter_attributes::PSI.VariableValueAttributes{
         PowerSimulations.VariableKey{U, PSY.HybridSystem},
     },

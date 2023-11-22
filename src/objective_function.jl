@@ -182,6 +182,43 @@ function PSI.add_variable_cost!(
     end
     return
 end
+
+############### Reserve Costs, HybridSystem #######################
+
+PSI.objective_function_multiplier(
+    ::Union{SlackReserveUp, SlackReserveDown},
+    ::AbstractHybridFormulation,
+) = PSI.OBJECTIVE_FUNCTION_POSITIVE
+
+function PSI.add_proportional_cost!(
+    container::PSI.OptimizationContainer,
+    ::T,
+    devices::U,
+    formulation::W,
+) where {
+    T <: Union{SlackReserveUp, SlackReserveDown},
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
+    services = Set()
+    for d in devices
+        union!(services, PSY.get_services(d))
+    end
+    variable = PSI.get_variable(container, T(), D)
+    cost_reserve = RESERVE_SLACK_COST
+    multiplier = PSI.objective_function_multiplier(T(), W())
+    time_steps = PSI.get_time_steps(container)
+    for d in devices, s in services, t in time_steps
+        name = PSY.get_name(d)
+        serv_name = PSY.get_name(s)
+        cost_term = cost_reserve * multiplier
+        PSI.add_to_objective_invariant_expression!(
+            container,
+            variable[name, serv_name, t] * cost_term,
+        )
+    end
+end
+
 ############### Objective Function, HybridSystem #######################
 
 function PSI.objective_function!(
@@ -231,6 +268,12 @@ function PSI.objective_function!(
     # Add Renewable Cost
     if !isempty(_hybrids_with_renewable)
         PSI.add_variable_cost!(container, RenewablePower(), _hybrids_with_renewable, W())
+    end
+
+    # Reserves
+    if PSI.has_service_model(model)
+        PSI.add_proportional_cost!(container, SlackReserveUp(), devices, W())
+        PSI.add_proportional_cost!(container, SlackReserveDown(), devices, W())
     end
     return
 end

@@ -1526,6 +1526,8 @@ function PSI.add_constraints!(
     for d in devices
         union!(services, PSY.get_services(d))
     end
+    slack_up = PSI.get_variable(container, SlackReserveUp(), D)
+    slack_dn = PSI.get_variable(container, SlackReserveDown(), D)
     for service in services
         service_name = PSY.get_name(service)
         res_out =
@@ -1552,7 +1554,10 @@ function PSI.add_constraints!(
             ci_name = PSY.get_name(device)
             con[ci_name, t] = JuMP.@constraint(
                 PSI.get_jump_model(container),
-                res_out[ci_name, t] + res_in[ci_name, t] == res_var[ci_name, t]
+                res_out[ci_name, t] +
+                res_in[ci_name, t] +
+                slack_up[ci_name, service_name, t] -
+                slack_dn[ci_name, service_name, t] == res_var[ci_name, t]
             )
         end
     end

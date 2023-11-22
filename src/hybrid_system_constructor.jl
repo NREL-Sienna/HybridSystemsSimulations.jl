@@ -278,6 +278,8 @@ function PSI.construct_device!(
     if PSI.has_service_model(model)
         PSI.add_variables!(container, ReserveVariableOut, devices, D())
         PSI.add_variables!(container, ReserveVariableIn, devices, D())
+        PSI.add_variables!(container, SlackReserveUp, devices, D())
+        PSI.add_variables!(container, SlackReserveDown, devices, D())
 
         # Ancillary Services Balance Expressions (Out/In Up/Down)
         PSI.lazy_container_addition!(

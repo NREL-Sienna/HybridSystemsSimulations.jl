@@ -97,24 +97,17 @@ decision_optimizer_DA = DecisionModel(
 )
 
 # Construct decision models for simulation
-models = SimulationModels(
-    decision_models=[
-        decision_optimizer_DA,
-    ],
-)
+models = SimulationModels(decision_models=[decision_optimizer_DA])
 
 # Set-up the sequence Optimizer-UC
-sequence = SimulationSequence(
-    models=models,
-    ini_cond_chronology=InterProblemChronology(),
-)
+sequence = SimulationSequence(models=models, ini_cond_chronology=InterProblemChronology())
 
 sim = Simulation(
     name="compact_sim",
     steps=3,
     models=models,
     sequence=sequence,
-    initial_time = DateTime("2020-10-02T00:00:00"),
+    initial_time=DateTime("2020-10-02T00:00:00"),
     simulation_folder=mktempdir(cleanup=true),
 )
 
@@ -133,76 +126,82 @@ da_bid_out_realized = zeros(full_horizon)
 da_horizon = 24
 i = 0
 for (k, bid) in da_bid_out
-    da_bid_out_realized[(da_horizon * i + 1):((i + 1) * da_horizon)] = bid[!,1][1:da_horizon]
+    da_bid_out_realized[(da_horizon * i + 1):((i + 1) * da_horizon)] =
+        bid[!, 1][1:da_horizon]
     i = i + 1
 end
 
 da_bid_in_realized = zeros(full_horizon)
 i = 0
 for (k, bid) in da_bid_in
-    da_bid_in_realized[(da_horizon * i + 1):((i + 1) * da_horizon)] = bid[!,1][1:da_horizon]
+    da_bid_in_realized[(da_horizon * i + 1):((i + 1) * da_horizon)] =
+        bid[!, 1][1:da_horizon]
     i = i + 1
 end
 
-vars =[
-"ActivePowerOutVariable__HybridSystem"
- "EnergyVariable__HybridSystem"
- #"BidReserveVariableIn__VariableReserve__ReserveUp__Spin_Up_R3"
- "EnergyBatteryDischargeBid__HybridSystem"
- #"BidReserveVariableIn__VariableReserve__ReserveUp__Reg_Up"
- "DischargingReserveVariable__VariableReserve__ReserveDown__Reg_Down"
- "ChargingReserveVariable__VariableReserve__ReserveUp__Reg_Up"
- "RenewableReserveVariable__VariableReserve__ReserveUp__Reg_Up"
- #"BidReserveVariableOut__VariableReserve__ReserveDown__Reg_Down"
- "BatteryDischarge__HybridSystem"
- #"BidReserveVariableIn__VariableReserve__ReserveDown__Reg_Down"
- "ChargingReserveVariable__VariableReserve__ReserveUp__Spin_Up_R3"
- "DischargingReserveVariable__VariableReserve__ReserveUp__Reg_Up"
- "RenewablePower__HybridSystem"
- "RenewableReserveVariable__VariableReserve__ReserveDown__Reg_Down"
- "ActivePowerInVariable__HybridSystem"
- "EnergyRTBidOut__HybridSystem"
- "BatteryStatus__HybridSystem"
- #"BidReserveVariableOut__VariableReserve__ReserveUp__Reg_Up"
- "RenewableReserveVariable__VariableReserve__ReserveUp__Spin_Up_R3"
- "EnergyBatteryChargeBid__HybridSystem"
- "BatteryCharge__HybridSystem"
- "ThermalPower__HybridSystem"
- "ThermalReserveVariable__VariableReserve__ReserveUp__Reg_Up"
- "DischargingReserveVariable__VariableReserve__ReserveUp__Spin_Up_R3"
- #"OnVariable__HybridSystem"
- "ThermalReserveVariable__VariableReserve__ReserveUp__Spin_Up_R3"
- "ReservationVariable__HybridSystem"
- #"BidReserveVariableOut__VariableReserve__ReserveUp__Spin_Up_R3"
- "ThermalReserveVariable__VariableReserve__ReserveDown__Reg_Down"
- "EnergyThermalBid__HybridSystem"
- "EnergyRenewableBid__HybridSystem"
- "ChargingReserveVariable__VariableReserve__ReserveDown__Reg_Down"
- "EnergyRTBidIn__HybridSystem"
+vars = [
+    "ActivePowerOutVariable__HybridSystem"
+    "EnergyVariable__HybridSystem"
+    #"BidReserveVariableIn__VariableReserve__ReserveUp__Spin_Up_R3"
+    "EnergyBatteryDischargeBid__HybridSystem"
+    #"BidReserveVariableIn__VariableReserve__ReserveUp__Reg_Up"
+    "DischargingReserveVariable__VariableReserve__ReserveDown__Reg_Down"
+    "ChargingReserveVariable__VariableReserve__ReserveUp__Reg_Up"
+    "RenewableReserveVariable__VariableReserve__ReserveUp__Reg_Up"
+    #"BidReserveVariableOut__VariableReserve__ReserveDown__Reg_Down"
+    "BatteryDischarge__HybridSystem"
+    #"BidReserveVariableIn__VariableReserve__ReserveDown__Reg_Down"
+    "ChargingReserveVariable__VariableReserve__ReserveUp__Spin_Up_R3"
+    "DischargingReserveVariable__VariableReserve__ReserveUp__Reg_Up"
+    "RenewablePower__HybridSystem"
+    "RenewableReserveVariable__VariableReserve__ReserveDown__Reg_Down"
+    "ActivePowerInVariable__HybridSystem"
+    "EnergyRTBidOut__HybridSystem"
+    "BatteryStatus__HybridSystem"
+    #"BidReserveVariableOut__VariableReserve__ReserveUp__Reg_Up"
+    "RenewableReserveVariable__VariableReserve__ReserveUp__Spin_Up_R3"
+    "EnergyBatteryChargeBid__HybridSystem"
+    "BatteryCharge__HybridSystem"
+    "ThermalPower__HybridSystem"
+    "ThermalReserveVariable__VariableReserve__ReserveUp__Reg_Up"
+    "DischargingReserveVariable__VariableReserve__ReserveUp__Spin_Up_R3"
+    #"OnVariable__HybridSystem"
+    "ThermalReserveVariable__VariableReserve__ReserveUp__Spin_Up_R3"
+    "ReservationVariable__HybridSystem"
+    #"BidReserveVariableOut__VariableReserve__ReserveUp__Spin_Up_R3"
+    "ThermalReserveVariable__VariableReserve__ReserveDown__Reg_Down"
+    "EnergyThermalBid__HybridSystem"
+    "EnergyRenewableBid__HybridSystem"
+    "ChargingReserveVariable__VariableReserve__ReserveDown__Reg_Down"
+    "EnergyRTBidIn__HybridSystem"
 ]
 
 rt_vars = read_realized_variables(result_opt, vars)
-da_time_stamps = range(DateTime("2020-10-02T00:00:00"), length=72, step = Hour(1))
-traces =[
+da_time_stamps = range(DateTime("2020-10-02T00:00:00"), length=72, step=Hour(1))
+traces = [
     scatter(x=da_time_stamps, y=da_bid_out_realized, name="DA Bid Out", line_shape="hv"),
     scatter(x=da_time_stamps, y=-da_bid_in_realized, name="DA Bid In", line_shape="hv"),
 ]
 for (k, v) in rt_vars
-    push!(traces, scatter(x = v[!,:DateTime], y = v[!,2], name = k))
+    push!(traces, scatter(x=v[!, :DateTime], y=v[!, 2], name=k))
 end
 
 da = read_parameter(result_opt, "DayAheadEnergyPrice__HybridSystem__EnergyDABidIn")
 da_price = zeros(full_horizon)
 i = 0
 for (k, bid) in da
-    da_price[(da_horizon * i + 1):((i + 1) * da_horizon)] = -1*bid[!,1][1:24]
+    da_price[(da_horizon * i + 1):((i + 1) * da_horizon)] = -1 * bid[!, 1][1:24]
     i = i + 1
 end
 
-rt = read_realized_parameter(result_opt, "RealTimeEnergyPrice__HybridSystem__EnergyDABidOut")
+rt =
+    read_realized_parameter(result_opt, "RealTimeEnergyPrice__HybridSystem__EnergyDABidOut")
 
-DART = [da_price[tmap[t]] - rt[t,2] for t in 1:864]
+DART = [da_price[tmap[t]] - rt[t, 2] for t in 1:864]
 
-push!(traces, scatter(x=da_time_stamps, y=da_bid_out_realized, name="DA Price", line_shape="hv"),)
+push!(
+    traces,
+    scatter(x=da_time_stamps, y=da_bid_out_realized, name="DA Price", line_shape="hv"),
+)
 
 PlotlyJS.plot(traces)

@@ -75,9 +75,9 @@ served_fraction_map = Dict(
     "Spin_Up_R3" => 0.00,
     "Reg_Up" => 0.3,
     "Spin_Up_R1" => 0.00,
-    "Flex_Up" => 0.1,
+    "Flex_Up" => 0.0,
     "Reg_Down" => 0.3,
-    "Flex_Down" => 0.1,
+    "Flex_Down" => 0.0,
 )
 
 for sys in [sys_rts_da, sys_rts_rt]
@@ -127,7 +127,7 @@ set_device_model!(
         attributes=Dict{String, Any}(
             "reservation" => true,
             "storage_reservation" => true,
-            "energy_target" => true,
+            "energy_target" => false,
             "cycling" => false,
         ),
     ),
@@ -141,7 +141,7 @@ set_device_model!(
         attributes=Dict{String, Any}(
             "reservation" => true,
             "storage_reservation" => true,
-            "energy_target" => true,
+            "energy_target" => false,
             "cycling" => false,
         ),
     ),
@@ -178,7 +178,7 @@ models = SimulationModels(
             template_ed_copperplate,
             sys_rts_rt;
             name="ED",
-            optimizer=optimizer_with_attributes(Xpress.Optimizer),
+            optimizer=optimizer_with_attributes(Xpress.Optimizer, "MIPRELSTOP" => mipgap),
             system_to_file=false,
             initialize_model=true,
             optimizer_solve_log_print=false,
@@ -230,8 +230,8 @@ build_dcp = build!(sim_dcp; console_level=Logging.Info, serialize=false)
 #! format: off
 
 uc = sim_dcp.models.decision_models[1]
-
-cons = uc.internal.container.constraints
+ed = sim_dcp.models.decision_models[2]
+cons = ed.internal.container.constraints
 cons[PowerSimulations.ConstraintKey{HybridSystemsSimulations.ReserveCoverageConstraintEndOfPeriod, HybridSystem}("Spin_Up_R3")]["317_Hybrid", 1]
 cons[PowerSimulations.ConstraintKey{HybridSystemsSimulations.ReserveCoverageConstraint, HybridSystem}("Spin_Up_R3")]["317_Hybrid", 2]
 
@@ -239,7 +239,7 @@ cons[PowerSimulations.ConstraintKey{HybridSystemsSimulations.ReserveCoverageCons
 cons[PowerSimulations.ConstraintKey{HybridSystemsSimulations.ReserveCoverageConstraint, HybridSystem}("Reg_Down")]["317_Hybrid", 2]
 
 cons[PowerSimulations.ConstraintKey{HybridSystemsSimulations.EnergyAssetBalance, HybridSystem}("")]["317_Hybrid", 1]
-cons[PowerSimulations.ConstraintKey{HybridSystemsSimulations.StateofChargeTargetConstraint, HybridSystem}("")]
+#cons[PowerSimulations.ConstraintKey{HybridSystemsSimulations.StateofChargeTargetConstraint, HybridSystem}("")]
 #! format: on
 
 execute_status = execute!(sim_dcp; enable_progress_bar=true);

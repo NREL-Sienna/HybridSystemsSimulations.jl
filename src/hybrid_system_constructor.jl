@@ -555,6 +555,35 @@ function PSI.construct_device!(
             )
         end
 
+        if PSI.get_attribute(model, "cycling")
+            PSI.add_variables!(
+                container,
+                CumulativeCyclingCharge,
+                _hybrids_with_storage,
+                D(),
+            )
+            PSI.add_variables!(
+                container,
+                CumulativeCyclingDischarge,
+                _hybrids_with_storage,
+                D(),
+            )
+            if PSI.built_for_recurrent_solves(container)
+                PSI.add_parameters!(
+                    container,
+                    CyclingChargeLimitParameter,
+                    _hybrids_with_storage,
+                    model,
+                )
+                PSI.add_parameters!(
+                    container,
+                    CyclingDischargeLimitParameter,
+                    _hybrids_with_storage,
+                    model,
+                )
+            end
+        end
+
         # Add reserve variables and expressions for storage unit
         if PSI.has_service_model(model)
             # Reserve Variables
@@ -746,20 +775,22 @@ function PSI.construct_device!(
             model,
             network_model,
         )
-        PSI.add_constraints!(
-            container,
-            CyclingCharge,
-            _hybrids_with_storage,
-            model,
-            network_model,
-        )
-        PSI.add_constraints!(
-            container,
-            CyclingDischarge,
-            _hybrids_with_storage,
-            model,
-            network_model,
-        )
+        if PSI.get_attribute(model, "cycling")
+            PSI.add_constraints!(
+                container,
+                CyclingCharge,
+                _hybrids_with_storage,
+                model,
+                network_model,
+            )
+            PSI.add_constraints!(
+                container,
+                CyclingDischarge,
+                _hybrids_with_storage,
+                model,
+                network_model,
+            )
+        end
         if PSI.get_attribute(model, "energy_target")
             PSI.add_constraints!(
                 container,

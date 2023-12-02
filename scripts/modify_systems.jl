@@ -36,7 +36,7 @@ function _build_battery(
         base_power=100.0,
         operation_cost=PSY.StorageManagementCost(),
         storage_target=energy_capacity / 2.0,
-        cycle_limits=999.0,
+        cycle_limits=1.0,
     )
     return device
 end

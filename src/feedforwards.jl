@@ -50,16 +50,21 @@ function PSI.update_parameter_values!(
     # if the keys have strings in the meta fields
     parameter_array = PSI.get_parameter_array(optimization_container, key)
     parameter_attributes = PSI.get_parameter_attributes(optimization_container, key)
+    current_time = PSI.get_current_time(model)
     state_values =
         PSI.get_dataset_values(input, PSI.get_attribute_key(parameter_attributes))
     component_names = axes(parameter_array)[1]
     resolution = PSI.get_resolution(model)
+    #TODO: This should be Horizon Time Steps not Interval
     interval_time_steps =
         Int(PSI.get_interval(model.internal.store_parameters) / resolution)
+    state_data = PSI.get_dataset(input, PSI.get_attribute_key(parameter_attributes))
+    state_timestamps = state_data.timestamps
+    state_data_index = PSI.find_timestamp_index(state_timestamps, current_time)
     for name in component_names
         PSI.fix_parameter_value(
             parameter_array[name],
-            state_values[name, interval_time_steps[end]],
+            state_values[name, state_data_index + interval_time_steps - 1],
         )
     end
 

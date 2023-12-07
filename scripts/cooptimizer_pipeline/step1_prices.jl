@@ -128,7 +128,7 @@ set_device_model!(
             "reservation" => true,
             "storage_reservation" => true,
             "energy_target" => true,
-            "cycling" => false,
+            "cycling" => true,
         ),
     ),
 )
@@ -142,7 +142,7 @@ set_device_model!(
             "reservation" => true,
             "storage_reservation" => true,
             "energy_target" => true,
-            "cycling" => false,
+            "cycling" => true,
         ),
     ),
 )
@@ -151,8 +151,8 @@ set_device_model!(
 ###### Simulation Params ######
 ###############################
 
-mipgap = 0.005
-num_steps = 7
+mipgap = 0.1
+num_steps = 3
 starttime = DateTime("2020-10-02T00:00:00")
 
 ###############################
@@ -227,6 +227,7 @@ sim_dcp = Simulation(
 
 build_dcp = build!(sim_dcp; console_level=Logging.Info, serialize=false)
 
+#=
 #! format: off
 
 uc = sim_dcp.models.decision_models[1]
@@ -241,6 +242,7 @@ cons[PowerSimulations.ConstraintKey{HybridSystemsSimulations.ReserveCoverageCons
 cons[PowerSimulations.ConstraintKey{HybridSystemsSimulations.EnergyAssetBalance, HybridSystem}("")]["317_Hybrid", 1]
 cons[PowerSimulations.ConstraintKey{HybridSystemsSimulations.StateofChargeTargetConstraint, HybridSystem}("")]
 #! format: on
+=#
 
 execute_status = execute!(sim_dcp; enable_progress_bar=true);
 

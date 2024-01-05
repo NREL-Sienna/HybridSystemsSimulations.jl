@@ -5,7 +5,6 @@
 function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyCase})
     container = PSI.get_optimization_container(decision_model)
     sys = PSI.get_system(decision_model)
-    model = container.JuMPmodel
     # Resolution
     Δt_DA = 1.0
     RT_resolution = PSY.get_time_series_resolution(sys)
@@ -383,6 +382,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
         re_param_container =
             PSI.get_parameter(container, RenewablePowerTimeSeries(), PSY.HybridSystem)
     end
+    model = PSI.get_jump_model(container)
     for t in T_rt
         for dev in hybrids
             name = PSY.get_name(dev)

@@ -807,13 +807,27 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
         # TODO: set-up cycling in the decision model
         cycling = true
         if cycling
-            _add_constraints_cyclingcharge!(
+            #=
+            PSI.add_parameters!(
+                    container,
+                    CyclingChargeLimitParameter,
+                    _hybrids_with_storage,
+                    model,
+                )
+            PSI.add_parameters!(
+                container,
+                CyclingDischargeLimitParameter,
+                _hybrids_with_storage,
+                model,
+            )
+            =#
+            _add_constraints_cyclingcharge_decisionmodel!(
                 container,
                 CyclingCharge,
                 _hybrids_with_storage,
                 MerchantModelWithReserves(),
             )
-            _add_constraints_cyclingdischarge!(
+            _add_constraints_cyclingdischarge_decisionmodel!(
                 container,
                 CyclingDischarge,
                 _hybrids_with_storage,

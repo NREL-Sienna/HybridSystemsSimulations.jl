@@ -33,10 +33,10 @@ include("../utils.jl")
 
 if isfile("modified_RTS_GMLC_DA_sys_noForecast.json")
     sys_rts_da = System("modified_RTS_GMLC_DA_sys_noForecast.json")
-    sys_rts_merchant_da = System("modified_RTS_GMLC_DA_sys_noForecast.json")
+    sys_rts_merchant_da = System("modified_RTS_GMLC_RT_sys_noForecast.json")
 else
     sys_rts_da = build_system(PSISystems, "modified_RTS_GMLC_DA_sys_noForecast")
-    sys_rts_merchant_da = build_system(PSISystems, "modified_RTS_GMLC_DA_sys_noForecast")
+    sys_rts_merchant_da = build_system(PSISystems, "modified_RTS_GMLC_RT_sys_noForecast")
     to_json(sys_rts_da, "modified_RTS_GMLC_DA_sys_noForecast.json")
 end
 
@@ -95,7 +95,7 @@ end
 mipgap = 0.001
 if isempty(ARGS)
     starttime = DateTime("2020-07-10T00:00:00")
-    num_steps = 2
+    num_steps = 7
 else
     starttime = DateTime(ARGS[2])
     num_steps = parse(Int, ARGS[3])
@@ -104,7 +104,7 @@ end
 results_folder = joinpath(
     @__DIR__,
     "../..",
-    "centralized_sim_HybridDispatchWithReserves_2020-07-10T00:00:00",
+    "centralized_sim_HybridDispatchWithReserves_2020-07-10T00:00:00-2",
 )
 
 results_dcp = SimulationResults(results_folder; ignore_status=true)

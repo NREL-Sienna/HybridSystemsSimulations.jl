@@ -1,10 +1,54 @@
-include(joinpath(@__DIR__, "step1_prices.jl"))
+using Pkg
+Pkg.activate("test")
+Pkg.instantiate()
+
+using Revise
+
+# Load SIIP Packages
+
+using PowerSimulations
+using PowerSystems
+using PowerSystemCaseBuilder
+using InfrastructureSystems
+using PowerNetworkMatrices
+using HybridSystemsSimulations
+using HydroPowerSimulations
+using StorageSystemsSimulations
+import OrderedCollections: OrderedDict
+const PSY = PowerSystems
+const PSI = PowerSimulations
+const PSB = PowerSystemCaseBuilder
+const HSS = HybridSystemsSimulations
+
+# Load Optimization and Useful Packages
+using Xpress
+using JuMP
+using Logging
+using Dates
+using CSV
+using TimeSeries
+using PlotlyJS
+
+###############################
+######## Load Scripts #########
+###############################
+include("../get_templates.jl")
+include("../modify_systems.jl")
+include("../price_generation_utils.jl")
+include("../build_simulation_cases_reserves.jl")
+include("../utils.jl")
+
 ###########################################
 ### Systems for DA and Merchant DA Bids ###
 ###########################################
 sys_rts_da = build_system(PSISystems, "modified_RTS_GMLC_DA_sys_noForecast")
 sys_rts_merchant_da = build_system(PSISystems, "modified_RTS_GMLC_RT_sys_noForecast")
 sys_rts_merchant_rt = build_system(PSISystems, "modified_RTS_GMLC_RT_sys_noForecast")
+
+interval_DA = Hour(24)
+horizon_DA = 72
+interval_RT = Hour(1)
+horizon_RT = 12 * 24
 
 # There is no Wind + Thermal in a Single Bus.
 # We will try to pick the Wind in 317 bus Chuhsi
@@ -21,37 +65,6 @@ add_hybrid_to_chuhsi_bus!(sys_rts_merchant_rt)
 transform_single_time_series!(sys_rts_da, horizon_DA, interval_DA)
 transform_single_time_series!(sys_rts_merchant_da, horizon_DA * 12, interval_DA)
 transform_single_time_series!(sys_rts_merchant_rt, horizon_RT, interval_RT)
-
-#########################################
-######## Add Services to Hybrid #########
-#########################################
-
-served_fraction_map = Dict(
-    "Spin_Up_R2" => 0.00,
-    "Spin_Up_R3" => 0.00,
-    "Reg_Up" => 0.3,
-    "Spin_Up_R1" => 0.00,
-    "Flex_Up" => 0.1,
-    "Reg_Down" => 0.3,
-    "Flex_Down" => 0.1,
-)
-
-for sys in [sys_rts_da, sys_rts_merchant_da, sys_rts_merchant_rt]
-    services = get_components(VariableReserve, sys)
-    hy_sys = first(get_components(HybridSystem, sys))
-    for service in services
-        serv_name = get_name(service)
-        serv_ext = get_ext(service)
-        serv_ext["served_fraction"] = served_fraction_map[serv_name]
-        if contains(serv_name, "Spin_Up_R1") |
-           contains(serv_name, "Spin_Up_R2") |
-           contains(serv_name, "Flex")
-            continue
-        else
-            add_service!(hy_sys, service, sys)
-        end
-    end
-end
 
 #########################################
 ########## Add Prices to EXT ############
@@ -88,7 +101,7 @@ decision_optimizer_DA = DecisionModel(
     MerchantHybridCooptimizerCase,
     template_uc_copperplate,
     sys_rts_merchant_da,
-    optimizer=optimizer_with_attributes(Xpress.Optimizer, "MIPRELSTOP" => mipgap),
+    optimizer=optimizer_with_attributes(Xpress.Optimizer, "MIPRELSTOP" => 0.01),
     calculate_conflict=true,
     optimizer_solve_log_print=false,
     system_to_file=false,

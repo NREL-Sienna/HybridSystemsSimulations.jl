@@ -12,6 +12,8 @@ struct ChargeCycleLimit <: PSI.RightHandSideParameter end
 struct DischargeCycleLimit <: PSI.RightHandSideParameter end
 
 struct EnergyTargetParameter <: PSI.VariableValueParameter end
+struct CyclingChargeLimitParameter <: PSI.VariableValueParameter end
+struct CyclingDischargeLimitParameter <: PSI.VariableValueParameter end
 
 PSI.should_write_resulting_value(::Type{DayAheadEnergyPrice}) = true
 PSI.should_write_resulting_value(::Type{RealTimeEnergyPrice}) = true

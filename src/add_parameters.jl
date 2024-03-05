@@ -415,3 +415,44 @@ function PSI._fix_parameter_value!(
     end
     return
 end
+
+###################################################################
+################### Cycling Battery Parameters ####################
+###################################################################
+
+function PSI.add_parameters!(
+    container::PSI.OptimizationContainer,
+    ::Type{T},
+    devices::V,
+    model::PSI.DeviceModel{D, W},
+) where {
+    T <: Union{CyclingDischargeLimitParameter, CyclingChargeLimitParameter},
+    V <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
+    #@debug "adding" T D U _group = LOG_GROUP_OPTIMIZATION_CONTAINER
+    names = [PSY.get_name(device) for device in devices]
+    time_steps = PSI.get_time_steps(container)
+    resolution = PSI.get_resolution(container)
+    fraction_of_hour = Dates.value(Dates.Minute(resolution)) / PSI.MINUTES_IN_HOUR
+    mult = fraction_of_hour * length(time_steps) / HOURS_IN_DAY
+    if T <: CyclingDischargeLimitParameter
+        key = PSI.AuxVarKey{CumulativeCyclingDischarge, PSY.HybridSystem}("")
+    else
+        key = PSI.AuxVarKey{CumulativeCyclingCharge, PSY.HybridSystem}("")
+    end
+    parameter_container = PSI.add_param_container!(container, T(), D, key, names)
+    jump_model = PSI.get_jump_model(container)
+
+    for d in devices
+        name = PSY.get_name(d)
+        PSI.set_multiplier!(parameter_container, 1.0, name)
+        PSI.set_parameter!(
+            parameter_container,
+            jump_model,
+            mult * PSI.get_initial_parameter_value(T(), d, W()),
+            name,
+        )
+    end
+    return
+end

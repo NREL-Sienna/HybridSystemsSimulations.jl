@@ -36,7 +36,7 @@ function _build_battery(
         base_power=100.0,
         operation_cost=PSY.StorageManagementCost(),
         storage_target=energy_capacity / 2.0,
-        cycle_limits=999.0,
+        cycle_limits=1.0,
     )
     return device
 end
@@ -64,7 +64,9 @@ function add_hybrid_to_chuhsi_bus!(sys::System; ren_name="317_WIND_1")
     renewable = get_component(StaticInjection, sys, ren_name)
     set_rating!(renewable, 1.0)
     thermal = get_component(StaticInjection, sys, thermal_name)
-    set_rating!(thermal, 1.0)
+    #set_active_power_limits!(thermal, (min=0.0, max=50.0))
+    #set_rating!(thermal, 1.0)
+    #set_base_power!(thermal, 1000.0)
     set_active_power_limits!(thermal, (min=0.0, max=0.95))
     load = get_component(PowerLoad, sys, load_name)
     load = nothing
@@ -91,6 +93,7 @@ function add_hybrid_to_chuhsi_bus!(sys::System; ren_name="317_WIND_1")
     )
     # Add Hybrid
     add_component!(sys, hybrid)
+    #set_active_power_limits!(hybrid.thermal_unit, (min=0.0, max=50.0))
     return
 end
 

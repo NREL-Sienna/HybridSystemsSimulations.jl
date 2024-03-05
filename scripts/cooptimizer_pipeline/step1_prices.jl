@@ -63,7 +63,7 @@ transform_single_time_series!(sys_rts_da, horizon_DA, interval_DA)
 #interval_RT = Minute(5)
 #horizon_RT = 24
 interval_RT = Hour(1)
-horizon_RT = 12 * 24
+horizon_RT = 12
 transform_single_time_series!(sys_rts_rt, horizon_RT, interval_RT)
 
 #########################################
@@ -128,7 +128,7 @@ set_device_model!(
             "reservation" => true,
             "storage_reservation" => true,
             "energy_target" => true,
-            "cycling" => false,
+            "cycling" => true,
         ),
     ),
 )
@@ -142,7 +142,7 @@ set_device_model!(
             "reservation" => true,
             "storage_reservation" => true,
             "energy_target" => true,
-            "cycling" => false,
+            "cycling" => true,
         ),
     ),
 )
@@ -151,8 +151,8 @@ set_device_model!(
 ###### Simulation Params ######
 ###############################
 
-mipgap = 0.005
-num_steps = 7
+mipgap = 0.01
+num_steps = 2
 starttime = DateTime("2020-10-02T00:00:00")
 
 ###############################
@@ -178,7 +178,7 @@ models = SimulationModels(
             template_ed_copperplate,
             sys_rts_rt;
             name="ED",
-            optimizer=optimizer_with_attributes(Xpress.Optimizer),
+            optimizer=optimizer_with_attributes(Xpress.Optimizer, "MIPRELSTOP" => mipgap),
             system_to_file=false,
             initialize_model=true,
             optimizer_solve_log_print=false,
@@ -227,6 +227,7 @@ sim_dcp = Simulation(
 
 build_dcp = build!(sim_dcp; console_level=Logging.Info, serialize=false)
 
+#=
 #! format: off
 
 uc = sim_dcp.models.decision_models[1]
@@ -241,12 +242,23 @@ cons[PowerSimulations.ConstraintKey{HybridSystemsSimulations.ReserveCoverageCons
 cons[PowerSimulations.ConstraintKey{HybridSystemsSimulations.EnergyAssetBalance, HybridSystem}("")]["317_Hybrid", 1]
 cons[PowerSimulations.ConstraintKey{HybridSystemsSimulations.StateofChargeTargetConstraint, HybridSystem}("")]
 #! format: on
+=#
 
 execute_status = execute!(sim_dcp; enable_progress_bar=true);
 
 results_dcp = SimulationResults(sim_dcp; ignore_status=true)
 results_ed_dcp = get_decision_problem_results(results_dcp, "ED")
 results_uc_dcp = get_decision_problem_results(results_dcp, "UC")
+
+aux_var =
+    read_realized_variable(results_uc_dcp, "CumulativeCyclingDischarge__HybridSystem")[!, 2]
+param_cycl =
+    read_parameter(results_ed_dcp, "CyclingDischargeLimitParameter__HybridSystem")[!, 2]
+
+p_re_param_uc =
+    read_realized_parameter(results_uc_dcp, "RenewablePowerTimeSeries__HybridSystem")[!, 2]
+p_re_param_ed =
+    read_realized_parameter(results_ed_dcp, "RenewablePowerTimeSeries__HybridSystem")[!, 2]
 
 p_re_da = read_realized_variable(results_uc_dcp, "RenewablePower__HybridSystem")[!, 2]
 p_re = read_realized_variable(results_ed_dcp, "RenewablePower__HybridSystem")[!, 2]

@@ -360,6 +360,14 @@ PSI.get_parameter_multiplier(
     ::Union{HybridFixedDA, HybridEnergyOnlyDispatch, HybridDispatchWithReserves},
 ) = 1.0
 
+PSI.get_initial_parameter_value(
+    ::Union{CyclingDischargeLimitParameter, CyclingChargeLimitParameter},
+    d::PSY.HybridSystem,
+    ::AbstractHybridFormulation,
+) =
+    PSY.get_cycle_limits(PSY.get_storage(d)) *
+    PSY.get_state_of_charge_limits(PSY.get_storage(d)).max
+
 ###################################################################
 ######################## Initial Conditions #######################
 ###################################################################

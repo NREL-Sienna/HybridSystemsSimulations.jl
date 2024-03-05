@@ -361,7 +361,6 @@ function PSI._add_parameters!(
     V <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     W <: PSI.AbstractDeviceFormulation,
 } where {D <: PSY.HybridSystem}
-    @show "param for total reserve"
     var = PSI.get_variable(container, TotalReserve(), D)
     device_names, service_names, time_steps = axes(var)
     parameter_container = PSI.add_param_container!(

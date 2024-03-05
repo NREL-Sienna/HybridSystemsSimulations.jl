@@ -138,4 +138,4 @@ struct ComplementarySlackVarCyclingDischarge <: MerchantModelComplementarySlackV
 #! format: on
 
 # implement below
-# convert_result_to_natural_units(::Type{<:VariableType}) = false
+#PSI.convert_result_to_natural_units() = false

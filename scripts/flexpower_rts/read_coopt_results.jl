@@ -33,7 +33,5 @@ results = SimulationResults(result_folder; ignore_status=true)
 
 results_merch_DA = get_decision_problem_results(results, "MerchantHybridCooptimizerCase_DA")
 
-
-
 bid_rt = read_realized_variable(results_merch_DA, "EnergyRTBidOut__HybridSystem")
 bid_da = read_variable(results_merch_DA, "EnergyDABidOut__HybridSystem")

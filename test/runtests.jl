@@ -4,6 +4,7 @@ using PowerSimulations
 using PowerSystemCaseBuilder
 using PowerNetworkMatrices
 using HybridSystemsSimulations
+using HydroPowerSimulations
 using StorageSystemsSimulations
 using DataFrames
 using CSV

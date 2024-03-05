@@ -103,7 +103,7 @@ function _build_battery(
         reactive_power=0.0,
         reactive_power_limits=nothing,
         base_power=100.0,
-        operation_cost=PSY.TwoPartCost(0.0, 0.0),
+        operation_cost=StorageManagementCost(),
     )
     return device
 end

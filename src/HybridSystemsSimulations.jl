@@ -43,8 +43,6 @@ export ComplentarySlacknessCyclingCharge
 export ComplentarySlacknessCyclingDischarge
 export ComplementarySlacknessEnergyLimitUb
 export ComplementarySlacknessEnergyLimitLb
-export ComplementarySlacknessThermalOnVariableOn
-export ComplementarySlacknessThermalOnVariableOff
 export StrongDualityCut
 
 # Parameters

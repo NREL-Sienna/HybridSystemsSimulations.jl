@@ -49,8 +49,9 @@ HiGHS_optimizer = JuMP.optimizer_with_attributes(
 
 # Load
 PSI_DIR = string(dirname(dirname(pathof(PowerSimulations))))
+#include(joinpath(PSI_DIR, "test/test_utils/solver_definitions.jl"))
+#include(joinpath(PSI_DIR, "test/test_utils/operations_problem_templates.jl"))
 include(joinpath(PSI_DIR, "test/test_utils/mock_operation_models.jl"))
-include(joinpath(PSI_DIR, "test/test_utils/operations_problem_templates.jl"))
 include(joinpath(PSI_DIR, "test/test_utils/model_checks.jl"))
 
 TEST_DIR = isempty(dirname(@__FILE__)) ? "test" : dirname(@__FILE__)

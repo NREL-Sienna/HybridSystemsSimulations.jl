@@ -2,7 +2,7 @@ function modify_ren_curtailment_cost!(sys)
     rdispatch = get_components(RenewableDispatch, sys)
     for ren in rdispatch
         # We consider 15 $/MWh as a reasonable cost for renewable curtailment
-        cost = TwoPartCost(15.0, 0.0)
+        cost = TwoPartCost(27.5, 0.0)
         set_operation_cost!(ren, cost)
     end
     th_cheap = get_component(ThermalStandard, sys, "101_STEAM_3")
@@ -50,7 +50,7 @@ end
 
 function add_hybrid_to_chuhsi_bus!(sys::System; ren_name="317_WIND_1")
     bus = get_component(Bus, sys, "Chuhsi")
-    bat = _build_battery(bus, 4.0, 1.0, 0.93, 0.93)
+    bat = _build_battery(bus, 4.0, 1.5, 0.93, 0.93)
     op_cost = get_operation_cost(bat)
     op_cost.variable = VariableCost(2.0)
     energy_shortage_cost = 45000.0
@@ -63,6 +63,7 @@ function add_hybrid_to_chuhsi_bus!(sys::System; ren_name="317_WIND_1")
     load_name = "Clark"
     renewable = get_component(StaticInjection, sys, ren_name)
     set_rating!(renewable, 1.0)
+    set_base_power!(renewable, 150.0)
     thermal = get_component(StaticInjection, sys, thermal_name)
     #set_active_power_limits!(thermal, (min=0.0, max=50.0))
     #set_rating!(thermal, 1.0)

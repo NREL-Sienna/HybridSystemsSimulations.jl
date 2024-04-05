@@ -33,6 +33,15 @@ PSI.proportional_cost(
     ::PSY.HybridSystem,
     U::AbstractHybridFormulation,
 ) = PSY.get_energy_shortage_cost(cost)
+function PSI.variable_cost(
+    cost::PSY.StorageManagementCost,
+    ::BatteryRegularizationVariable,
+    ::PSY.HybridSystem,
+    ::AbstractHybridFormulation,
+)
+    max_val = max(REG_COST, cost.variable.cost[2] * REG_COST)
+    return PSY.VariableCost(max_val)
+end
 
 function PSI.add_proportional_cost!(
     container::PSI.OptimizationContainer,
@@ -219,6 +228,20 @@ function PSI.objective_function!(
                 BatteryEnergyShortageVariable(),
                 _hybrids_with_storage,
                 W(),
+            )
+        end
+        if PSI.get_attribute(model, "regularization")
+            PSI.add_variable_cost!(
+                container,
+                ChargeRegularizationVariable(),
+                devices,
+                U(),
+            )
+            PSI.add_variable_cost!(
+                container,
+                DischargeRegularizationVariable(),
+                devices,
+                U(),
             )
         end
     end

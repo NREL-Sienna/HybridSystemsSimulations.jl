@@ -154,6 +154,15 @@ PSI.get_variable_upper_bound(
     ::AbstractHybridFormulation,
 ) = nothing
 
+PSI.get_variable_upper_bound(
+    ::BatteryRegularizationVariable,
+    d::PSY.HybridSystem,
+    ::AbstractHybridFormulation,
+) = max(
+    PSY.get_input_active_power_limits(PSY.get_storage(d)).max,
+    PSY.get_output_active_power_limits(PSY.get_storage(d)).max,
+)
+
 # Lower Bound
 PSI.get_variable_lower_bound(
     ::Union{ThermalPower, EnergyThermalBid},
@@ -196,6 +205,12 @@ PSI.get_variable_lower_bound(
     d::PSY.HybridSystem,
     ::AbstractHybridFormulation,
 ) = nothing
+
+PSI.get_variable_lower_bound(
+    ::BatteryRegularizationVariable,
+    d::PSY.HybridSystem,
+    ::AbstractHybridFormulation,
+) = 0.0
 
 # Binaries
 PSI.get_variable_binary(
@@ -250,6 +265,11 @@ PSI.get_variable_binary(
 ) = false
 PSI.get_variable_binary(
     ::BatteryDischargeCyclingSlackVariable,
+    ::Type{<:PSY.HybridSystem},
+    ::AbstractHybridFormulation,
+) = false
+PSI.get_variable_binary(
+    ::BatteryRegularizationVariable,
     ::Type{<:PSY.HybridSystem},
     ::AbstractHybridFormulation,
 ) = false

@@ -231,12 +231,7 @@ function PSI.objective_function!(
             )
         end
         if PSI.get_attribute(model, "regularization")
-            PSI.add_variable_cost!(
-                container,
-                ChargeRegularizationVariable(),
-                devices,
-                U(),
-            )
+            PSI.add_variable_cost!(container, ChargeRegularizationVariable(), devices, U())
             PSI.add_variable_cost!(
                 container,
                 DischargeRegularizationVariable(),

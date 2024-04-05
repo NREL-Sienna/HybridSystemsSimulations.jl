@@ -584,6 +584,11 @@ function PSI.construct_device!(
             end
         end
 
+        if PSI.get_attribute(model, "regularization")
+            PSI.add_variables!(container, ChargeRegularizationVariable, devices, D())
+            PSI.add_variables!(container, DischargeRegularizationVariable, devices, D())
+        end
+
         # Add reserve variables and expressions for storage unit
         if PSI.has_service_model(model)
             # Reserve Variables
@@ -795,6 +800,22 @@ function PSI.construct_device!(
             PSI.add_constraints!(
                 container,
                 StateofChargeTargetConstraint,
+                _hybrids_with_storage,
+                model,
+                network_model,
+            )
+        end
+        if PSI.get_attribute(model, "regularization")
+            PSI.add_constraints!(
+                container,
+                ChargeRegularizationConstraint,
+                _hybrids_with_storage,
+                model,
+                network_model,
+            )
+            PSI.add_constraints!(
+                container,
+                DischargeRegularizationConstraint,
                 _hybrids_with_storage,
                 model,
                 network_model,

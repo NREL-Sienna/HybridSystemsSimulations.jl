@@ -79,6 +79,11 @@ function PSI.construct_device!(
             )
         end
 
+        if PSI.get_attribute(model, "regularization")
+            PSI.add_variables!(container, ChargeRegularizationVariable, devices, D())
+            PSI.add_variables!(container, DischargeRegularizationVariable, devices, D())
+        end
+
         PSI.initial_conditions!(container, _hybrids_with_storage, D())
     end
 
@@ -207,6 +212,23 @@ function PSI.construct_device!(
             PSI.add_constraints!(
                 container,
                 StateofChargeTargetConstraint,
+                _hybrids_with_storage,
+                model,
+                network_model,
+            )
+        end
+
+        if PSI.get_attribute(model, "regularization")
+            PSI.add_constraints!(
+                container,
+                ChargeRegularizationConstraint,
+                _hybrids_with_storage,
+                model,
+                network_model,
+            )
+            PSI.add_constraints!(
+                container,
+                DischargeRegularizationConstraint,
                 _hybrids_with_storage,
                 model,
                 network_model,

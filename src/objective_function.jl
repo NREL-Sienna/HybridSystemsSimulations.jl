@@ -10,6 +10,11 @@ PSI.objective_function_multiplier(
 ) = PSI.OBJECTIVE_FUNCTION_POSITIVE
 
 PSI.objective_function_multiplier(
+    ::BatteryRegularizationVariable,
+    ::AbstractHybridFormulation,
+) = PSI.OBJECTIVE_FUNCTION_POSITIVE
+
+PSI.objective_function_multiplier(
     ::Union{BatteryCharge, BatteryDischarge},
     ::Union{MerchantModelEnergyOnly, MerchantModelWithReserves},
 ) = PSI.OBJECTIVE_FUNCTION_NEGATIVE
@@ -33,14 +38,13 @@ PSI.proportional_cost(
     ::PSY.HybridSystem,
     U::AbstractHybridFormulation,
 ) = PSY.get_energy_shortage_cost(cost)
-function PSI.variable_cost(
+function PSI.proportional_cost(
     cost::PSY.StorageManagementCost,
     ::BatteryRegularizationVariable,
     ::PSY.HybridSystem,
     ::AbstractHybridFormulation,
 )
-    max_val = max(REG_COST, cost.variable.cost[2] * REG_COST)
-    return PSY.VariableCost(max_val)
+    return max(REG_COST, PSY.get_variable(cost).cost * REG_COST)
 end
 
 function PSI.add_proportional_cost!(
@@ -84,6 +88,29 @@ function PSI.add_proportional_cost!(
         cost_term = PSI.proportional_cost(op_cost_data, T(), d, formulation)
         PSI.add_to_objective_invariant_expression!(container, variable[name] * cost_term)
     end
+end
+
+function PSI.add_proportional_cost!(
+    container::PSI.OptimizationContainer,
+    ::T,
+    devices::U,
+    ::W,
+) where {
+    T <: BatteryRegularizationVariable,
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
+    multiplier = PSI.objective_function_multiplier(T(), W())
+    for d in devices
+        op_cost_data = PSY.get_operation_cost(PSY.get_storage(d))
+        isnothing(op_cost_data) && continue
+        cost_term = PSI.proportional_cost(op_cost_data, T(), d, W())
+        iszero(cost_term) && continue
+        for t in PSI.get_time_steps(container)
+            PSI._add_proportional_term!(container, T(), d, cost_term * multiplier, t)
+        end
+    end
+    return
 end
 
 ############### Thermal costs, HybridSystem #######################
@@ -191,6 +218,9 @@ function PSI.add_variable_cost!(
     end
     return
 end
+
+############### Storage costs, HybridSystem #######################
+
 ############### Objective Function, HybridSystem #######################
 
 function PSI.objective_function!(
@@ -231,12 +261,17 @@ function PSI.objective_function!(
             )
         end
         if PSI.get_attribute(model, "regularization")
-            PSI.add_variable_cost!(container, ChargeRegularizationVariable(), devices, U())
-            PSI.add_variable_cost!(
+            PSI.add_proportional_cost!(
+                container,
+                ChargeRegularizationVariable(),
+                _hybrids_with_storage,
+                W(),
+            )
+            PSI.add_proportional_cost!(
                 container,
                 DischargeRegularizationVariable(),
-                devices,
-                U(),
+                _hybrids_with_storage,
+                W(),
             )
         end
     end

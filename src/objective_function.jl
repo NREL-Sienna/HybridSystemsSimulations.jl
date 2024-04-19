@@ -14,11 +14,6 @@ PSI.objective_function_multiplier(
     ::AbstractHybridFormulation,
 ) = PSI.OBJECTIVE_FUNCTION_POSITIVE
 
-PSI.objective_function_multiplier(
-    ::Union{BatteryCharge, BatteryDischarge},
-    ::Union{MerchantModelEnergyOnly, MerchantModelWithReserves},
-) = PSI.OBJECTIVE_FUNCTION_NEGATIVE
-
 PSI.proportional_cost(
     cost::PSY.OperationalCost,
     ::Union{BatteryCharge, BatteryDischarge},

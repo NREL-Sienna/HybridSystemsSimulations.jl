@@ -60,7 +60,7 @@ transform_single_time_series!(sys_rts_da, horizon_DA, interval_DA)
 #########################################
 ######## Add Services to Hybrid #########
 #########################################
-#=
+
 served_fraction_map = Dict(
     "Spin_Up_R2" => 0.00,
     "Spin_Up_R3" => 0.00,
@@ -89,7 +89,7 @@ for sys in [sys_rts_da]
         end
     end
 end
-=#
+
 
 ###############################
 ###### Create Templates #######
@@ -111,8 +111,8 @@ set_device_model!(
     template_uc_copperplate,
     DeviceModel(
         PSY.HybridSystem,
-        #HybridDispatchWithReserves;
-        HybridEnergyOnlyDispatch;
+        HybridDispatchWithReserves;
+        #HybridEnergyOnlyDispatch;
         attributes=Dict{String, Any}(
             "reservation" => true,
             "storage_reservation" => true,
@@ -632,7 +632,6 @@ cons = model.internal.container.constraints
 for k in keys(cons)
     println(k)
 end
-obj = mo
 aux = cons[PowerSimulations.ConstraintKey{
     HybridSystemsSimulations.EnergyAssetBalance,
     HybridSystem,

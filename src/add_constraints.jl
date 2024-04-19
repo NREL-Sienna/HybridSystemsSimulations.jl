@@ -1181,19 +1181,19 @@ function PSI.add_constraints!(
                 constraint_ub[ci_name, t] = JuMP.@constraint(
                     PSI.get_jump_model(container),
                     (
-                        powerin_var[ci_name, t - 1] + total_reg_dn_before -
-                        total_reg_up_before
+                        powerin_var[ci_name, t - 1] - total_reg_up_before +
+                        total_reg_dn_before
                     ) -
-                    (powerin_var[ci_name, t] + total_reg_dn_now - total_reg_up_now) <=
+                    (powerin_var[ci_name, t] - total_reg_up_now + total_reg_dn_now) <=
                     reg_var[ci_name, t]
                 )
                 constraint_lb[ci_name, t] = JuMP.@constraint(
                     PSI.get_jump_model(container),
                     (
-                        powerin_var[ci_name, t - 1] + total_reg_dn_before -
-                        total_reg_up_before
+                        powerin_var[ci_name, t - 1] - total_reg_up_before +
+                        total_reg_dn_before
                     ) -
-                    (powerin_var[ci_name, t] + total_reg_dn_now - total_reg_up_now) >=
+                    (powerin_var[ci_name, t] - total_reg_up_now + total_reg_dn_now) >=
                     -reg_var[ci_name, t]
                 )
             end
@@ -1312,19 +1312,19 @@ function PSI.add_constraints!(
                 constraint_ub[ci_name, t] = JuMP.@constraint(
                     PSI.get_jump_model(container),
                     (
-                        powerout_var[ci_name, t - 1] + total_reg_dn_before -
-                        total_reg_up_before
+                        powerout_var[ci_name, t - 1] + total_reg_up_before -
+                        total_reg_dn_before
                     ) -
-                    (powerout_var[ci_name, t] + total_reg_dn_now - total_reg_up_now) <=
+                    (powerout_var[ci_name, t] + total_reg_up_now - total_reg_dn_now) <=
                     reg_var[ci_name, t]
                 )
                 constraint_lb[ci_name, t] = JuMP.@constraint(
                     PSI.get_jump_model(container),
                     (
-                        powerout_var[ci_name, t - 1] + total_reg_dn_before -
-                        total_reg_up_before
+                        powerout_var[ci_name, t - 1] + total_reg_up_before -
+                        total_reg_dn_before
                     ) -
-                    (powerout_var[ci_name, t] + total_reg_dn_now - total_reg_up_now) >=
+                    (powerout_var[ci_name, t] + total_reg_up_now - total_reg_dn_now) >=
                     -reg_var[ci_name, t]
                 )
             end

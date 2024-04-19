@@ -75,16 +75,16 @@ template_uc_copperplate = get_uc_copperplate_template(sys_rts_da)
 template_ed_copperplate = get_ed_copperplate_template(sys_rts_rt)
 
 # PTDF Bounded
-template_uc_ptdf = get_uc_ptdf_template(sys_rts_da)
-template_ed_ptdf = get_ed_ptdf_template(sys_rts_rt)
+#template_uc_ptdf = get_uc_ptdf_template(sys_rts_da)
+#template_ed_ptdf = get_ed_ptdf_template(sys_rts_rt)
 
 # PTDF Unbounded
-template_uc_unbounded_ptdf = get_uc_ptdf_unbounded_template(sys_rts_da)
-template_ed_unbounded_ptdf = get_ed_ptdf_unbounded_template(sys_rts_rt)
+#template_uc_unbounded_ptdf = get_uc_ptdf_unbounded_template(sys_rts_da)
+#template_ed_unbounded_ptdf = get_ed_ptdf_unbounded_template(sys_rts_rt)
 
 # DCP
-template_uc_dcp = get_uc_dcp_template()
-template_ed_dcp = get_ed_dcp_template()
+#template_uc_dcp = get_uc_dcp_template()
+#template_ed_dcp = get_ed_dcp_template()
 
 ###############################
 ###### Simulation Params ######

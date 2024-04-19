@@ -122,6 +122,34 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
             MerchantModelEnergyOnly(),
             PSI.InitialEnergyLevel(),
         )
+        if get(decision_model.ext, "regularization", false)
+            PSI.add_variables!(
+                container,
+                ChargeRegularizationVariable,
+                _hybrids_with_storage,
+                MerchantModelEnergyOnly(),
+            )
+            PSI.add_variables!(
+                container,
+                DischargeRegularizationVariable,
+                _hybrids_with_storage,
+                MerchantModelEnergyOnly(),
+            )
+            PSI.add_constraints!(
+                container,
+                ChargeRegularizationConstraint,
+                _hybrids_with_storage,
+                PSI.get_model(PSI.get_template(decision_model), PSY.HybridSystem),
+                PSI.get_network_model(PSI.get_template(decision_model)),
+            )
+            PSI.add_constraints!(
+                container,
+                DischargeRegularizationConstraint,
+                _hybrids_with_storage,
+                PSI.get_model(PSI.get_template(decision_model), PSY.HybridSystem),
+                PSI.get_network_model(PSI.get_template(decision_model)),
+            )
+        end
     end
 
     if !isempty(_hybrids_with_thermal)
@@ -231,6 +259,20 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
         p_ds = PSI.get_variable(container, BatteryDischarge(), PSY.HybridSystem)
         e_st = PSI.get_variable(container, PSI.EnergyVariable(), PSY.HybridSystem)
         status_st = PSI.get_variable(container, BatteryStatus(), PSY.HybridSystem)
+        if get(decision_model.ext, "regularization", false)
+            PSI.add_proportional_cost!(
+                container,
+                ChargeRegularizationVariable(),
+                _hybrids_with_storage,
+                MerchantModelEnergyOnly(),
+            )
+            PSI.add_proportional_cost!(
+                container,
+                DischargeRegularizationVariable(),
+                _hybrids_with_storage,
+                MerchantModelEnergyOnly(),
+            )
+        end
     end
 
     for dev in hybrids

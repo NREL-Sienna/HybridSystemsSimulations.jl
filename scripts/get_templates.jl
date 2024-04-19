@@ -18,7 +18,7 @@ function set_uc_models!(template_uc)
         DeviceModel(
             PSY.HybridSystem,
             HybridEnergyOnlyDispatch;
-            attributes=Dict{String, Any}("cycling" => false),
+            attributes=Dict{String, Any}("cycling" => false, "regularization" => false),
         ),
     )
     set_device_model!(template_uc, GenericBattery, StorageDispatchWithReserves)

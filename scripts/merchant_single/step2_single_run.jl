@@ -109,6 +109,8 @@ decision_optimizer_DA = DecisionModel(
     name="MerchantHybridCooptimizer_DA",
 )
 
+decision_optimizer_DA.ext["regularization"] = true
+
 # Construct decision models for simulation
 models = SimulationModels(decision_models=[decision_optimizer_DA])
 
@@ -125,6 +127,15 @@ sim = Simulation(
 )
 
 build!(sim)
+
+#=
+cons = decision_optimizer_DA.internal.container.constraints
+for k in keys(cons)
+    println(k)
+end
+
+cons[PowerSimulations.ConstraintKey{HybridSystemsSimulations.ChargeRegularizationConstraint, HybridSystem}("ub")]
+=#
 
 execute!(sim; enable_progress_bar=true)
 

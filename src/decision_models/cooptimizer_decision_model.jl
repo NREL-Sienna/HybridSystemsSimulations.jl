@@ -427,6 +427,35 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
             MerchantModelWithReserves(),
             time_steps,
         )
+        # Regularization terms
+        if get(decision_model.ext, "regularization", false)
+            PSI.add_variables!(
+                container,
+                ChargeRegularizationVariable,
+                _hybrids_with_storage,
+                MerchantModelWithReserves(),
+            )
+            PSI.add_variables!(
+                container,
+                DischargeRegularizationVariable,
+                _hybrids_with_storage,
+                MerchantModelWithReserves(),
+            )
+            PSI.add_constraints!(
+                container,
+                ChargeRegularizationConstraint,
+                _hybrids_with_storage,
+                PSI.get_model(PSI.get_template(decision_model), PSY.HybridSystem),
+                PSI.get_network_model(PSI.get_template(decision_model)),
+            )
+            PSI.add_constraints!(
+                container,
+                DischargeRegularizationConstraint,
+                _hybrids_with_storage,
+                PSI.get_model(PSI.get_template(decision_model), PSY.HybridSystem),
+                PSI.get_network_model(PSI.get_template(decision_model)),
+            )
+        end
     end
 
     if !isempty(_hybrids_with_thermal)
@@ -628,6 +657,20 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
     if !isempty(_hybrids_with_storage)
         p_ch = PSI.get_variable(container, BatteryCharge(), PSY.HybridSystem)
         p_ds = PSI.get_variable(container, BatteryDischarge(), PSY.HybridSystem)
+        if get(decision_model.ext, "regularization", false)
+            PSI.add_proportional_cost!(
+                container,
+                ChargeRegularizationVariable(),
+                _hybrids_with_storage,
+                MerchantModelWithReserves(),
+            )
+            PSI.add_proportional_cost!(
+                container,
+                DischargeRegularizationVariable(),
+                _hybrids_with_storage,
+                MerchantModelWithReserves(),
+            )
+        end
     end
 
     if len_DA == 24

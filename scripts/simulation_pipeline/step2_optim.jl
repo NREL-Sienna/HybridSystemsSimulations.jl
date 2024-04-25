@@ -30,6 +30,15 @@ dic["horizon_DA"] = horizon_merchant_da
 hy_sys = first(get_components(HybridSystem, sys))
 PSY.set_ext!(hy_sys, deepcopy(dic))
 
+set_device_model!(
+    template_uc_copperplate,
+    DeviceModel(
+        PSY.HybridSystem,
+        HybridEnergyOnlyDispatch;
+        attributes=Dict{String, Any}("cycling" => false, "regularization" => true),
+    ),
+)
+
 m = DecisionModel(
     MerchantHybridEnergyCase,
     template_uc_copperplate,
@@ -39,8 +48,6 @@ m = DecisionModel(
     store_variable_names=true,
     initial_time=starttime,
 )
-
-m.ext["regularization"] = true
 
 PSI.build!(m, output_dir=pwd())
 PSI.solve!(m)

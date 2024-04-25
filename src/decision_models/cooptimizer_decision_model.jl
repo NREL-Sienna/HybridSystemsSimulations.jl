@@ -64,6 +64,8 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
         end
     end
 
+    device_model = PSI.get_model(PSI.get_template(decision_model), PSY.HybridSystem)
+
     ###############################
     ######## Variables ############
     ###############################
@@ -428,7 +430,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
             time_steps,
         )
         # Regularization terms
-        if get(decision_model.ext, "regularization", false)
+        if PSI.get_attribute(device_model, "regularization")
             PSI.add_variables!(
                 container,
                 ChargeRegularizationVariable,
@@ -657,7 +659,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
     if !isempty(_hybrids_with_storage)
         p_ch = PSI.get_variable(container, BatteryCharge(), PSY.HybridSystem)
         p_ds = PSI.get_variable(container, BatteryDischarge(), PSY.HybridSystem)
-        if get(decision_model.ext, "regularization", false)
+        if PSI.get_attribute(device_model, "regularization")
             PSI.add_proportional_cost!(
                 container,
                 ChargeRegularizationVariable(),
@@ -977,7 +979,6 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
         MerchantModelWithReserves(),
     )
 
-    device_model = PSI.get_model(PSI.get_template(decision_model), PSY.HybridSystem)
     PSI.add_feedforward_arguments!(container, device_model, hybrids)
     PSI.update_objective_function!(container)
     PSI.serialize_metadata!(container, PSI.get_output_dir(decision_model))

@@ -97,6 +97,15 @@ PSY.set_ext!(hy_sys_rt, sys_rts_merchant_rt.internal.ext)
 
 template_uc_copperplate = get_uc_copperplate_template(sys_rts_da)
 
+set_device_model!(
+    template_uc_copperplate,
+    DeviceModel(
+        PSY.HybridSystem,
+        HybridEnergyOnlyDispatch;
+        attributes=Dict{String, Any}("cycling" => false, "regularization" => true),
+    ),
+)
+
 decision_optimizer_DA = DecisionModel(
     MerchantHybridCooptimizerCase,
     template_uc_copperplate,
@@ -108,8 +117,6 @@ decision_optimizer_DA = DecisionModel(
     store_variable_names=true;
     name="MerchantHybridCooptimizer_DA",
 )
-
-decision_optimizer_DA.ext["regularization"] = true
 
 # Construct decision models for simulation
 models = SimulationModels(decision_models=[decision_optimizer_DA])

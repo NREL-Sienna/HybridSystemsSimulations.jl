@@ -63,6 +63,8 @@ struct BatteryStatusDischargeOn <: PSI.ConstraintType end
 struct BatteryBalance <: PSI.ConstraintType end
 struct CyclingCharge <: PSI.ConstraintType end
 struct CyclingDischarge <: PSI.ConstraintType end
+struct ChargeRegularizationConstraint <: PSI.ConstraintType end
+struct DischargeRegularizationConstraint <: PSI.ConstraintType end
 struct StateofChargeTargetConstraint <: PSI.ConstraintType end
 struct RenewableActivePowerLimitConstraint <: PSI.ConstraintType end
 

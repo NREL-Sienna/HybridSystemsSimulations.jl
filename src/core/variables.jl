@@ -26,6 +26,9 @@ struct BatteryEnergyShortageVariable <: PSI.VariableType end
 struct BatteryEnergySurplusVariable <: PSI.VariableType end
 struct BatteryChargeCyclingSlackVariable <: PSI.VariableType end
 struct BatteryDischargeCyclingSlackVariable <: PSI.VariableType end
+abstract type BatteryRegularizationVariable <: PSI.VariableType end
+struct ChargeRegularizationVariable <: BatteryRegularizationVariable end
+struct DischargeRegularizationVariable <: BatteryRegularizationVariable end
 
 # AS Variable for Hybrid
 abstract type ReserveVariableType <: PSI.VariableType end

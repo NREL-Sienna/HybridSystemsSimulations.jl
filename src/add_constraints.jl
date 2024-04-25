@@ -1091,6 +1091,268 @@ function PSI.add_constraints!(
     return
 end
 
+# Regularization Charge
+function PSI.add_constraints!(
+    container::PSI.OptimizationContainer,
+    ::Type{ChargeRegularizationConstraint},
+    devices::U,
+    model::PSI.DeviceModel{V, W},
+    network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
+) where {
+    U <: Union{Vector{V}, IS.FlattenIteratorWrapper{V}},
+    W <: AbstractHybridFormulation,
+} where {V <: PSY.HybridSystem}
+    names = [PSY.get_name(x) for x in devices]
+    time_steps = PSI.get_time_steps(container)
+    reg_var = PSI.get_variable(container, ChargeRegularizationVariable(), V)
+    powerin_var = PSI.get_variable(container, BatteryCharge(), V)
+    has_services = PSI.has_service_model(model)
+
+    constraint_ub = PSI.add_constraints_container!(
+        container,
+        ChargeRegularizationConstraint(),
+        V,
+        names,
+        time_steps,
+        meta="ub",
+    )
+
+    constraint_lb = PSI.add_constraints_container!(
+        container,
+        ChargeRegularizationConstraint(),
+        V,
+        names,
+        time_steps,
+        meta="lb",
+    )
+
+    if has_services
+        services = Set()
+        for d in devices
+            union!(services, PSY.get_services(d))
+        end
+        for device in devices
+            ci_name = PSY.get_name(device)
+            deployed_r_up_ch = Set()
+            deployed_r_dn_ch = Set()
+            for service in services
+                service_name = PSY.get_name(service)
+                if typeof(service) <: PSY.VariableReserve{PSY.ReserveUp}
+                    res_ch = PSI.get_variable(
+                        container,
+                        ChargingReserveVariable(),
+                        typeof(service),
+                        service_name,
+                    )
+                    push!(
+                        deployed_r_up_ch,
+                        PSY.get_deployed_fraction(service) * res_ch[ci_name, :],
+                    )
+                elseif typeof(service) <: PSY.VariableReserve{PSY.ReserveDown}
+                    res_ch = PSI.get_variable(
+                        container,
+                        ChargingReserveVariable(),
+                        typeof(service),
+                        service_name,
+                    )
+                    push!(
+                        deployed_r_dn_ch,
+                        PSY.get_deployed_fraction(service) * res_ch[ci_name, :],
+                    )
+                end
+            end
+            constraint_ub[ci_name, 1] =
+                JuMP.@constraint(PSI.get_jump_model(container), reg_var[ci_name, 1] == 0)
+            constraint_lb[ci_name, 1] =
+                JuMP.@constraint(PSI.get_jump_model(container), reg_var[ci_name, 1] == 0)
+            for t in time_steps[2:end]
+                total_reg_up_now = JuMP.AffExpr()
+                total_reg_dn_now = JuMP.AffExpr()
+                total_reg_up_before = JuMP.AffExpr()
+                total_reg_dn_before = JuMP.AffExpr()
+                for rup in deployed_r_up_ch
+                    JuMP.add_to_expression!(total_reg_up_now, rup[t])
+                    JuMP.add_to_expression!(total_reg_up_before, rup[t - 1])
+                end
+                for rdn in deployed_r_dn_ch
+                    JuMP.add_to_expression!(total_reg_dn_now, rdn[t])
+                    JuMP.add_to_expression!(total_reg_dn_before, rdn[t - 1])
+                end
+                constraint_ub[ci_name, t] = JuMP.@constraint(
+                    PSI.get_jump_model(container),
+                    (
+                        powerin_var[ci_name, t - 1] - total_reg_up_before +
+                        total_reg_dn_before
+                    ) -
+                    (powerin_var[ci_name, t] - total_reg_up_now + total_reg_dn_now) <=
+                    reg_var[ci_name, t]
+                )
+                constraint_lb[ci_name, t] = JuMP.@constraint(
+                    PSI.get_jump_model(container),
+                    (
+                        powerin_var[ci_name, t - 1] - total_reg_up_before +
+                        total_reg_dn_before
+                    ) -
+                    (powerin_var[ci_name, t] - total_reg_up_now + total_reg_dn_now) >=
+                    -reg_var[ci_name, t]
+                )
+            end
+        end
+    else # No Services
+        for device in devices
+            ci_name = PSY.get_name(device)
+            constraint_ub[ci_name, 1] =
+                JuMP.@constraint(PSI.get_jump_model(container), reg_var[ci_name, 1] == 0)
+            constraint_lb[ci_name, 1] =
+                JuMP.@constraint(PSI.get_jump_model(container), reg_var[ci_name, 1] == 0)
+            for t in time_steps[2:end]
+                constraint_ub[ci_name, t] = JuMP.@constraint(
+                    PSI.get_jump_model(container),
+                    powerin_var[ci_name, t - 1] - powerin_var[ci_name, t] <=
+                    reg_var[ci_name, t]
+                )
+                constraint_lb[ci_name, t] = JuMP.@constraint(
+                    PSI.get_jump_model(container),
+                    powerin_var[ci_name, t - 1] - powerin_var[ci_name, t] >=
+                    -reg_var[ci_name, t]
+                )
+            end
+        end
+    end
+    return
+end
+
+# Regularization Discharge
+function PSI.add_constraints!(
+    container::PSI.OptimizationContainer,
+    ::Type{DischargeRegularizationConstraint},
+    devices::U,
+    model::PSI.DeviceModel{V, W},
+    network_model::PSI.NetworkModel{<:PM.AbstractPowerModel},
+) where {
+    U <: Union{Vector{V}, IS.FlattenIteratorWrapper{V}},
+    W <: AbstractHybridFormulation,
+} where {V <: PSY.HybridSystem}
+    names = [PSY.get_name(x) for x in devices]
+    time_steps = PSI.get_time_steps(container)
+    reg_var = PSI.get_variable(container, DischargeRegularizationVariable(), V)
+    powerout_var = PSI.get_variable(container, BatteryDischarge(), V)
+    has_services = PSI.has_service_model(model)
+
+    constraint_ub = PSI.add_constraints_container!(
+        container,
+        DischargeRegularizationConstraint(),
+        V,
+        names,
+        time_steps,
+        meta="ub",
+    )
+
+    constraint_lb = PSI.add_constraints_container!(
+        container,
+        DischargeRegularizationConstraint(),
+        V,
+        names,
+        time_steps,
+        meta="lb",
+    )
+
+    if has_services
+        services = Set()
+        for d in devices
+            union!(services, PSY.get_services(d))
+        end
+        for device in devices
+            ci_name = PSY.get_name(device)
+            deployed_r_up_ds = Set()
+            deployed_r_dn_ds = Set()
+            for service in services
+                service_name = PSY.get_name(service)
+                if typeof(service) <: PSY.VariableReserve{PSY.ReserveUp}
+                    res_ds = PSI.get_variable(
+                        container,
+                        DischargingReserveVariable(),
+                        typeof(service),
+                        service_name,
+                    )
+                    push!(
+                        deployed_r_up_ds,
+                        PSY.get_deployed_fraction(service) * res_ds[ci_name, :],
+                    )
+                elseif typeof(service) <: PSY.VariableReserve{PSY.ReserveDown}
+                    res_ds = PSI.get_variable(
+                        container,
+                        DischargingReserveVariable(),
+                        typeof(service),
+                        service_name,
+                    )
+                    push!(
+                        deployed_r_dn_ds,
+                        PSY.get_deployed_fraction(service) * res_ds[ci_name, :],
+                    )
+                end
+            end
+            constraint_ub[ci_name, 1] =
+                JuMP.@constraint(PSI.get_jump_model(container), reg_var[ci_name, 1] == 0)
+            constraint_lb[ci_name, 1] =
+                JuMP.@constraint(PSI.get_jump_model(container), reg_var[ci_name, 1] == 0)
+            for t in time_steps[2:end]
+                total_reg_up_now = JuMP.AffExpr()
+                total_reg_dn_now = JuMP.AffExpr()
+                total_reg_up_before = JuMP.AffExpr()
+                total_reg_dn_before = JuMP.AffExpr()
+                for rup in deployed_r_up_ds
+                    JuMP.add_to_expression!(total_reg_up_now, rup[t])
+                    JuMP.add_to_expression!(total_reg_up_before, rup[t - 1])
+                end
+                for rdn in deployed_r_dn_ds
+                    JuMP.add_to_expression!(total_reg_dn_now, rdn[t])
+                    JuMP.add_to_expression!(total_reg_dn_before, rdn[t - 1])
+                end
+                constraint_ub[ci_name, t] = JuMP.@constraint(
+                    PSI.get_jump_model(container),
+                    (
+                        powerout_var[ci_name, t - 1] + total_reg_up_before -
+                        total_reg_dn_before
+                    ) -
+                    (powerout_var[ci_name, t] + total_reg_up_now - total_reg_dn_now) <=
+                    reg_var[ci_name, t]
+                )
+                constraint_lb[ci_name, t] = JuMP.@constraint(
+                    PSI.get_jump_model(container),
+                    (
+                        powerout_var[ci_name, t - 1] + total_reg_up_before -
+                        total_reg_dn_before
+                    ) -
+                    (powerout_var[ci_name, t] + total_reg_up_now - total_reg_dn_now) >=
+                    -reg_var[ci_name, t]
+                )
+            end
+        end
+    else # No Services
+        for device in devices
+            ci_name = PSY.get_name(device)
+            constraint_ub[ci_name, 1] =
+                JuMP.@constraint(PSI.get_jump_model(container), reg_var[ci_name, 1] == 0)
+            constraint_lb[ci_name, 1] =
+                JuMP.@constraint(PSI.get_jump_model(container), reg_var[ci_name, 1] == 0)
+            for t in time_steps[2:end]
+                constraint_ub[ci_name, t] = JuMP.@constraint(
+                    PSI.get_jump_model(container),
+                    powerout_var[ci_name, t - 1] - powerout_var[ci_name, t] <=
+                    reg_var[ci_name, t]
+                )
+                constraint_lb[ci_name, t] = JuMP.@constraint(
+                    PSI.get_jump_model(container),
+                    powerout_var[ci_name, t - 1] - powerout_var[ci_name, t] >=
+                    -reg_var[ci_name, t]
+                )
+            end
+        end
+    end
+    return
+end
+
 ############## Renewable Constraints, HybridSystem ###################
 
 function _add_constraints_renewablelimit!(

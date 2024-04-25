@@ -98,24 +98,26 @@ end
 template_uc_copperplate = get_uc_copperplate_template(sys_rts_da)
 
 # PTDF Bounded
-template_uc_ptdf = get_uc_ptdf_template(sys_rts_da)
+#template_uc_ptdf = get_uc_ptdf_template(sys_rts_da)
 
 # PTDF Unbounded
-template_uc_unbounded_ptdf = get_uc_ptdf_unbounded_template(sys_rts_da)
+#template_uc_unbounded_ptdf = get_uc_ptdf_unbounded_template(sys_rts_da)
 
 # DCP
-template_uc_dcp = get_uc_dcp_template()
+#template_uc_dcp = get_uc_dcp_template()
 
 set_device_model!(
     template_uc_copperplate,
     DeviceModel(
         PSY.HybridSystem,
         HybridDispatchWithReserves;
+        #HybridEnergyOnlyDispatch;
         attributes=Dict{String, Any}(
             "reservation" => true,
             "storage_reservation" => true,
             "energy_target" => true,
             "cycling" => true,
+            "regularization" => true,
         ),
     ),
 )
@@ -124,7 +126,7 @@ set_device_model!(
 ##### Run DCP Simulation ######
 ###############################
 
-mipgap = 1.0e-2
+mipgap = 2.0e-2
 
 model = DecisionModel(
     template_uc_copperplate,
@@ -209,7 +211,7 @@ end
 
 using CSV
 
-CSV.write("centralized_res.csv", df)
+#CSV.write("centralized_res.csv", df)
 
 p_load = read_parameter(res, "ActivePowerTimeSeriesParameter__PowerLoad")
 tot_load = zeros(72)
@@ -299,6 +301,16 @@ p3 = plot(
         yaxis_title="x100 MW",
         template="simply_white",
         legend=attr(x=0.01, y=1.25, font_size=14, bordercolor="Black", borderwidth=1),
+    ),
+)
+
+plot(
+    scatter(
+        x=dates_uc,
+        y=p_ds_hyb[!, 2] - p_ch_hyb[!, 2],
+        name="Hybrid Sys. Net Storage",
+        line_shape="hv",
+        line_color="orange",
     ),
 )
 
@@ -625,3 +637,7 @@ aux = cons[PowerSimulations.ConstraintKey{
 }(
     "",
 )]
+
+for (k, v) in obj_jump.terms
+    println(k, v)
+end

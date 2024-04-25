@@ -43,6 +43,8 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
         union!(services, PSY.get_services(d))
     end
 
+    device_model = PSI.get_model(PSI.get_template(decision_model), PSY.HybridSystem)
+
     ###############################
     ######## Variables ############
     ###############################
@@ -122,6 +124,34 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
             MerchantModelEnergyOnly(),
             PSI.InitialEnergyLevel(),
         )
+        if PSI.get_attribute(device_model, "regularization")
+            PSI.add_variables!(
+                container,
+                ChargeRegularizationVariable,
+                _hybrids_with_storage,
+                MerchantModelEnergyOnly(),
+            )
+            PSI.add_variables!(
+                container,
+                DischargeRegularizationVariable,
+                _hybrids_with_storage,
+                MerchantModelEnergyOnly(),
+            )
+            PSI.add_constraints!(
+                container,
+                ChargeRegularizationConstraint,
+                _hybrids_with_storage,
+                PSI.get_model(PSI.get_template(decision_model), PSY.HybridSystem),
+                PSI.get_network_model(PSI.get_template(decision_model)),
+            )
+            PSI.add_constraints!(
+                container,
+                DischargeRegularizationConstraint,
+                _hybrids_with_storage,
+                PSI.get_model(PSI.get_template(decision_model), PSY.HybridSystem),
+                PSI.get_network_model(PSI.get_template(decision_model)),
+            )
+        end
     end
 
     if !isempty(_hybrids_with_thermal)
@@ -231,6 +261,20 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
         p_ds = PSI.get_variable(container, BatteryDischarge(), PSY.HybridSystem)
         e_st = PSI.get_variable(container, PSI.EnergyVariable(), PSY.HybridSystem)
         status_st = PSI.get_variable(container, BatteryStatus(), PSY.HybridSystem)
+        if PSI.get_attribute(device_model, "regularization")
+            PSI.add_proportional_cost!(
+                container,
+                ChargeRegularizationVariable(),
+                _hybrids_with_storage,
+                MerchantModelEnergyOnly(),
+            )
+            PSI.add_proportional_cost!(
+                container,
+                DischargeRegularizationVariable(),
+                _hybrids_with_storage,
+                MerchantModelEnergyOnly(),
+            )
+        end
     end
 
     for dev in hybrids
@@ -493,7 +537,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridEnergyC
             )
         end
     end
-    device_model = PSI.get_model(PSI.get_template(decision_model), PSY.HybridSystem)
+
     PSI.add_feedforward_arguments!(container, device_model, hybrids)
     PSI.update_objective_function!(container)
     PSI.serialize_metadata!(container, PSI.get_output_dir(decision_model))

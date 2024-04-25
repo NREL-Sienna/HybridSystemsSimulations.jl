@@ -1,9 +1,9 @@
 bus_name = "chuhsi"
 sys_rts_da_original = build_system(PSISystems, "modified_RTS_GMLC_DA_sys_noForecast")
 sys_rts_merchant = build_system(PSISystems, "modified_RTS_GMLC_RT_sys_noForecast")
-horizon_merchant_rt = 12 * 24 * 3
+horizon_merchant_rt = 12 * 24
 horizon_merchant_da = 72
-interval_merchant = Dates.Hour(24 * 3)
+interval_merchant = Dates.Hour(24)
 add_da_forecast_in_5_mins_to_rt!(sys_rts_merchant, sys_rts_da_original)
 
 for sys in [sys_rts_merchant]
@@ -30,15 +30,25 @@ dic["horizon_DA"] = horizon_merchant_da
 hy_sys = first(get_components(HybridSystem, sys))
 PSY.set_ext!(hy_sys, deepcopy(dic))
 
+set_device_model!(
+    template_uc_copperplate,
+    DeviceModel(
+        PSY.HybridSystem,
+        HybridEnergyOnlyDispatch;
+        attributes=Dict{String, Any}("cycling" => false, "regularization" => true),
+    ),
+)
+
 m = DecisionModel(
     MerchantHybridEnergyCase,
-    ProblemTemplate(CopperPlatePowerModel),
+    template_uc_copperplate,
     sys,
     optimizer=Xpress.Optimizer,
     calculate_conflict=true,
     store_variable_names=true,
     initial_time=starttime,
 )
+
 PSI.build!(m, output_dir=pwd())
 PSI.solve!(m)
 res = ProblemResults(m)

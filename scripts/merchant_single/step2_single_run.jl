@@ -97,6 +97,15 @@ PSY.set_ext!(hy_sys_rt, sys_rts_merchant_rt.internal.ext)
 
 template_uc_copperplate = get_uc_copperplate_template(sys_rts_da)
 
+set_device_model!(
+    template_uc_copperplate,
+    DeviceModel(
+        PSY.HybridSystem,
+        HybridEnergyOnlyDispatch;
+        attributes=Dict{String, Any}("cycling" => false, "regularization" => true),
+    ),
+)
+
 decision_optimizer_DA = DecisionModel(
     MerchantHybridCooptimizerCase,
     template_uc_copperplate,
@@ -125,6 +134,15 @@ sim = Simulation(
 )
 
 build!(sim)
+
+#=
+cons = decision_optimizer_DA.internal.container.constraints
+for k in keys(cons)
+    println(k)
+end
+
+cons[PowerSimulations.ConstraintKey{HybridSystemsSimulations.ChargeRegularizationConstraint, HybridSystem}("ub")]
+=#
 
 execute!(sim; enable_progress_bar=true)
 

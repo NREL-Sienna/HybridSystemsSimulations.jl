@@ -126,7 +126,7 @@ set_device_model!(
 ##### Run DCP Simulation ######
 ###############################
 
-mipgap = 2.0e-2
+mipgap = 3.0e-2
 
 model = DecisionModel(
     template_uc_copperplate,
@@ -147,6 +147,9 @@ PSI.build!(model, output_dir=mktempdir())
 PSI.solve!(model)
 
 res = ProblemResults(model)
+
+cyc_charge = read_aux_variable(res, "CumulativeCyclingCharge__HybridSystem")
+cyc_discharge = read_aux_variable(res, "CumulativeCyclingDischarge__HybridSystem")
 
 techs = ["STEAM", "CT", "CC", "WIND", "NUCLEAR", "PV", "RTPV", "HYDRO", "HYBRID"]
 tot_dict = Dict()
@@ -641,3 +644,15 @@ aux = cons[PowerSimulations.ConstraintKey{
 for (k, v) in obj_jump.terms
     println(k, v)
 end
+
+exprs = model.internal.container.expressions
+for k in keys(exprs)
+    println(k)
+end
+
+exprs[PowerSimulations.ExpressionKey{
+    HybridSystemsSimulations.DischargeServedReserveUpExpression,
+    HybridSystem,
+}(
+    "",
+)]

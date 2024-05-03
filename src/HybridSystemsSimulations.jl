@@ -24,6 +24,10 @@ export TotalReserve
 
 # Auxiliary variables
 
+# FeedForward
+export CyclingChargeLimitFeedforward
+export CyclingDischargeLimitFeedforward
+
 # Constraints
 export OptConditionRenewablePower
 export OptConditionBatteryCharge

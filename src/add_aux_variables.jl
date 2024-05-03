@@ -9,8 +9,6 @@ function PSI.calculate_aux_variable_value!(
     resolution = PSI.get_resolution(container)
     fraction_of_hour = Dates.value(Dates.Minute(resolution)) / PSI.MINUTES_IN_HOUR
     charge_var = PSI.get_variable(container, BatteryCharge(), T)
-    ch_served_reg_up = PSI.get_expression(container, ChargeServedReserveUpExpression(), T)
-    ch_served_reg_dn = PSI.get_expression(container, ChargeServedReserveDownExpression(), T)
     aux_variable_container = PSI.get_aux_variable(container, CumulativeCyclingCharge(), T)
     for d in devices
         name = PSY.get_name(d)
@@ -23,6 +21,10 @@ function PSI.calculate_aux_variable_value!(
                     fraction_of_hour *
                     sum(PSI.jump_value(charge_var[name, k]) for k in 1:t)
             else
+                ch_served_reg_up =
+                    PSI.get_expression(container, ChargeServedReserveUpExpression(), T)
+                ch_served_reg_dn =
+                    PSI.get_expression(container, ChargeServedReserveDownExpression(), T)
                 aux_variable_container[name, t] =
                     efficiency.in *
                     fraction_of_hour *
@@ -49,10 +51,6 @@ function PSI.calculate_aux_variable_value!(
     resolution = PSI.get_resolution(container)
     fraction_of_hour = Dates.value(Dates.Minute(resolution)) / PSI.MINUTES_IN_HOUR
     discharge_var = PSI.get_variable(container, BatteryDischarge(), T)
-    ds_served_reg_up =
-        PSI.get_expression(container, DischargeServedReserveUpExpression(), T)
-    ds_served_reg_dn =
-        PSI.get_expression(container, DischargeServedReserveDownExpression(), T)
     aux_variable_container =
         PSI.get_aux_variable(container, CumulativeCyclingDischarge(), T)
     for d in devices
@@ -66,6 +64,10 @@ function PSI.calculate_aux_variable_value!(
                     fraction_of_hour *
                     sum(PSI.jump_value(discharge_var[name, k]) for k in 1:t)
             else
+                ds_served_reg_up =
+                    PSI.get_expression(container, DischargeServedReserveUpExpression(), T)
+                ds_served_reg_dn =
+                    PSI.get_expression(container, DischargeServedReserveDownExpression(), T)
                 aux_variable_container[name, t] =
                     (1.0 / efficiency.out) *
                     fraction_of_hour *

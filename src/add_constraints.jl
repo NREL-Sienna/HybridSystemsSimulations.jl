@@ -935,6 +935,20 @@ function _add_constraints_cyclingcharge_withreserves!(
         ci_name = PSY.get_name(device)
         storage = PSY.get_storage(device)
         efficiency = PSY.get_efficiency(storage)
+        E_max = PSY.get_state_of_charge_limits(storage).max
+        cycles_per_day = PSY.get_cycle_limits(storage)
+        cycles_in_horizon =
+            cycles_per_day * fraction_of_hour * length(time_steps) / HOURS_IN_DAY
+        con_cycling_ch[ci_name] = JuMP.@constraint(
+            PSI.get_jump_model(container),
+            efficiency.in *
+            fraction_of_hour *
+            sum(
+                charge_var[ci_name, :] + ch_served_reg_dn[ci_name, :] -
+                ch_served_reg_up[ci_name, :],
+            ) <= cycles_in_horizon * E_max
+        )
+        #=
         if PSI.built_for_recurrent_solves(container)
             param_value =
                 PSI.get_parameter_array(container, CyclingChargeLimitParameter(), D)[ci_name]
@@ -962,6 +976,7 @@ function _add_constraints_cyclingcharge_withreserves!(
                 ) <= cycles_in_horizon * E_max
             )
         end
+        =#
     end
     return
 end
@@ -1087,6 +1102,20 @@ function _add_constraints_cyclingdischarge_withreserves!(
         ci_name = PSY.get_name(device)
         storage = PSY.get_storage(device)
         efficiency = PSY.get_efficiency(storage)
+        E_max = PSY.get_state_of_charge_limits(storage).max
+        cycles_per_day = PSY.get_cycle_limits(storage)
+        cycles_in_horizon =
+            cycles_per_day * fraction_of_hour * length(time_steps) / HOURS_IN_DAY
+        con_cycling_ds[ci_name] = JuMP.@constraint(
+            PSI.get_jump_model(container),
+            (1.0 / efficiency.out) *
+            fraction_of_hour *
+            sum(
+                discharge_var[ci_name, :] + ds_served_reg_up[ci_name, :] -
+                ds_served_reg_dn[ci_name, :],
+            ) <= cycles_in_horizon * E_max
+        )
+        #=
         if PSI.built_for_recurrent_solves(container)
             param_value =
                 PSI.get_parameter_array(container, CyclingDischargeLimitParameter(), D)[ci_name]
@@ -1114,6 +1143,7 @@ function _add_constraints_cyclingdischarge_withreserves!(
                 ) <= cycles_in_horizon * E_max
             )
         end
+        =#
     end
     return
 end
@@ -1221,11 +1251,10 @@ function PSI.add_constraints!(
     names = [PSY.get_name(x) for x in devices]
     time_steps = PSI.get_time_steps(container)
     reg_var = PSI.get_variable(container, ChargeRegularizationVariable(), V)
-    ch_served_reg_up = PSI.get_expression(container, ChargeServedReserveUpExpression(), V)
-    ch_served_reg_dn = PSI.get_expression(container, ChargeServedReserveDownExpression(), V)
     powerin_var = PSI.get_variable(container, BatteryCharge(), V)
     has_services = PSI.has_service_model(model)
-
+    if has_services
+    end
     constraint_ub = PSI.add_constraints_container!(
         container,
         ChargeRegularizationConstraint(),
@@ -1245,10 +1274,10 @@ function PSI.add_constraints!(
     )
 
     if has_services
-        services = Set()
-        for d in devices
-            union!(services, PSY.get_services(d))
-        end
+        ch_served_reg_up =
+            PSI.get_expression(container, ChargeServedReserveUpExpression(), V)
+        ch_served_reg_dn =
+            PSI.get_expression(container, ChargeServedReserveDownExpression(), V)
         for device in devices
             ci_name = PSY.get_name(device)
             constraint_ub[ci_name, 1] =
@@ -1317,10 +1346,6 @@ function PSI.add_constraints!(
     time_steps = PSI.get_time_steps(container)
     reg_var = PSI.get_variable(container, DischargeRegularizationVariable(), V)
     powerout_var = PSI.get_variable(container, BatteryDischarge(), V)
-    ds_served_reg_up =
-        PSI.get_expression(container, DischargeServedReserveUpExpression(), V)
-    ds_served_reg_dn =
-        PSI.get_expression(container, DischargeServedReserveDownExpression(), V)
     has_services = PSI.has_service_model(model)
 
     constraint_ub = PSI.add_constraints_container!(
@@ -1342,10 +1367,10 @@ function PSI.add_constraints!(
     )
 
     if has_services
-        services = Set()
-        for d in devices
-            union!(services, PSY.get_services(d))
-        end
+        ds_served_reg_up =
+            PSI.get_expression(container, DischargeServedReserveUpExpression(), V)
+        ds_served_reg_dn =
+            PSI.get_expression(container, DischargeServedReserveDownExpression(), V)
         for device in devices
             ci_name = PSY.get_name(device)
             constraint_ub[ci_name, 1] =

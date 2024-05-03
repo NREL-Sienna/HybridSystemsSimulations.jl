@@ -70,7 +70,7 @@ served_fraction_map = Dict(
     "Reg_Down" => 0.3,
     "Flex_Down" => 0.1,
 )
-
+#=
 for sys in [sys_rts_da]
     services = get_components(VariableReserve, sys)
     hy_sys = first(get_components(HybridSystem, sys))
@@ -89,7 +89,7 @@ for sys in [sys_rts_da]
         end
     end
 end
-
+=#
 ###############################
 ###### Create Templates #######
 ###############################
@@ -110,8 +110,8 @@ set_device_model!(
     template_uc_copperplate,
     DeviceModel(
         PSY.HybridSystem,
-        HybridDispatchWithReserves;
-        #HybridEnergyOnlyDispatch;
+        #HybridDispatchWithReserves;
+        HybridEnergyOnlyDispatch;
         attributes=Dict{String, Any}(
             "reservation" => true,
             "storage_reservation" => true,

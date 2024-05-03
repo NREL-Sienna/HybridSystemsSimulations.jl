@@ -65,6 +65,8 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
     end
 
     device_model = PSI.get_model(PSI.get_template(decision_model), PSY.HybridSystem)
+    device_formulation = PSI.get_formulation(device_model)
+    network_model = PSI.get_network_model(PSI.get_template(decision_model))
 
     ###############################
     ######## Variables ############
@@ -316,6 +318,42 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
             MerchantModelWithReserves(),
             time_steps,
         )
+
+        # Create served renewable total up reserves
+        PSI.lazy_container_addition!(
+            container,
+            RenewableServedReserveUpExpression(),
+            T,
+            PSY.get_name.(_hybrids_with_renewable),
+            time_steps,
+        )
+
+        # Create served renewable total down reserves
+        PSI.lazy_container_addition!(
+            container,
+            RenewableServedReserveDownExpression(),
+            T,
+            PSY.get_name.(_hybrids_with_renewable),
+            time_steps,
+        )
+
+        add_to_expression_componentservedreserveup!(
+            container,
+            RenewableServedReserveUpExpression,
+            RenewableReserveVariable,
+            _hybrids_with_renewable,
+            MerchantModelWithReserves(),
+            time_steps,
+        )
+
+        add_to_expression_componentservedreservedown!(
+            container,
+            RenewableServedReserveDownExpression,
+            RenewableReserveVariable,
+            _hybrids_with_renewable,
+            MerchantModelWithReserves(),
+            time_steps,
+        )
     end
 
     ## Load Variables and Expressions ##
@@ -345,6 +383,8 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
             DischargingReserveVariable,
             EnergyBatteryChargeBid,
             EnergyBatteryDischargeBid,
+            CumulativeCyclingCharge,
+            CumulativeCyclingDischarge,
         ]
             PSI.add_variables!(
                 container,
@@ -395,6 +435,41 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
             time_steps,
         )
 
+        # Add served reserve expressions for charging unit
+        PSI.lazy_container_addition!(
+            container,
+            ChargeServedReserveUpExpression(),
+            T,
+            PSY.get_name.(_hybrids_with_storage),
+            time_steps,
+        )
+
+        PSI.lazy_container_addition!(
+            container,
+            ChargeServedReserveDownExpression(),
+            T,
+            PSY.get_name.(_hybrids_with_storage),
+            time_steps,
+        )
+
+        add_to_expression_componentservedreserveup!(
+            container,
+            ChargeServedReserveUpExpression,
+            ChargingReserveVariable,
+            _hybrids_with_storage,
+            device_formulation(),
+            time_steps,
+        )
+
+        add_to_expression_componentservedreservedown!(
+            container,
+            ChargeServedReserveDownExpression,
+            ChargingReserveVariable,
+            _hybrids_with_storage,
+            device_formulation(),
+            time_steps,
+        )
+
         # Add reserve expressions for discharging unit
         PSI.lazy_container_addition!(
             container,
@@ -429,6 +504,41 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
             MerchantModelWithReserves(),
             time_steps,
         )
+
+        # Add served reserve expressions for discharging unit
+        PSI.lazy_container_addition!(
+            container,
+            DischargeServedReserveUpExpression(),
+            T,
+            PSY.get_name.(_hybrids_with_storage),
+            time_steps,
+        )
+
+        PSI.lazy_container_addition!(
+            container,
+            DischargeServedReserveDownExpression(),
+            T,
+            PSY.get_name.(_hybrids_with_storage),
+            time_steps,
+        )
+
+        add_to_expression_componentservedreserveup!(
+            container,
+            DischargeServedReserveUpExpression,
+            DischargingReserveVariable,
+            _hybrids_with_storage,
+            device_formulation(),
+            time_steps,
+        )
+        add_to_expression_componentservedreservedown!(
+            container,
+            DischargeServedReserveDownExpression,
+            DischargingReserveVariable,
+            _hybrids_with_storage,
+            device_formulation(),
+            time_steps,
+        )
+
         # Regularization terms
         if PSI.get_attribute(device_model, "regularization")
             PSI.add_variables!(
@@ -497,6 +607,40 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
         add_to_expression_componentreservedown!(
             container,
             ThermalReserveDownExpression,
+            ThermalReserveVariable,
+            _hybrids_with_thermal,
+            MerchantModelWithReserves(),
+            time_steps,
+        )
+
+        # Add Served Expressions for Thermal
+        PSI.lazy_container_addition!(
+            container,
+            ThermalServedReserveUpExpression(),
+            T,
+            PSY.get_name.(_hybrids_with_thermal),
+            time_steps,
+        )
+
+        PSI.lazy_container_addition!(
+            container,
+            ThermalServedReserveDownExpression(),
+            T,
+            PSY.get_name.(_hybrids_with_thermal),
+            time_steps,
+        )
+
+        add_to_expression_componentservedreserveup!(
+            container,
+            ThermalServedReserveUpExpression,
+            ThermalReserveVariable,
+            _hybrids_with_thermal,
+            MerchantModelWithReserves(),
+            time_steps,
+        )
+        add_to_expression_componentservedreservedown!(
+            container,
+            ThermalServedReserveDownExpression,
             ThermalReserveVariable,
             _hybrids_with_thermal,
             MerchantModelWithReserves(),
@@ -849,34 +993,34 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
             MerchantModelWithReserves(),
         )
 
-        # TODO: set-up cycling in the decision model
-        cycling = true
-        if cycling
+        if PSI.get_attribute(device_model, "cycling")
             #=
             PSI.add_parameters!(
                     container,
                     CyclingChargeLimitParameter,
                     _hybrids_with_storage,
-                    model,
+                    device_model,
                 )
             PSI.add_parameters!(
                 container,
                 CyclingDischargeLimitParameter,
                 _hybrids_with_storage,
-                model,
+                device_model,
             )
             =#
-            _add_constraints_cyclingcharge_decisionmodel!(
+            PSI.add_constraints!(
                 container,
                 CyclingCharge,
                 _hybrids_with_storage,
-                MerchantModelWithReserves(),
+                device_model,
+                network_model,
             )
-            _add_constraints_cyclingdischarge_decisionmodel!(
+            PSI.add_constraints!(
                 container,
                 CyclingDischarge,
                 _hybrids_with_storage,
-                MerchantModelWithReserves(),
+                device_model,
+                network_model,
             )
         end
 
@@ -980,6 +1124,7 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
     )
 
     PSI.add_feedforward_arguments!(container, device_model, hybrids)
+    PSI.add_feedforward_constraints!(container, device_model, hybrids)
     PSI.update_objective_function!(container)
     PSI.serialize_metadata!(container, PSI.get_output_dir(decision_model))
     return

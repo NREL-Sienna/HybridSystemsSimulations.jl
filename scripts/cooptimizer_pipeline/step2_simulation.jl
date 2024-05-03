@@ -2,6 +2,7 @@ include(joinpath(@__DIR__, "step1_prices.jl"))
 ###########################################
 ### Systems for DA and Merchant DA Bids ###
 ###########################################
+# JuMP._TERM_LIMIT_FOR_PRINTING[] = 10000
 sys_rts_da = build_system(PSISystems, "modified_RTS_GMLC_DA_sys_noForecast")
 sys_rts_merchant_da = build_system(PSISystems, "modified_RTS_GMLC_RT_sys_noForecast")
 sys_rts_merchant_rt = build_system(PSISystems, "modified_RTS_GMLC_RT_sys_noForecast")
@@ -42,7 +43,9 @@ for sys in [sys_rts_da, sys_rts_merchant_da, sys_rts_merchant_rt]
     for service in services
         serv_name = get_name(service)
         serv_ext = get_ext(service)
-        serv_ext["served_fraction"] = served_fraction_map[serv_name]
+        serv_frac = served_fraction_map[serv_name]
+        serv_ext["served_fraction"] = serv_frac
+        set_deployed_fraction!(service, serv_frac)
         if contains(serv_name, "Spin_Up_R1") |
            contains(serv_name, "Spin_Up_R2") |
            contains(serv_name, "Flex")
@@ -84,6 +87,22 @@ PSY.set_ext!(hy_sys_rt, sys_rts_merchant_rt.internal.ext)
 
 template_uc_copperplate = get_uc_copperplate_template(sys_rts_da)
 
+set_device_model!(
+    template_uc_copperplate,
+    DeviceModel(
+        PSY.HybridSystem,
+        HybridDispatchWithReserves;
+        #HybridEnergyOnlyDispatch;
+        attributes=Dict{String, Any}(
+            "reservation" => true,
+            "storage_reservation" => true,
+            "energy_target" => true,
+            "cycling" => true,
+            "regularization" => true,
+        ),
+    ),
+)
+
 decision_optimizer_DA = DecisionModel(
     MerchantHybridCooptimizerCase,
     template_uc_copperplate,
@@ -95,7 +114,7 @@ decision_optimizer_DA = DecisionModel(
     store_variable_names=true;
     name="MerchantHybridCooptimizer_DA",
 )
-
+#build!(decision_optimizer_DA, output_dir = mktempdir())
 #=
 build!(decision_optimizer_DA, output_dir = mktempdir())
 solve!(decision_optimizer_DA)
@@ -104,11 +123,21 @@ res = ProblemResults(decision_optimizer_DA)
 totbid_dn = res.aux_variable_values[PSI.AuxVarKey{HSS.TotalBidReserve, VariableReserve{ReserveDown}}("Reg_Down")]
 regdn_out = res.variable_values[PSI.VariableKey{BidReserveVariableOut, VariableReserve{ReserveDown}}("Reg_Down")]
 regdn_in = res.variable_values[PSI.VariableKey{BidReserveVariableIn, VariableReserve{ReserveDown}}("Reg_Down")]
+
+exprs = decision_optimizer_DA.internal.container.expressions
+for k in keys(exprs)
+    println(k)
+end
+
+exprs[PowerSimulations.ExpressionKey{HybridSystemsSimulations.DischargeServedReserveDownExpression, HybridSystem}("")]
+
 =#
 
 # Set Hybrid in UC as FixedDA
+template_uc_copperplate_UC = deepcopy(template_uc_copperplate)
+
 set_device_model!(
-    template_uc_copperplate,
+    template_uc_copperplate_UC,
     DeviceModel(
         PSY.HybridSystem,
         HybridFixedDA;
@@ -117,15 +146,15 @@ set_device_model!(
 )
 
 set_service_model!(
-    template_uc_copperplate,
+    template_uc_copperplate_UC,
     ServiceModel(VariableReserve{ReserveUp}, RangeReserve, use_slacks=false),
 )
 set_service_model!(
-    template_uc_copperplate,
+    template_uc_copperplate_UC,
     ServiceModel(VariableReserve{ReserveDown}, RangeReserve, use_slacks=false),
 )
 
-template_ed_copperplate = deepcopy(template_uc_copperplate)
+template_ed_copperplate = deepcopy(template_uc_copperplate_UC)
 set_device_model!(template_ed_copperplate, ThermalStandard, ThermalBasicDispatch)
 set_device_model!(template_ed_copperplate, HydroDispatch, FixedOutput)
 #set_device_model!(template_ed, HydroEnergyReservoir, FixedOutput)
@@ -137,14 +166,24 @@ end
 ####### Systems for RT Bids and Realized ED ##########
 ######################################################
 rt_template = ProblemTemplate(CopperPlatePowerModel)
+
 set_device_model!(
     rt_template,
     DeviceModel(
         PSY.HybridSystem,
-        HybridFixedDA;
-        attributes=Dict{String, Any}("cycling" => false),
+        HybridDispatchWithReserves;
+        attributes=Dict{String, Any}(
+            "reservation" => true,
+            "storage_reservation" => true,
+            "energy_target" => true,
+            "cycling" => false,
+            "regularization" => true,
+        ),
     ),
 )
+
+set_service_model!(rt_template, ServiceModel(VariableReserve{ReserveUp}, RangeReserve))
+set_service_model!(rt_template, ServiceModel(VariableReserve{ReserveDown}, RangeReserve))
 
 decision_optimizer_RT = DecisionModel(
     MerchantHybridCooptimizerCase,
@@ -164,7 +203,7 @@ models = SimulationModels(
     decision_models=[
         decision_optimizer_DA,
         DecisionModel(
-            template_uc_copperplate,
+            template_uc_copperplate_UC,
             sys_rts_da;
             name="UC",
             optimizer=optimizer_with_attributes(Xpress.Optimizer, "MIPRELSTOP" => mipgap),
@@ -208,11 +247,11 @@ sequence = SimulationSequence(
                 source=EnergyDABidIn,
                 affected_values=[ActivePowerInVariable],
             ),
-            FixValueFeedforward(
-                component_type=component_type = HybridSystem,
-                source=TotalReserve,
-                affected_values=[TotalReserve],
-            ),
+            #FixValueFeedforward(
+            #    component_type=component_type = HybridSystem,
+            #    source=TotalReserve,
+            #    affected_values=[TotalReserve],
+            #),
         ],
         # This FF configuration allows the Hybrid to re-assign reserves internally
         # But it can't increase the reserve offer to the ED
@@ -227,11 +266,26 @@ sequence = SimulationSequence(
                 source=EnergyDABidIn,
                 affected_values=[EnergyDABidIn],
             ),
-            FixValueFeedforward(
+            CyclingChargeLimitFeedforward(
                 component_type=PSY.HybridSystem,
-                source=TotalReserve,
-                affected_values=[TotalReserve],
+                source=HSS.CumulativeCyclingCharge,
+                affected_values=[HSS.CyclingChargeLimitParameter],
+                target_period=1,
+                penalty_cost=0.0,
             ),
+            CyclingDischargeLimitFeedforward(
+                component_type=PSY.HybridSystem,
+                source=HSS.CumulativeCyclingDischarge,
+                affected_values=[HSS.CyclingDischargeLimitParameter],
+                target_period=1,
+                penalty_cost=0.0,
+            ),
+            #FixValueFeedforward(
+            #    component_type=PSY.HybridSystem,
+            #    source=TotalReserve,
+            #    affected_values=[TotalReserve],
+            #),
+
         ],
         "ED" => [
             SemiContinuousFeedforward(
@@ -261,11 +315,11 @@ sequence = SimulationSequence(
                 affected_values=[ActivePowerReserveVariable],
                 add_slacks=true,
             ),
-            FixValueFeedforward(
-                component_type=HybridSystem,
-                source=TotalReserve,
-                affected_values=[TotalReserve],
-            ),
+            #FixValueFeedforward(
+            #    component_type=HybridSystem,
+            #    source=TotalReserve,
+            #    affected_values=[TotalReserve],
+            #),
         ],
     ),
     ini_cond_chronology=InterProblemChronology(),
@@ -329,9 +383,61 @@ results_ed = get_decision_problem_results(results, "ED")
 p_soc_da = read_realized_variable(result_merch_DA, "EnergyVariable__HybridSystem")
 p_soc_rt = read_realized_variable(result_merch_RT, "EnergyVariable__HybridSystem")
 
-p_tot_reserve = read_variable(result_merch_DA, "TotalReserve__HybridSystem")
+#p_tot_reserve = read_variable(result_merch_DA, "TotalReserve__HybridSystem")
+
+day = DateTime("2020-10-03T00:00:00")
+
+aux_var_cycling =
+    read_aux_variable(result_merch_DA, "CumulativeCyclingCharge__HybridSystem")
+first_day_aux_var = aux_var_cycling[day]
+
+charge_var = read_variable(result_merch_DA, "BatteryCharge__HybridSystem")
+first_day_charge = charge_var[day]
+dates = first_day_charge[!, 1]
+
+reg_up_charge_var = read_variable(
+    result_merch_DA,
+    "ChargingReserveVariable__VariableReserve__ReserveUp__Reg_Up",
+)
+first_day_regup_charge = reg_up_charge_var[day]
+
+reg_dn_charge_var = read_variable(
+    result_merch_DA,
+    "ChargingReserveVariable__VariableReserve__ReserveDown__Reg_Down",
+)
+first_day_regdn_charge = reg_dn_charge_var[day]
+
+dev_cumulative = similar(first_day_charge[!, 2])
+
+efficiency = hy_sys_da.storage.efficiency
+fraction_of_hour = 1 / 12
+
+for ix in 1:length(dev_cumulative)
+    dev_cumulative[ix] =
+        efficiency.in *
+        fraction_of_hour *
+        sum(
+            first_day_charge[!, 2][k] + 0.3 * first_day_regdn_charge[!, 2][k] -
+            0.3 * first_day_regup_charge[!, 2][k] for k in 1:ix
+        )
+end
+
+plot([
+    scatter(x=dates, y=first_day_charge[!, 2], name="Charge Var"),
+    scatter(x=dates, y=first_day_aux_var[!, 2], name="Cumulative Aux Var Cycling"),
+    scatter(x=dates, y=first_day_regup_charge[!, 2], name="Reg Up Charge"),
+    scatter(x=dates, y=first_day_regdn_charge[!, 2], name="Reg Dn Charge"),
+    scatter(
+        x=dates,
+        y=first_day_charge[!, 2] + 0.3 * first_day_regdn_charge[!, 2] -
+          0.3 * first_day_regup_charge[!, 2],
+        name="Effective Charge Var",
+    ),
+])
 
 plot(p_soc_da[!, 2])
+
+par = read_parameter(result_merch_DA, "CyclingDischargeLimitParameter__HybridSystem")
 
 ## Prices Comparison
 prices_uc_centralized = prices_uc_dcp
@@ -625,3 +731,27 @@ p2 = plot([
     scatter(x=dates_ed, y=-slackup_rdn, line_shape="hv", name="- SlackUp RegDown"),
     scatter(x=dates_ed, y=slackdn_rdn, line_shape="hv", name="SlackDown RegDown"),
 ])
+
+# JuMP._TERM_LIMIT_FOR_PRINTING[] = 10000
+JuMP._TERM_LIMIT_FOR_PRINTING[] = 60
+
+cons = decision_optimizer_DA.internal.container.constraints
+for k in keys(cons)
+    println(k)
+end
+
+cons[PowerSimulations.ConstraintKey{HybridSystemsSimulations.CyclingDischarge, HybridSystem}(
+    "",
+)]
+
+exprs = decision_optimizer_DA.internal.container.expressions
+for k in keys(exprs)
+    println(k)
+end
+
+exprs[PowerSimulations.ExpressionKey{
+    HybridSystemsSimulations.DischargeServedReserveUpExpression,
+    HybridSystem,
+}(
+    "",
+)]

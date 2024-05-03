@@ -385,7 +385,7 @@ p_soc_rt = read_realized_variable(result_merch_RT, "EnergyVariable__HybridSystem
 
 #p_tot_reserve = read_variable(result_merch_DA, "TotalReserve__HybridSystem")
 
-day = DateTime("2020-10-03T00:00:00")
+day = DateTime("2020-10-04T00:00:00")
 
 aux_var_cycling =
     read_aux_variable(result_merch_DA, "CumulativeCyclingCharge__HybridSystem")
@@ -434,6 +434,13 @@ plot([
         name="Effective Charge Var",
     ),
 ])
+
+## RT ##
+
+aux_var_cycling =
+    read_realized_aux_variable(result_merch_RT, "CumulativeCyclingCharge__HybridSystem")
+
+plot(aux_var_cycling[!, 2])
 
 plot(p_soc_da[!, 2])
 

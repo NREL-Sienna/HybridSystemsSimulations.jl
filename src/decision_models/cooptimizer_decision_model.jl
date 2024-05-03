@@ -994,20 +994,6 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
         )
 
         if PSI.get_attribute(device_model, "cycling")
-            #=
-            PSI.add_parameters!(
-                    container,
-                    CyclingChargeLimitParameter,
-                    _hybrids_with_storage,
-                    device_model,
-                )
-            PSI.add_parameters!(
-                container,
-                CyclingDischargeLimitParameter,
-                _hybrids_with_storage,
-                device_model,
-            )
-            =#
             PSI.add_constraints!(
                 container,
                 CyclingCharge,

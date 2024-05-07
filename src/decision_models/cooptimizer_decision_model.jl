@@ -383,8 +383,8 @@ function PSI.build_impl!(decision_model::PSI.DecisionModel{MerchantHybridCooptim
             DischargingReserveVariable,
             EnergyBatteryChargeBid,
             EnergyBatteryDischargeBid,
-            CumulativeCyclingCharge,
-            CumulativeCyclingDischarge,
+            CyclingChargeUsage,
+            CyclingDischargeUsage,
         ]
             PSI.add_variables!(
                 container,

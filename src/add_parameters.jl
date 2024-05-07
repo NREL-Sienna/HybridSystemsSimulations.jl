@@ -436,9 +436,9 @@ function PSI.add_parameters!(
     fraction_of_hour = Dates.value(Dates.Minute(resolution)) / PSI.MINUTES_IN_HOUR
     mult = fraction_of_hour * length(time_steps) / HOURS_IN_DAY
     if T <: CyclingDischargeLimitParameter
-        key = PSI.AuxVarKey{CumulativeCyclingDischarge, PSY.HybridSystem}("")
+        key = PSI.AuxVarKey{CyclingDischargeUsage, PSY.HybridSystem}("")
     else
-        key = PSI.AuxVarKey{CumulativeCyclingCharge, PSY.HybridSystem}("")
+        key = PSI.AuxVarKey{CyclingChargeUsage, PSY.HybridSystem}("")
     end
     parameter_container = PSI.add_param_container!(container, T(), D, key, names)
     jump_model = PSI.get_jump_model(container)

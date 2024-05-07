@@ -1,13 +1,11 @@
 struct CyclingChargeLimitFeedforward <: PSI.AbstractAffectFeedforward
     optimization_container_key::PSI.OptimizationContainerKey
     affected_values::Vector{<:PSI.OptimizationContainerKey}
-    target_period::Int
     penalty_cost::Float64
     function CyclingChargeLimitFeedforward(;
         component_type::Type{<:PSY.Component},
         source::Type{T},
         affected_values::Vector{DataType},
-        target_period::Int,
         penalty_cost::Float64,
         meta=PSI.CONTAINER_KEY_EMPTY_META,
     ) where {T}
@@ -38,13 +36,11 @@ PSI.get_optimization_container_key(ff::CyclingChargeLimitFeedforward) =
 struct CyclingDischargeLimitFeedforward <: PSI.AbstractAffectFeedforward
     optimization_container_key::PSI.OptimizationContainerKey
     affected_values::Vector{<:PSI.OptimizationContainerKey}
-    target_period::Int
     penalty_cost::Float64
     function CyclingDischargeLimitFeedforward(;
         component_type::Type{<:PSY.Component},
         source::Type{T},
         affected_values::Vector{DataType},
-        target_period::Int,
         penalty_cost::Float64,
         meta=PSI.CONTAINER_KEY_EMPTY_META,
     ) where {T}
@@ -87,15 +83,22 @@ end
 
 function PSI._add_feedforward_arguments!(
     container::PSI.OptimizationContainer,
-    model::PSI.DeviceModel,
+    device_model::PSI.DeviceModel,
     devices::Vector{D},
     ff::U,
 ) where {
     D <: PSY.HybridSystem,
     U <: Union{CyclingChargeLimitFeedforward, CyclingDischargeLimitFeedforward},
 }
+    if PSI.get_attribute(device_model, "cycling")
+        throw(
+            IS.ConflictingInputsError(
+                "Cycling Attribute not allowed with $U Feedforwards",
+            ),
+        )
+    end
     parameter_type = PSI.get_default_parameter_type(ff, D)
-    PSI.add_parameters!(container, parameter_type, devices, model)
+    PSI.add_parameters!(container, parameter_type, devices, device_model)
     return
 end
 
@@ -116,13 +119,6 @@ function PSI.add_feedforward_constraints!(
     devices::Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     ff::CyclingChargeLimitFeedforward,
 ) where {D <: PSY.HybridSystem}
-    if PSI.get_attribute(device_model, "cycling")
-        throw(
-            IS.ConflictingInputsError(
-                "Cycling Attribute not allowed with Cycling Limit Feedforwards",
-            ),
-        )
-    end
     time_steps = PSI.get_time_steps(container)
     resolution = PSI.get_resolution(container)
     fraction_of_hour = Dates.value(Dates.Minute(resolution)) / PSI.MINUTES_IN_HOUR
@@ -177,13 +173,6 @@ function PSI.add_feedforward_constraints!(
     devices::Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     ff::CyclingDischargeLimitFeedforward,
 ) where {D <: PSY.HybridSystem}
-    if PSI.get_attribute(device_model, "cycling")
-        throw(
-            IS.ConflictingInputsError(
-                "Cycling Attribute not allowed with Cycling Limit Feedforwards",
-            ),
-        )
-    end
     time_steps = PSI.get_time_steps(container)
     resolution = PSI.get_resolution(container)
     fraction_of_hour = Dates.value(Dates.Minute(resolution)) / PSI.MINUTES_IN_HOUR
@@ -252,18 +241,24 @@ function PSI.update_parameter_values!(
     current_time = PSI.get_current_time(model)
     state_values =
         PSI.get_dataset_values(input, PSI.get_attribute_key(parameter_attributes))
+    @error PSI.get_name(model)
+    @error state_values
     component_names = axes(parameter_array)[1]
-    resolution = PSI.get_resolution(model)
-    #TODO: This should be Horizon Time Steps not Interval
-    interval_time_steps =
-        Int(PSI.get_interval(model.internal.store_parameters) / resolution)
+    model_resolution = PSI.get_resolution(optimization_container)
     state_data = PSI.get_dataset(input, PSI.get_attribute_key(parameter_attributes))
     state_timestamps = state_data.timestamps
-    state_data_index = PSI.find_timestamp_index(state_timestamps, current_time)
+    end_of_horizon_time = current_time + (PSI.get_time_steps(optimization_container)[end] - 1)*model_resolution
+    state_data_index_start = PSI.find_timestamp_index(state_timestamps, current_time)
+    state_data_index_end = PSI.find_timestamp_index(state_timestamps, end_of_horizon_time)
+    @error state_data_index_start
+    @error end_of_horizon_time
+    @error state_data_index_end
     for name in component_names
+        param_value = max.(state_values[name, state_data_index_start:state_data_index_end], 1e-3)
+        @error param_value
         PSI.fix_parameter_value(
             parameter_array[name],
-            state_values[name, state_data_index + interval_time_steps - 1],
+            sum(param_value)/12,
         )
     end
 

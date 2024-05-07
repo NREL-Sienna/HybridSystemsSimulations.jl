@@ -1,6 +1,6 @@
 function PSI.calculate_aux_variable_value!(
     container::PSI.OptimizationContainer,
-    ::PSI.AuxVarKey{CumulativeCyclingCharge, T},
+    ::PSI.AuxVarKey{CyclingChargeUsage, T},
     system::PSY.System,
 ) where {T <: PSY.HybridSystem}
     devices_hybrids = PSI.get_available_components(T, system)
@@ -9,7 +9,7 @@ function PSI.calculate_aux_variable_value!(
     resolution = PSI.get_resolution(container)
     fraction_of_hour = Dates.value(Dates.Minute(resolution)) / PSI.MINUTES_IN_HOUR
     charge_var = PSI.get_variable(container, BatteryCharge(), T)
-    aux_variable_container = PSI.get_aux_variable(container, CumulativeCyclingCharge(), T)
+    aux_variable_container = PSI.get_aux_variable(container, CyclingChargeUsage(), T)
     for d in devices
         name = PSY.get_name(d)
         storage = PSY.get_storage(d)
@@ -19,7 +19,7 @@ function PSI.calculate_aux_variable_value!(
                 aux_variable_container[name, t] =
                     efficiency.in *
                     fraction_of_hour *
-                    sum(PSI.jump_value(charge_var[name, k]) for k in 1:t)
+                    PSI.jump_value(charge_var[name, t])
             else
                 ch_served_reg_up =
                     PSI.get_expression(container, ChargeServedReserveUpExpression(), T)
@@ -27,12 +27,11 @@ function PSI.calculate_aux_variable_value!(
                     PSI.get_expression(container, ChargeServedReserveDownExpression(), T)
                 aux_variable_container[name, t] =
                     efficiency.in *
-                    fraction_of_hour *
-                    (sum(
-                        PSI.jump_value(charge_var[name, k]) +
-                        PSI.jump_value(ch_served_reg_dn[name, k]) -
-                        PSI.jump_value(ch_served_reg_up[name, k]) for k in 1:t
-                    ))
+                    fraction_of_hour *(
+                        PSI.jump_value(charge_var[name, t]) +
+                        PSI.jump_value(ch_served_reg_dn[name, t]) -
+                        PSI.jump_value(ch_served_reg_up[name, t])
+                    )
             end
         end
     end
@@ -42,7 +41,7 @@ end
 
 function PSI.calculate_aux_variable_value!(
     container::PSI.OptimizationContainer,
-    ::PSI.AuxVarKey{CumulativeCyclingDischarge, T},
+    ::PSI.AuxVarKey{CyclingDischargeUsage, T},
     system::PSY.System,
 ) where {T <: PSY.HybridSystem}
     devices_hybrids = PSI.get_available_components(T, system)
@@ -52,7 +51,7 @@ function PSI.calculate_aux_variable_value!(
     fraction_of_hour = Dates.value(Dates.Minute(resolution)) / PSI.MINUTES_IN_HOUR
     discharge_var = PSI.get_variable(container, BatteryDischarge(), T)
     aux_variable_container =
-        PSI.get_aux_variable(container, CumulativeCyclingDischarge(), T)
+        PSI.get_aux_variable(container, CyclingDischargeUsage(), T)
     for d in devices
         name = PSY.get_name(d)
         storage = PSY.get_storage(d)
@@ -62,7 +61,7 @@ function PSI.calculate_aux_variable_value!(
                 aux_variable_container[name, t] =
                     (1.0 / efficiency.out) *
                     fraction_of_hour *
-                    sum(PSI.jump_value(discharge_var[name, k]) for k in 1:t)
+                    PSI.jump_value(discharge_var[name, t])
             else
                 ds_served_reg_up =
                     PSI.get_expression(container, DischargeServedReserveUpExpression(), T)
@@ -70,12 +69,10 @@ function PSI.calculate_aux_variable_value!(
                     PSI.get_expression(container, DischargeServedReserveDownExpression(), T)
                 aux_variable_container[name, t] =
                     (1.0 / efficiency.out) *
-                    fraction_of_hour *
-                    (sum(
-                        PSI.jump_value(discharge_var[name, k]) +
-                        PSI.jump_value(ds_served_reg_up[name, k]) -
-                        PSI.jump_value(ds_served_reg_dn[name, k]) for k in 1:t
-                    ))
+                    fraction_of_hour *(
+                        PSI.jump_value(discharge_var[name, t]) +
+                        PSI.jump_value(ds_served_reg_up[name, t]) -
+                        PSI.jump_value(ds_served_reg_dn[name, t]))
             end
         end
     end

@@ -452,7 +452,7 @@ end
 
 function PSI.add_feedforward_arguments!(
     container::PSI.OptimizationContainer,
-    model::PSI.DeviceModel,
+    model::PSI.DeviceModel{V, <:AbstractHybridFormulation},
     devices::Vector{V},
 ) where {V <: PSY.HybridSystem}
     for ff in PSI.get_feedforwards(model)

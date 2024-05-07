@@ -127,7 +127,7 @@ set_device_model!(
         attributes=Dict{String, Any}(
             "reservation" => true,
             "storage_reservation" => true,
-            "energy_target" => true,
+            "energy_target" => false,
             "cycling" => true,
         ),
     ),
@@ -141,8 +141,8 @@ set_device_model!(
         attributes=Dict{String, Any}(
             "reservation" => true,
             "storage_reservation" => true,
-            "energy_target" => true,
-            "cycling" => true,
+            "energy_target" => false,
+            "cycling" => false,
         ),
     ),
 )
@@ -205,11 +205,25 @@ sequence = SimulationSequence(
                 component_type=VariableReserve{ReserveUp},
                 source=ActivePowerReserveVariable,
                 affected_values=[ActivePowerReserveVariable],
+                add_slacks = true,
             ),
             LowerBoundFeedforward(
                 component_type=VariableReserve{ReserveDown},
                 source=ActivePowerReserveVariable,
                 affected_values=[ActivePowerReserveVariable],
+                add_slacks = true,
+            ),
+            CyclingChargeLimitFeedforward(
+                component_type=PSY.HybridSystem,
+                source=HSS.CyclingChargeUsage,
+                affected_values=[HSS.CyclingChargeLimitParameter],
+                penalty_cost=0.0,
+            ),
+            CyclingDischargeLimitFeedforward(
+                component_type=PSY.HybridSystem,
+                source=HSS.CyclingDischargeUsage,
+                affected_values=[HSS.CyclingDischargeLimitParameter],
+                penalty_cost=0.0,
             ),
         ],
     ),
@@ -251,9 +265,20 @@ results_ed_dcp = get_decision_problem_results(results_dcp, "ED")
 results_uc_dcp = get_decision_problem_results(results_dcp, "UC")
 
 aux_var =
-    read_realized_variable(results_uc_dcp, "CumulativeCyclingDischarge__HybridSystem")[!, 2]
-param_cycl =
-    read_parameter(results_ed_dcp, "CyclingDischargeLimitParameter__HybridSystem")[!, 2]
+    read_realized_variable(results_uc_dcp, "CyclingDischargeUsage__HybridSystem")
+discharge_var = read_realized_variable(results_uc_dcp, "BatteryDischarge__HybridSystem")[!, 2]
+reserve_up_ds_var = read_realized_variable(results_uc_dcp, "DischargingReserveVariable__VariableReserve__ReserveUp__Reg_Up")
+
+p_ds = read_realized_variable(results_ed_dcp, "BatteryDischarge__HybridSystem")
+p_rd = read_realized_variable(results_ed_dcp, "CyclingDischargeUsage__HybridSystem")
+
+cum_p_rd = [sum(p_rd[!,2][1 + 12(k - 1):12 + 12(k - 1)]) for k in 1:48]
+
+param_cycl_ =
+    read_parameter(results_ed_dcp, "CyclingDischargeLimitParameter__HybridSystem")
+param_cycl_uc = [v[!, 1][1] for v in values(param_cycl_)]
+
+param_cycl_ed = [v[!, 1][1] for v in values(param_ed)]
 
 p_re_param_uc =
     read_realized_parameter(results_uc_dcp, "RenewablePowerTimeSeries__HybridSystem")[!, 2]

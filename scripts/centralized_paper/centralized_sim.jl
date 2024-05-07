@@ -148,8 +148,8 @@ PSI.solve!(model)
 
 res = ProblemResults(model)
 
-cyc_charge = read_aux_variable(res, "CumulativeCyclingCharge__HybridSystem")
-cyc_discharge = read_aux_variable(res, "CumulativeCyclingDischarge__HybridSystem")
+cyc_charge = read_aux_variable(res, "CyclingChargeUsage__HybridSystem")
+cyc_discharge = read_aux_variable(res, "CyclingDischargeUsage__HybridSystem")
 
 techs = ["STEAM", "CT", "CC", "WIND", "NUCLEAR", "PV", "RTPV", "HYDRO", "HYBRID"]
 tot_dict = Dict()

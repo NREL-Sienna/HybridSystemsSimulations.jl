@@ -268,16 +268,14 @@ sequence = SimulationSequence(
             ),
             CyclingChargeLimitFeedforward(
                 component_type=PSY.HybridSystem,
-                source=HSS.CumulativeCyclingCharge,
+                source=HSS.CyclingChargeUsage,
                 affected_values=[HSS.CyclingChargeLimitParameter],
-                target_period=1,
                 penalty_cost=0.0,
             ),
             CyclingDischargeLimitFeedforward(
                 component_type=PSY.HybridSystem,
-                source=HSS.CumulativeCyclingDischarge,
+                source=HSS.CyclingDischargeUsage,
                 affected_values=[HSS.CyclingDischargeLimitParameter],
-                target_period=1,
                 penalty_cost=0.0,
             ),
             #FixValueFeedforward(
@@ -388,7 +386,7 @@ p_soc_rt = read_realized_variable(result_merch_RT, "EnergyVariable__HybridSystem
 day = DateTime("2020-10-04T00:00:00")
 
 aux_var_cycling =
-    read_aux_variable(result_merch_DA, "CumulativeCyclingCharge__HybridSystem")
+    read_aux_variable(result_merch_DA, "CyclingChargeUsage__HybridSystem")
 first_day_aux_var = aux_var_cycling[day]
 
 charge_var = read_variable(result_merch_DA, "BatteryCharge__HybridSystem")
@@ -438,7 +436,7 @@ plot([
 ## RT ##
 
 aux_var_cycling =
-    read_realized_aux_variable(result_merch_RT, "CumulativeCyclingCharge__HybridSystem")
+    read_realized_aux_variable(result_merch_RT, "CyclingChargeUsage__HybridSystem")
 
 plot(aux_var_cycling[!, 2])
 

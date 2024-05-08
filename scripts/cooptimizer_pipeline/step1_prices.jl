@@ -205,13 +205,13 @@ sequence = SimulationSequence(
                 component_type=VariableReserve{ReserveUp},
                 source=ActivePowerReserveVariable,
                 affected_values=[ActivePowerReserveVariable],
-                add_slacks = true,
+                add_slacks=true,
             ),
             LowerBoundFeedforward(
                 component_type=VariableReserve{ReserveDown},
                 source=ActivePowerReserveVariable,
                 affected_values=[ActivePowerReserveVariable],
-                add_slacks = true,
+                add_slacks=true,
             ),
             CyclingChargeLimitFeedforward(
                 component_type=PSY.HybridSystem,
@@ -264,18 +264,20 @@ results_dcp = SimulationResults(sim_dcp; ignore_status=true)
 results_ed_dcp = get_decision_problem_results(results_dcp, "ED")
 results_uc_dcp = get_decision_problem_results(results_dcp, "UC")
 
-aux_var =
-    read_realized_variable(results_uc_dcp, "CyclingDischargeUsage__HybridSystem")
-discharge_var = read_realized_variable(results_uc_dcp, "BatteryDischarge__HybridSystem")[!, 2]
-reserve_up_ds_var = read_realized_variable(results_uc_dcp, "DischargingReserveVariable__VariableReserve__ReserveUp__Reg_Up")
+aux_var = read_realized_variable(results_uc_dcp, "CyclingDischargeUsage__HybridSystem")
+discharge_var =
+    read_realized_variable(results_uc_dcp, "BatteryDischarge__HybridSystem")[!, 2]
+reserve_up_ds_var = read_realized_variable(
+    results_uc_dcp,
+    "DischargingReserveVariable__VariableReserve__ReserveUp__Reg_Up",
+)
 
 p_ds = read_realized_variable(results_ed_dcp, "BatteryDischarge__HybridSystem")
 p_rd = read_realized_variable(results_ed_dcp, "CyclingDischargeUsage__HybridSystem")
 
-cum_p_rd = [sum(p_rd[!,2][1 + 12(k - 1):12 + 12(k - 1)]) for k in 1:48]
+cum_p_rd = [sum(p_rd[!, 2][(1 + 12(k - 1)):(12 + 12(k - 1))]) for k in 1:48]
 
-param_cycl_ =
-    read_parameter(results_ed_dcp, "CyclingDischargeLimitParameter__HybridSystem")
+param_cycl_ = read_parameter(results_ed_dcp, "CyclingDischargeLimitParameter__HybridSystem")
 param_cycl_uc = [v[!, 1][1] for v in values(param_cycl_)]
 
 param_cycl_ed = [v[!, 1][1] for v in values(param_ed)]

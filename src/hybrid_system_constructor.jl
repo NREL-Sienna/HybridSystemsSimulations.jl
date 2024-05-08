@@ -62,19 +62,9 @@ function PSI.construct_device!(
         PSI.add_variables!(container, PSI.EnergyVariable, _hybrids_with_storage, D())
         PSI.add_variables!(container, BatteryStatus, _hybrids_with_storage, D())
 
-        PSI.add_variables!(
-            container,
-            CyclingChargeUsage,
-            _hybrids_with_storage,
-            D(),
-        )
+        PSI.add_variables!(container, CyclingChargeUsage, _hybrids_with_storage, D())
 
-        PSI.add_variables!(
-            container,
-            CyclingDischargeUsage,
-            _hybrids_with_storage,
-            D(),
-        )
+        PSI.add_variables!(container, CyclingDischargeUsage, _hybrids_with_storage, D())
 
         if PSI.get_attribute(model, "energy_target")
             PSI.add_variables!(
@@ -666,18 +656,8 @@ function PSI.construct_device!(
             )
         end
 
-        PSI.add_variables!(
-            container,
-            CyclingChargeUsage,
-            _hybrids_with_storage,
-            D(),
-        )
-        PSI.add_variables!(
-            container,
-            CyclingDischargeUsage,
-            _hybrids_with_storage,
-            D(),
-        )
+        PSI.add_variables!(container, CyclingChargeUsage, _hybrids_with_storage, D())
+        PSI.add_variables!(container, CyclingDischargeUsage, _hybrids_with_storage, D())
         #=
         if PSI.built_for_recurrent_solves(container)
             PSI.add_parameters!(

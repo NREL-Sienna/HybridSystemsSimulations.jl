@@ -92,9 +92,7 @@ function PSI._add_feedforward_arguments!(
 }
     if PSI.get_attribute(device_model, "cycling")
         throw(
-            IS.ConflictingInputsError(
-                "Cycling Attribute not allowed with $U Feedforwards",
-            ),
+            IS.ConflictingInputsError("Cycling Attribute not allowed with $U Feedforwards"),
         )
     end
     parameter_type = PSI.get_default_parameter_type(ff, D)
@@ -247,19 +245,19 @@ function PSI.update_parameter_values!(
     model_resolution = PSI.get_resolution(optimization_container)
     state_data = PSI.get_dataset(input, PSI.get_attribute_key(parameter_attributes))
     state_timestamps = state_data.timestamps
-    end_of_horizon_time = current_time + (PSI.get_time_steps(optimization_container)[end] - 1)*model_resolution
+    end_of_horizon_time =
+        current_time +
+        (PSI.get_time_steps(optimization_container)[end] - 1) * model_resolution
     state_data_index_start = PSI.find_timestamp_index(state_timestamps, current_time)
     state_data_index_end = PSI.find_timestamp_index(state_timestamps, end_of_horizon_time)
     @error state_data_index_start
     @error end_of_horizon_time
     @error state_data_index_end
     for name in component_names
-        param_value = max.(state_values[name, state_data_index_start:state_data_index_end], 1e-3)
+        param_value =
+            max.(state_values[name, state_data_index_start:state_data_index_end], 1e-3)
         @error param_value
-        PSI.fix_parameter_value(
-            parameter_array[name],
-            sum(param_value)/12,
-        )
+        PSI.fix_parameter_value(parameter_array[name], sum(param_value) / 12)
     end
 
     IS.@record :execution PSI.ParameterUpdateEvent(

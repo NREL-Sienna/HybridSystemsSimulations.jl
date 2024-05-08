@@ -239,8 +239,6 @@ function PSI.update_parameter_values!(
     current_time = PSI.get_current_time(model)
     state_values =
         PSI.get_dataset_values(input, PSI.get_attribute_key(parameter_attributes))
-    @error PSI.get_name(model)
-    @error state_values
     component_names = axes(parameter_array)[1]
     model_resolution = PSI.get_resolution(optimization_container)
     state_data = PSI.get_dataset(input, PSI.get_attribute_key(parameter_attributes))
@@ -250,14 +248,10 @@ function PSI.update_parameter_values!(
         (PSI.get_time_steps(optimization_container)[end] - 1) * model_resolution
     state_data_index_start = PSI.find_timestamp_index(state_timestamps, current_time)
     state_data_index_end = PSI.find_timestamp_index(state_timestamps, end_of_horizon_time)
-    @error state_data_index_start
-    @error end_of_horizon_time
-    @error state_data_index_end
     for name in component_names
         param_value =
-            max.(state_values[name, state_data_index_start:state_data_index_end], 1e-3)
-        @error param_value
-        PSI.fix_parameter_value(parameter_array[name], sum(param_value) / 12)
+            max.(state_values[name, state_data_index_start:state_data_index_end], 1e-6)
+        PSI.fix_parameter_value(parameter_array[name], sum(param_value))
     end
 
     IS.@record :execution PSI.ParameterUpdateEvent(

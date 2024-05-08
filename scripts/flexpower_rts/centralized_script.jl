@@ -134,6 +134,7 @@ set_device_model!(
             "storage_reservation" => true,
             "energy_target" => false,
             "cycling" => true,
+            "regularization" => true,
         ),
     ),
 )
@@ -148,6 +149,7 @@ set_device_model!(
             "storage_reservation" => true,
             "energy_target" => false,
             "cycling" => false,
+            "regularization" => true,
         ),
     ),
 )

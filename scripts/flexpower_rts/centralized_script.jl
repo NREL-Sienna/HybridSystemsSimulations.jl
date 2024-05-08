@@ -132,8 +132,8 @@ set_device_model!(
         attributes=Dict{String, Any}(
             "reservation" => true,
             "storage_reservation" => true,
-            "energy_target" => true,
-            "cycling" => false,
+            "energy_target" => false,
+            "cycling" => true,
         ),
     ),
 )
@@ -146,7 +146,7 @@ set_device_model!(
         attributes=Dict{String, Any}(
             "reservation" => true,
             "storage_reservation" => true,
-            "energy_target" => true,
+            "energy_target" => false,
             "cycling" => false,
         ),
     ),
@@ -227,6 +227,18 @@ sequence = SimulationSequence(
                 source=ActivePowerReserveVariable,
                 affected_values=[ActivePowerReserveVariable],
                 add_slacks=true,
+            ),
+            CyclingChargeLimitFeedforward(
+                component_type=PSY.HybridSystem,
+                source=HSS.CyclingChargeUsage,
+                affected_values=[HSS.CyclingChargeLimitParameter],
+                penalty_cost=0.0,
+            ),
+            CyclingDischargeLimitFeedforward(
+                component_type=PSY.HybridSystem,
+                source=HSS.CyclingDischargeUsage,
+                affected_values=[HSS.CyclingDischargeLimitParameter],
+                penalty_cost=0.0,
             ),
         ],
     ),

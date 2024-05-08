@@ -261,6 +261,7 @@ cons[PowerSimulations.ConstraintKey{HybridSystemsSimulations.StateofChargeTarget
 execute_status = execute!(sim_dcp; enable_progress_bar=true);
 
 results_dcp = SimulationResults(sim_dcp; ignore_status=true)
+
 results_ed_dcp = get_decision_problem_results(results_dcp, "ED")
 results_uc_dcp = get_decision_problem_results(results_dcp, "UC")
 
@@ -279,7 +280,14 @@ cum_p_rd = [sum(p_rd[!, 2][(1 + 12(k - 1)):(12 + 12(k - 1))]) for k in 1:48]
 
 param_cycl_ = read_parameter(results_ed_dcp, "CyclingDischargeLimitParameter__HybridSystem")
 param_cycl_uc = [v[!, 1][1] for v in values(param_cycl_)]
-
+#=
+plot([
+       scatter(x = aux_var[!,1], y = aux_var[!, 2], line_shape = "hv"),
+       scatter(x = aux_var[!,1], y = param_cycl_uc, line_shape = "hv"),
+       scatter(x = aux_var[!, 1], y = cum_p_rd, line_shape = "hv")
+       ]
+       )
+=#
 param_cycl_ed = [v[!, 1][1] for v in values(param_ed)]
 
 p_re_param_uc =

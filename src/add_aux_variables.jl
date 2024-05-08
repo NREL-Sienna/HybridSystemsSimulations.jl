@@ -130,7 +130,6 @@ function PSI.update_decision_state!(
     simulation_time::Dates.DateTime,
     model_params::PSI.ModelStoreParams,
 ) where {T <: Union{CyclingDischargeUsage, CyclingChargeUsage}}
-
     state_data = PSI.get_decision_state_data(state, key)
     column_names = PSI.get_column_names(key, state_data)[1]
     model_resolution = PSI.get_resolution(model_params)
@@ -140,12 +139,11 @@ function PSI.update_decision_state!(
     IS.@assert_op resolution_ratio >= 1
     if simulation_time > PSI.get_end_of_step_timestamp(state_data)
         state_data_index = 1
-        state_data.timestamps[:] .=
-            range(
-                simulation_time;
-                step = state_resolution,
-                length = PSI.get_num_rows(state_data),
-            )
+        state_data.timestamps[:] .= range(
+            simulation_time;
+            step=state_resolution,
+            length=PSI.get_num_rows(state_data),
+        )
     else
         state_data_index = PSI.find_timestamp_index(state_timestamps, simulation_time)
     end

@@ -42,3 +42,5 @@ struct ServedReserveInDownExpression <: ServedReserveDownExpression end
 struct ServedReserveOutUpExpression <: ServedReserveUpExpression end
 struct ServedReserveOutDownExpression <: ServedReserveDownExpression end
 struct AssetPowerBalance <: PSI.ExpressionType end
+
+PSI.should_write_resulting_value(::Type{<:ComponentServedReserveExpressionType}) = true

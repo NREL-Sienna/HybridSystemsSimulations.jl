@@ -62,7 +62,7 @@ transform_single_time_series!(sys_rts_da, horizon_DA, interval_DA)
 #interval_RT = Minute(5)
 #horizon_RT = 24
 interval_RT = Hour(1)
-horizon_RT = 12 * 24
+horizon_RT = 12
 transform_single_time_series!(sys_rts_rt, horizon_RT, interval_RT)
 
 served_fraction_map = Dict(
@@ -134,7 +134,7 @@ set_device_model!(
             "storage_reservation" => true,
             "energy_target" => false,
             "cycling" => true,
-            "regularization" => true,
+            "regularization" => false,
         ),
     ),
 )
@@ -161,7 +161,7 @@ set_device_model!(
 mipgap = 0.01
 if isempty(ARGS)
     starttime = DateTime("2020-07-10T00:00:00")
-    num_steps = 10
+    num_steps = 4
 else
     starttime = DateTime(ARGS[2])
     num_steps = parse(Int, ARGS[3])

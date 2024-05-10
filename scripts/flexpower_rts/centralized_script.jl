@@ -17,12 +17,37 @@ const PSB = PowerSystemCaseBuilder
 const HSS = HybridSystemsSimulations
 
 # Load Optimization and Useful Packages
-using Xpress
 using JuMP
 using Logging
 using Dates
 using CSV
 using TimeSeries
+
+@static if haskey(ENV, "NREL_CLUSTER")
+    using Gurobi
+    mipgap = 0.001
+    optimizer = optimizer_with_attributes(
+        Gurobi.Optimizer,
+        "Threads" => (length(Sys.cpu_info()) ÷ 2) - 1,
+        "MIPGap" => mipgap,
+        "TimeLimit" => 3000
+    )
+else
+    using Xpress
+    mipgap = 0.01
+    optimizer = optimizer_with_attributes(
+                Xpress.Optimizer,
+                "MAXTIME" => 3000, # Stop after 50 Minutes
+                "THREADS" => length(Sys.cpu_info()) ÷ 2,
+                "MIPRELSTOP" => mipgap,
+            )
+end
+
+if isempty(ARGS)
+    push!(ARGS, "use_services")
+    push!(ARGS, "2020-07-10T00:00:00")
+    push!(ARGS, "4")
+end
 
 ###############################
 ######## Load Scripts #########
@@ -75,14 +100,10 @@ served_fraction_map = Dict(
     "Flex_Down" => 0.1,
 )
 
-if isempty(ARGS)
+if ARGS[1] == "use_services"
     formulation = HybridDispatchWithReserves
 else
-    if ARGS[1] == "use_services"
-        formulation = HybridDispatchWithReserves
-    else
-        formulation = HybridEnergyOnlyDispatch
-    end
+    formulation = HybridEnergyOnlyDispatch
 end
 
 for sys in [sys_rts_da, sys_rts_rt]
@@ -158,14 +179,8 @@ set_device_model!(
 ###### Simulation Params ######
 ###############################
 
-mipgap = 0.01
-if isempty(ARGS)
-    starttime = DateTime("2020-07-10T00:00:00")
-    num_steps = 4
-else
-    starttime = DateTime(ARGS[2])
-    num_steps = parse(Int, ARGS[3])
-end
+starttime = DateTime(ARGS[2])
+num_steps = parse(Int, ARGS[3])
 
 models = SimulationModels(
     decision_models=[
@@ -173,12 +188,7 @@ models = SimulationModels(
             template_uc_copperplate,
             sys_rts_da;
             name="UC",
-            optimizer=optimizer_with_attributes(
-                Xpress.Optimizer,
-                "MAXTIME" => 3000, # Stop after 50 Minutes
-                "THREADS" => length(Sys.cpu_info()) ÷ 2,
-                "MIPRELSTOP" => mipgap,
-            ),
+            optimizer=optimizer,
             system_to_file=false,
             initialize_model=true,
             optimizer_solve_log_print=false,
@@ -191,11 +201,7 @@ models = SimulationModels(
             template_ed_copperplate,
             sys_rts_rt;
             name="ED",
-            optimizer=optimizer_with_attributes(
-                Xpress.Optimizer,
-                "THREADS" => length(Sys.cpu_info()) ÷ 2,
-                "MIPRELSTOP" => mipgap,
-            ),
+            optimizer=optimizer,
             system_to_file=false,
             initialize_model=true,
             optimizer_solve_log_print=false,

@@ -30,17 +30,17 @@ using TimeSeries
         Gurobi.Optimizer,
         "Threads" => (length(Sys.cpu_info()) ÷ 2) - 1,
         "MIPGap" => mipgap,
-        "TimeLimit" => 3000
+        "TimeLimit" => 3000,
     )
 else
     using Xpress
     mipgap = 0.01
     optimizer = optimizer_with_attributes(
-                Xpress.Optimizer,
-                "MAXTIME" => 3000, # Stop after 50 Minutes
-                "THREADS" => length(Sys.cpu_info()) ÷ 2,
-                "MIPRELSTOP" => mipgap,
-            )
+        Xpress.Optimizer,
+        "MAXTIME" => 3000, # Stop after 50 Minutes
+        "THREADS" => length(Sys.cpu_info()) ÷ 2,
+        "MIPRELSTOP" => mipgap,
+    )
 end
 
 if isempty(ARGS)

@@ -81,6 +81,23 @@ function PSI.construct_device!(
             )
         end
 
+        if PSI.get_attribute(model, "cycling")
+            if PSI.built_for_recurrent_solves(container)
+                PSI.add_parameters!(
+                    container,
+                    CyclingChargeLimitParameter,
+                    _hybrids_with_storage,
+                    model,
+                )
+                PSI.add_parameters!(
+                    container,
+                    CyclingDischargeLimitParameter,
+                    _hybrids_with_storage,
+                    model,
+                )
+            end
+        end
+
         if PSI.get_attribute(model, "regularization")
             PSI.add_variables!(container, ChargeRegularizationVariable, devices, D())
             PSI.add_variables!(container, DischargeRegularizationVariable, devices, D())
@@ -658,22 +675,22 @@ function PSI.construct_device!(
 
         PSI.add_variables!(container, CyclingChargeUsage, _hybrids_with_storage, D())
         PSI.add_variables!(container, CyclingDischargeUsage, _hybrids_with_storage, D())
-        #=
-        if PSI.built_for_recurrent_solves(container)
-            PSI.add_parameters!(
-                container,
-                CyclingChargeLimitParameter,
-                _hybrids_with_storage,
-                model,
-            )
-            PSI.add_parameters!(
-                container,
-                CyclingDischargeLimitParameter,
-                _hybrids_with_storage,
-                model,
-            )
+        if PSI.get_attribute(model, "cycling")
+            if PSI.built_for_recurrent_solves(container)
+                PSI.add_parameters!(
+                    container,
+                    CyclingChargeLimitParameter,
+                    _hybrids_with_storage,
+                    model,
+                )
+                PSI.add_parameters!(
+                    container,
+                    CyclingDischargeLimitParameter,
+                    _hybrids_with_storage,
+                    model,
+                )
+            end
         end
-        =#
 
         if PSI.get_attribute(model, "regularization")
             PSI.add_variables!(container, ChargeRegularizationVariable, devices, D())

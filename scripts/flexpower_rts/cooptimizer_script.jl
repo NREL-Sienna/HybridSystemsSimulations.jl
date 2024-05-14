@@ -17,12 +17,37 @@ const PSB = PowerSystemCaseBuilder
 const HSS = HybridSystemsSimulations
 
 # Load Optimization and Useful Packages
-using Xpress
 using JuMP
 using Logging
 using Dates
 using CSV
 using TimeSeries
+
+@static if haskey(ENV, "NREL_CLUSTER")
+    using Gurobi
+    mipgap = 0.001
+    optimizer = optimizer_with_attributes(
+        Gurobi.Optimizer,
+        "Threads" => (length(Sys.cpu_info()) ÷ 2) - 1,
+        "MIPGap" => mipgap,
+        "TimeLimit" => 3000,
+    )
+else
+    using Xpress
+    mipgap = 0.03
+    optimizer = optimizer_with_attributes(
+        Xpress.Optimizer,
+        "MAXTIME" => 3000, # Stop after 50 Minutes
+        "THREADS" => length(Sys.cpu_info()) ÷ 2,
+        "MIPRELSTOP" => mipgap,
+    )
+end
+
+if isempty(ARGS)
+    push!(ARGS, "use_services")
+    push!(ARGS, "2020-07-10T00:00:00")
+    push!(ARGS, "2")
+end
 
 ### Run read centralized results first ###
 include("../get_templates.jl")
@@ -79,32 +104,19 @@ transform_single_time_series!(sys_rts_da, horizon_DA, interval_DA)
 transform_single_time_series!(sys_rts_merchant_da, horizon_DA * 12, interval_DA)
 transform_single_time_series!(sys_rts_merchant_rt, horizon_RT, interval_RT)
 
-if isempty(ARGS)
+if ARGS[1] == "use_services"
     results_prices = "HybridDispatchWithReserves"
     formulation = MerchantHybridCooptimizerCase
 else
-    if ARGS[1] == "use_services"
-        results_prices = "HybridDispatchWithReserves"
-        formulation = MerchantHybridCooptimizerCase
-    else
-        results_prices = "HybridEnergyOnlyDispatch"
-        formulation = MerchantHybridEnergyCase
-    end
+    results_prices = "HybridEnergyOnlyDispatch"
+    formulation = MerchantHybridEnergyCase
 end
 
-mipgap = 0.001
-if isempty(ARGS)
-    starttime = DateTime("2020-07-10T00:00:00")
-    num_steps = 2
-else
-    starttime = DateTime(ARGS[2])
-    num_steps = parse(Int, ARGS[3])
-end
+starttime = DateTime(ARGS[2])
+num_steps = parse(Int, ARGS[3])
 
 results_folder = joinpath(
-    @__DIR__,
-    "../..",
-    "centralized_sim_HybridDispatchWithReserves_2020-07-10T00:00:00",
+    "/Users/jlara/.julia/dev/HybridSystemsSimulations/centralized_sim_HybridDispatchWithReserves_2020-07-10T00:00:00",
 )
 
 results_dcp = SimulationResults(results_folder; ignore_status=true)

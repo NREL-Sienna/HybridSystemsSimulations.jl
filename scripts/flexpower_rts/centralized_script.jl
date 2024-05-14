@@ -1,3 +1,4 @@
+using Revise
 using Pkg
 Pkg.activate("test")
 Pkg.instantiate()
@@ -34,7 +35,7 @@ using TimeSeries
     )
 else
     using Xpress
-    mipgap = 0.01
+    mipgap = 0.03
     optimizer = optimizer_with_attributes(
         Xpress.Optimizer,
         "MAXTIME" => 3000, # Stop after 50 Minutes

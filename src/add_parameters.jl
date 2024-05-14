@@ -419,7 +419,7 @@ end
 ################### Cycling Battery Parameters ####################
 ###################################################################
 
-function PSI.add_parameters!(
+function PSI._add_parameters!(
     container::PSI.OptimizationContainer,
     ::Type{T},
     devices::V,

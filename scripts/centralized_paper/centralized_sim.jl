@@ -70,7 +70,7 @@ served_fraction_map = Dict(
     "Reg_Down" => 0.3,
     "Flex_Down" => 0.1,
 )
-
+#=
 for sys in [sys_rts_da]
     services = get_components(VariableReserve, sys)
     hy_sys = first(get_components(HybridSystem, sys))
@@ -89,7 +89,7 @@ for sys in [sys_rts_da]
         end
     end
 end
-
+=#
 ###############################
 ###### Create Templates #######
 ###############################
@@ -110,8 +110,8 @@ set_device_model!(
     template_uc_copperplate,
     DeviceModel(
         PSY.HybridSystem,
-        HybridDispatchWithReserves;
-        #HybridEnergyOnlyDispatch;
+        #HybridDispatchWithReserves;
+        HybridEnergyOnlyDispatch;
         attributes=Dict{String, Any}(
             "reservation" => true,
             "storage_reservation" => true,
@@ -126,7 +126,7 @@ set_device_model!(
 ##### Run DCP Simulation ######
 ###############################
 
-mipgap = 2.0e-2
+mipgap = 3.0e-2
 
 model = DecisionModel(
     template_uc_copperplate,
@@ -147,6 +147,9 @@ PSI.build!(model, output_dir=mktempdir())
 PSI.solve!(model)
 
 res = ProblemResults(model)
+
+cyc_charge = read_aux_variable(res, "CyclingChargeUsage__HybridSystem")
+cyc_discharge = read_aux_variable(res, "CyclingDischargeUsage__HybridSystem")
 
 techs = ["STEAM", "CT", "CC", "WIND", "NUCLEAR", "PV", "RTPV", "HYDRO", "HYBRID"]
 tot_dict = Dict()
@@ -641,3 +644,15 @@ aux = cons[PowerSimulations.ConstraintKey{
 for (k, v) in obj_jump.terms
     println(k, v)
 end
+
+exprs = model.internal.container.expressions
+for k in keys(exprs)
+    println(k)
+end
+
+exprs[PowerSimulations.ExpressionKey{
+    HybridSystemsSimulations.DischargeServedReserveUpExpression,
+    HybridSystem,
+}(
+    "",
+)]

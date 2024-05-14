@@ -68,6 +68,13 @@ struct DischargeRegularizationConstraint <: PSI.ConstraintType end
 struct StateofChargeTargetConstraint <: PSI.ConstraintType end
 struct RenewableActivePowerLimitConstraint <: PSI.ConstraintType end
 
+###################
+### Feedforwards ###
+###################
+
+struct FeedForwardCyclingChargeConstraint <: PSI.ConstraintType end
+struct FeedForwardCyclingDischargeConstraint <: PSI.ConstraintType end
+
 ##############################################
 ### Dual Optimality Conditions Constraints ###
 ##############################################

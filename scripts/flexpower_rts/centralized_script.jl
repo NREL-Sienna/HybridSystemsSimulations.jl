@@ -1,3 +1,4 @@
+using Revise
 using Pkg
 Pkg.activate("test")
 Pkg.instantiate()
@@ -17,12 +18,37 @@ const PSB = PowerSystemCaseBuilder
 const HSS = HybridSystemsSimulations
 
 # Load Optimization and Useful Packages
-using Xpress
 using JuMP
 using Logging
 using Dates
 using CSV
 using TimeSeries
+
+@static if haskey(ENV, "NREL_CLUSTER")
+    using Gurobi
+    mipgap = 0.001
+    optimizer = optimizer_with_attributes(
+        Gurobi.Optimizer,
+        "Threads" => (length(Sys.cpu_info()) ÷ 2) - 1,
+        "MIPGap" => mipgap,
+        "TimeLimit" => 3000,
+    )
+else
+    using Xpress
+    mipgap = 0.03
+    optimizer = optimizer_with_attributes(
+        Xpress.Optimizer,
+        "MAXTIME" => 3000, # Stop after 50 Minutes
+        "THREADS" => length(Sys.cpu_info()) ÷ 2,
+        "MIPRELSTOP" => mipgap,
+    )
+end
+
+if isempty(ARGS)
+    push!(ARGS, "use_services")
+    push!(ARGS, "2020-07-10T00:00:00")
+    push!(ARGS, "4")
+end
 
 ###############################
 ######## Load Scripts #########
@@ -62,7 +88,7 @@ transform_single_time_series!(sys_rts_da, horizon_DA, interval_DA)
 #interval_RT = Minute(5)
 #horizon_RT = 24
 interval_RT = Hour(1)
-horizon_RT = 12 * 24
+horizon_RT = 12
 transform_single_time_series!(sys_rts_rt, horizon_RT, interval_RT)
 
 served_fraction_map = Dict(
@@ -75,14 +101,10 @@ served_fraction_map = Dict(
     "Flex_Down" => 0.1,
 )
 
-if isempty(ARGS)
+if ARGS[1] == "use_services"
     formulation = HybridDispatchWithReserves
 else
-    if ARGS[1] == "use_services"
-        formulation = HybridDispatchWithReserves
-    else
-        formulation = HybridEnergyOnlyDispatch
-    end
+    formulation = HybridEnergyOnlyDispatch
 end
 
 for sys in [sys_rts_da, sys_rts_rt]
@@ -132,8 +154,9 @@ set_device_model!(
         attributes=Dict{String, Any}(
             "reservation" => true,
             "storage_reservation" => true,
-            "energy_target" => true,
-            "cycling" => false,
+            "energy_target" => false,
+            "cycling" => true,
+            "regularization" => false,
         ),
     ),
 )
@@ -146,8 +169,9 @@ set_device_model!(
         attributes=Dict{String, Any}(
             "reservation" => true,
             "storage_reservation" => true,
-            "energy_target" => true,
+            "energy_target" => false,
             "cycling" => false,
+            "regularization" => true,
         ),
     ),
 )
@@ -156,14 +180,8 @@ set_device_model!(
 ###### Simulation Params ######
 ###############################
 
-mipgap = 0.01
-if isempty(ARGS)
-    starttime = DateTime("2020-07-10T00:00:00")
-    num_steps = 10
-else
-    starttime = DateTime(ARGS[2])
-    num_steps = parse(Int, ARGS[3])
-end
+starttime = DateTime(ARGS[2])
+num_steps = parse(Int, ARGS[3])
 
 models = SimulationModels(
     decision_models=[
@@ -171,12 +189,7 @@ models = SimulationModels(
             template_uc_copperplate,
             sys_rts_da;
             name="UC",
-            optimizer=optimizer_with_attributes(
-                Xpress.Optimizer,
-                "MAXTIME" => 3000, # Stop after 50 Minutes
-                "THREADS" => length(Sys.cpu_info()) ÷ 2,
-                "MIPRELSTOP" => mipgap,
-            ),
+            optimizer=optimizer,
             system_to_file=false,
             initialize_model=true,
             optimizer_solve_log_print=false,
@@ -189,11 +202,7 @@ models = SimulationModels(
             template_ed_copperplate,
             sys_rts_rt;
             name="ED",
-            optimizer=optimizer_with_attributes(
-                Xpress.Optimizer,
-                "THREADS" => length(Sys.cpu_info()) ÷ 2,
-                "MIPRELSTOP" => mipgap,
-            ),
+            optimizer=optimizer,
             system_to_file=false,
             initialize_model=true,
             optimizer_solve_log_print=false,
@@ -227,6 +236,18 @@ sequence = SimulationSequence(
                 source=ActivePowerReserveVariable,
                 affected_values=[ActivePowerReserveVariable],
                 add_slacks=true,
+            ),
+            CyclingChargeLimitFeedforward(
+                component_type=PSY.HybridSystem,
+                source=HSS.CyclingChargeUsage,
+                affected_values=[HSS.CyclingChargeLimitParameter],
+                penalty_cost=0.0,
+            ),
+            CyclingDischargeLimitFeedforward(
+                component_type=PSY.HybridSystem,
+                source=HSS.CyclingDischargeUsage,
+                affected_values=[HSS.CyclingDischargeLimitParameter],
+                penalty_cost=0.0,
             ),
         ],
     ),

@@ -24,6 +24,10 @@ export TotalReserve
 
 # Auxiliary variables
 
+# FeedForward
+export CyclingChargeLimitFeedforward
+export CyclingDischargeLimitFeedforward
+
 # Constraints
 export OptConditionRenewablePower
 export OptConditionBatteryCharge
@@ -51,8 +55,8 @@ export StrongDualityCut
 export DayAheadEnergyPrice
 export RealTimeEnergyPrice
 export AncillaryServicePrice
-export ChargeCycleLimit
-export DischargeCycleLimit
+export CyclingDischargeLimitParameter
+export CyclingChargeLimitParameter
 
 import MathOptInterface
 import PowerSimulations

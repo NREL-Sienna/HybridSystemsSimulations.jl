@@ -387,7 +387,6 @@ function PSI._update_parameter_values!(
             # Pass indices in this way since JuMP DenseAxisArray don't support view()
             state_value = state_values[name, service_name, state_data_index]
             if !isfinite(state_value)
-                @error model.name
                 error(
                     "The value for the system state used in $(PSI.encode_key_as_string(PSI.get_attribute_key(attributes))) is not a finite value $(state_value) \
                      This is commonly caused by referencing a state value at a time when such decision hasn't been made. \
@@ -452,34 +451,12 @@ end
 
 function PSI.add_feedforward_arguments!(
     container::PSI.OptimizationContainer,
-    model::PSI.DeviceModel,
+    model::PSI.DeviceModel{V, <:AbstractHybridFormulation},
     devices::Vector{V},
 ) where {V <: PSY.HybridSystem}
     for ff in PSI.get_feedforwards(model)
         #@debug "arguments" ff V _group = LOG_GROUP_FEEDFORWARDS_CONSTRUCTION
         PSI._add_feedforward_arguments!(container, model, devices, ff)
     end
-    return
-end
-
-function PSI._add_feedforward_arguments!(
-    container::PSI.OptimizationContainer,
-    model::PSI.DeviceModel,
-    devices::Vector{T},
-    ff::PSI.AbstractAffectFeedforward,
-) where {T <: PSY.HybridSystem}
-    parameter_type = PSI.get_default_parameter_type(ff, T)
-    PSI.add_parameters!(container, parameter_type, ff, model, devices)
-    return
-end
-
-function PSI._add_feedforward_arguments!(
-    container::PSI.OptimizationContainer,
-    model::PSI.DeviceModel,
-    devices::Vector{T},
-    ff::PSI.FixValueFeedforward,
-) where {T <: PSY.HybridSystem}
-    parameter_type = PSI.get_default_parameter_type(ff, T)
-    PSI.add_parameters!(container, parameter_type, ff, model, devices)
     return
 end

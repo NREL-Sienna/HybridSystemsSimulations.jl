@@ -17,12 +17,37 @@ const PSB = PowerSystemCaseBuilder
 const HSS = HybridSystemsSimulations
 
 # Load Optimization and Useful Packages
-using Xpress
 using JuMP
 using Logging
 using Dates
 using CSV
 using TimeSeries
+
+@static if haskey(ENV, "NREL_CLUSTER")
+    using Gurobi
+    mipgap = 0.001
+    optimizer = optimizer_with_attributes(
+        Gurobi.Optimizer,
+        "Threads" => (length(Sys.cpu_info()) ÷ 2) - 1,
+        "MIPGap" => mipgap,
+        "TimeLimit" => 3000,
+    )
+else
+    using Xpress
+    mipgap = 0.03
+    optimizer = optimizer_with_attributes(
+        Xpress.Optimizer,
+        "MAXTIME" => 3000, # Stop after 50 Minutes
+        "THREADS" => length(Sys.cpu_info()) ÷ 2,
+        "MIPRELSTOP" => mipgap,
+    )
+end
+
+if isempty(ARGS)
+    push!(ARGS, "use_services")
+    push!(ARGS, "2020-07-10T00:00:00")
+    push!(ARGS, "2")
+end
 
 ### Run read centralized results first ###
 include("../get_templates.jl")
@@ -57,7 +82,7 @@ transform_single_time_series!(sys_rts_da, horizon_DA, interval_DA)
 #interval_RT = Minute(5)
 #horizon_RT = 24
 interval_RT = Hour(1)
-horizon_RT = 12 * 24
+horizon_RT = 12
 #transform_single_time_series!(sys_rts_rt, horizon_RT, interval_RT)
 
 ###################################
@@ -79,32 +104,19 @@ transform_single_time_series!(sys_rts_da, horizon_DA, interval_DA)
 transform_single_time_series!(sys_rts_merchant_da, horizon_DA * 12, interval_DA)
 transform_single_time_series!(sys_rts_merchant_rt, horizon_RT, interval_RT)
 
-if isempty(ARGS)
+if ARGS[1] == "use_services"
     results_prices = "HybridDispatchWithReserves"
     formulation = MerchantHybridCooptimizerCase
 else
-    if ARGS[1] == "use_services"
-        results_prices = "HybridDispatchWithReserves"
-        formulation = MerchantHybridCooptimizerCase
-    else
-        results_prices = "HybridEnergyOnlyDispatch"
-        formulation = MerchantHybridEnergyCase
-    end
+    results_prices = "HybridEnergyOnlyDispatch"
+    formulation = MerchantHybridEnergyCase
 end
 
-mipgap = 0.001
-if isempty(ARGS)
-    starttime = DateTime("2020-07-10T00:00:00")
-    num_steps = 7
-else
-    starttime = DateTime(ARGS[2])
-    num_steps = parse(Int, ARGS[3])
-end
+starttime = DateTime(ARGS[2])
+num_steps = parse(Int, ARGS[3])
 
 results_folder = joinpath(
-    @__DIR__,
-    "../..",
-    "centralized_sim_HybridDispatchWithReserves_2020-07-10T00:00:00-2",
+    "/Users/jlara/.julia/dev/HybridSystemsSimulations/centralized_sim_HybridDispatchWithReserves_2020-07-10T00:00:00",
 )
 
 results_dcp = SimulationResults(results_folder; ignore_status=true)
@@ -188,12 +200,31 @@ end
 ######### Load Templates ##########
 ###################################
 
-template_uc_copperplate = get_uc_copperplate_template(sys_rts_da)
-template_ed_copperplate = get_ed_copperplate_template(sys_rts_merchant_rt)
+######################################################
+####### Template for DA Bids ##########
+######################################################
+
+template_merchant_da = get_uc_copperplate_template(sys_rts_da)
+
+set_device_model!(
+    template_merchant_da,
+    DeviceModel(
+        PSY.HybridSystem,
+        HybridDispatchWithReserves;
+        #HybridEnergyOnlyDispatch;
+        attributes=Dict{String, Any}(
+            "reservation" => true,
+            "storage_reservation" => true,
+            "energy_target" => true,
+            "cycling" => true,
+            "regularization" => true,
+        ),
+    ),
+)
 
 decision_optimizer_DA = DecisionModel(
     formulation,
-    template_uc_copperplate,
+    template_merchant_da,
     sys_rts_merchant_da,
     optimizer=optimizer_with_attributes(
         Xpress.Optimizer,
@@ -211,7 +242,10 @@ decision_optimizer_DA = DecisionModel(
     name=name = "$(formulation)_DA",
 )
 
-# Set Hybrid in UC as FixedDA
+######################################################
+####### Template for DA Market Clearing ##########
+######################################################
+template_uc_copperplate = get_uc_copperplate_template(sys_rts_da)
 set_device_model!(
     template_uc_copperplate,
     DeviceModel(
@@ -222,20 +256,28 @@ set_device_model!(
 )
 
 ######################################################
-####### Systems for RT Bids and Realized ED ##########
+####### Template for RT Bids ##########
 ######################################################
+template_merchant_rt = get_uc_copperplate_template(sys_rts_da)
+
 set_device_model!(
-    template_ed_copperplate,
+    template_merchant_rt,
     DeviceModel(
         PSY.HybridSystem,
-        HybridFixedDA;
-        attributes=Dict{String, Any}("cycling" => false),
+        HybridDispatchWithReserves;
+        attributes=Dict{String, Any}(
+            "reservation" => true,
+            "storage_reservation" => true,
+            "energy_target" => true,
+            "cycling" => false,
+            "regularization" => true,
+        ),
     ),
 )
 
 decision_optimizer_RT = DecisionModel(
     formulation,
-    template_ed_copperplate,
+    template_merchant_rt,
     sys_rts_merchant_rt,
     optimizer=optimizer_with_attributes(
         Xpress.Optimizer,
@@ -254,6 +296,27 @@ decision_optimizer_RT = DecisionModel(
 )
 
 decision_optimizer_RT.ext = Dict{String, Any}("RT" => true)
+
+######################################################
+####### Template for RT Market Clearing ##########
+######################################################
+
+template_ed_copperplate = get_uc_copperplate_template(sys_rts_da)
+set_device_model!(template_ed_copperplate, ThermalStandard, ThermalBasicDispatch)
+set_device_model!(template_ed_copperplate, HydroDispatch, FixedOutput)
+#set_device_model!(template_ed, HydroEnergyReservoir, FixedOutput)
+for s in values(template_ed_copperplate.services)
+    s.use_slacks = true
+end
+
+set_device_model!(
+    template_ed_copperplate,
+    DeviceModel(
+        PSY.HybridSystem,
+        HybridFixedDA;
+        attributes=Dict{String, Any}("cycling" => false),
+    ),
+)
 
 models = SimulationModels(
     decision_models=[
@@ -325,6 +388,18 @@ sequence = SimulationSequence(
                 component_type=PSY.HybridSystem,
                 source=EnergyDABidIn,
                 affected_values=[EnergyDABidIn],
+            ),
+            CyclingChargeLimitFeedforward(
+                component_type=PSY.HybridSystem,
+                source=HSS.CyclingChargeUsage,
+                affected_values=[HSS.CyclingChargeLimitParameter],
+                penalty_cost=0.0,
+            ),
+            CyclingDischargeLimitFeedforward(
+                component_type=PSY.HybridSystem,
+                source=HSS.CyclingDischargeUsage,
+                affected_values=[HSS.CyclingDischargeLimitParameter],
+                penalty_cost=0.0,
             ),
         ],
         "ED" => [

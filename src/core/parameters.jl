@@ -9,9 +9,6 @@ struct DayAheadEnergyPrice <: PSI.ObjectiveFunctionParameter end
 struct RealTimeEnergyPrice <: PSI.ObjectiveFunctionParameter end
 struct AncillaryServicePrice <: PSI.ObjectiveFunctionParameter end
 
-struct ChargeCycleLimit <: PSI.RightHandSideParameter end
-struct DischargeCycleLimit <: PSI.RightHandSideParameter end
-
 struct EnergyTargetParameter <: PSI.VariableValueParameter end
 struct CyclingChargeLimitParameter <: PSI.VariableValueParameter end
 struct CyclingDischargeLimitParameter <: PSI.VariableValueParameter end

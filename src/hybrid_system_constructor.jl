@@ -82,6 +82,7 @@ function PSI.construct_device!(
         end
 
         if PSI.get_attribute(model, "cycling")
+            #=
             if PSI.built_for_recurrent_solves(container)
                 PSI.add_parameters!(
                     container,
@@ -96,6 +97,7 @@ function PSI.construct_device!(
                     model,
                 )
             end
+            =#
         end
 
         if PSI.get_attribute(model, "regularization")
@@ -270,6 +272,7 @@ function PSI.construct_device!(
         )
     end
 
+    PSI.add_feedforward_constraints!(container, model, devices)
     return
 end
 
@@ -676,6 +679,7 @@ function PSI.construct_device!(
         PSI.add_variables!(container, CyclingChargeUsage, _hybrids_with_storage, D())
         PSI.add_variables!(container, CyclingDischargeUsage, _hybrids_with_storage, D())
         if PSI.get_attribute(model, "cycling")
+            #=
             if PSI.built_for_recurrent_solves(container)
                 PSI.add_parameters!(
                     container,
@@ -690,6 +694,7 @@ function PSI.construct_device!(
                     model,
                 )
             end
+            =#
         end
 
         if PSI.get_attribute(model, "regularization")

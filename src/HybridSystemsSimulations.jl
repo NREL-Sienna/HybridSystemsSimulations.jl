@@ -55,8 +55,8 @@ export StrongDualityCut
 export DayAheadEnergyPrice
 export RealTimeEnergyPrice
 export AncillaryServicePrice
-export ChargeCycleLimit
-export DischargeCycleLimit
+export CyclingDischargeLimitParameter
+export CyclingChargeLimitParameter
 
 import MathOptInterface
 import PowerSimulations

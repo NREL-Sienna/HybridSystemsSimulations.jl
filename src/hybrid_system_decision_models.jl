@@ -460,25 +460,3 @@ function PSI.add_feedforward_arguments!(
     end
     return
 end
-
-function PSI._add_feedforward_arguments!(
-    container::PSI.OptimizationContainer,
-    model::PSI.DeviceModel,
-    devices::Vector{T},
-    ff::PSI.AbstractAffectFeedforward,
-) where {T <: PSY.HybridSystem}
-    parameter_type = PSI.get_default_parameter_type(ff, T)
-    PSI.add_parameters!(container, parameter_type, ff, model, devices)
-    return
-end
-
-function PSI._add_feedforward_arguments!(
-    container::PSI.OptimizationContainer,
-    model::PSI.DeviceModel,
-    devices::Vector{T},
-    ff::PSI.FixValueFeedforward,
-) where {T <: PSY.HybridSystem}
-    parameter_type = PSI.get_default_parameter_type(ff, T)
-    PSI.add_parameters!(container, parameter_type, ff, model, devices)
-    return
-end

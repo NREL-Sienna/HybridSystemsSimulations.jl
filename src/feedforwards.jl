@@ -68,7 +68,6 @@ PSI.get_default_parameter_type(::CyclingDischargeLimitFeedforward, _) =
 PSI.get_optimization_container_key(ff::CyclingDischargeLimitFeedforward) =
     ff.optimization_container_key
 
-#=
 function PSI.add_feedforward_arguments!(
     container::PSI.OptimizationContainer,
     model::PSI.DeviceModel,
@@ -79,12 +78,13 @@ function PSI.add_feedforward_arguments!(
     end
     return
 end
-=#
+
+# function _add_cycling_feedfo
 
 function PSI._add_feedforward_arguments!(
     container::PSI.OptimizationContainer,
     device_model::PSI.DeviceModel,
-    devices::Vector{D},
+    devices::Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     ff::U,
 ) where {
     D <: PSY.HybridSystem,
@@ -96,7 +96,18 @@ function PSI._add_feedforward_arguments!(
         )
     end
     parameter_type = PSI.get_default_parameter_type(ff, D)
-    PSI.add_parameters!(container, parameter_type, devices, device_model)
+    PSI._add_parameters!(container, parameter_type, devices, device_model)
+    return
+end
+
+function PSI._add_feedforward_arguments!(
+    container::PSI.OptimizationContainer,
+    model::PSI.DeviceModel,
+    devices::Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    ff::PSI.AbstractAffectFeedforward,
+) where {D <: PSY.HybridSystem}
+    parameter_type = PSI.get_default_parameter_type(ff, D)
+    PSI.add_parameters!(container, parameter_type, ff, model, devices)
     return
 end
 
@@ -167,6 +178,50 @@ end
 
 function PSI.add_feedforward_constraints!(
     container::PSI.OptimizationContainer,
+    device_model::PSI.DeviceModel{D, HybridEnergyOnlyDispatch},
+    devices::Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    ff::CyclingChargeLimitFeedforward,
+) where {D <: PSY.HybridSystem}
+    time_steps = PSI.get_time_steps(container)
+    resolution = PSI.get_resolution(container)
+    fraction_of_hour = Dates.value(Dates.Minute(resolution)) / PSI.MINUTES_IN_HOUR
+    names = [PSY.get_name(d) for d in devices]
+    charge_var = PSI.get_variable(container, BatteryCharge(), D)
+    T = FeedForwardCyclingChargeConstraint
+    con_cycling_ch = PSI.add_constraints_container!(container, T(), D, names)
+    for device in devices
+        ci_name = PSY.get_name(device)
+        storage = PSY.get_storage(device)
+        efficiency = PSY.get_efficiency(storage)
+        E_max = PSY.get_state_of_charge_limits(storage).max
+        cycles_per_day = PSY.get_cycle_limits(storage)
+        cycles_in_horizon =
+            cycles_per_day * fraction_of_hour * length(time_steps) / HOURS_IN_DAY
+        if PSI.built_for_recurrent_solves(container)
+            param_value =
+                PSI.get_parameter_array(container, CyclingChargeLimitParameter(), D)[ci_name]
+            con_cycling_ch[ci_name] = JuMP.@constraint(
+                PSI.get_jump_model(container),
+                efficiency.in * fraction_of_hour * sum(charge_var[ci_name, :]) <=
+                param_value
+            )
+        else
+            E_max = PSY.get_state_of_charge_limits(storage).max
+            cycles_per_day = PSY.get_cycle_limits(storage)
+            cycles_in_horizon =
+                cycles_per_day * fraction_of_hour * length(time_steps) / HOURS_IN_DAY
+            con_cycling_ch[ci_name] = JuMP.@constraint(
+                PSI.get_jump_model(container),
+                efficiency.in * fraction_of_hour * sum(charge_var[ci_name, :]) <=
+                cycles_in_horizon * E_max
+            )
+        end
+    end
+    return
+end
+
+function PSI.add_feedforward_constraints!(
+    container::PSI.OptimizationContainer,
     device_model::PSI.DeviceModel,
     devices::Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
     ff::CyclingDischargeLimitFeedforward,
@@ -215,6 +270,52 @@ function PSI.add_feedforward_constraints!(
                     discharge_var[ci_name, :] + ds_served_reg_up[ci_name, :] -
                     ds_served_reg_dn[ci_name, :],
                 ) <= cycles_in_horizon * E_max
+            )
+        end
+    end
+    return
+end
+
+function PSI.add_feedforward_constraints!(
+    container::PSI.OptimizationContainer,
+    device_model::PSI.DeviceModel{D, HybridEnergyOnlyDispatch},
+    devices::Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    ff::CyclingDischargeLimitFeedforward,
+) where {D <: PSY.HybridSystem}
+    time_steps = PSI.get_time_steps(container)
+    resolution = PSI.get_resolution(container)
+    fraction_of_hour = Dates.value(Dates.Minute(resolution)) / PSI.MINUTES_IN_HOUR
+    names = [PSY.get_name(d) for d in devices]
+    discharge_var = PSI.get_variable(container, BatteryDischarge(), D)
+    T = FeedForwardCyclingDischargeConstraint
+    con_cycling_ds = PSI.add_constraints_container!(container, T(), D, names)
+    for device in devices
+        ci_name = PSY.get_name(device)
+        storage = PSY.get_storage(device)
+        efficiency = PSY.get_efficiency(storage)
+        E_max = PSY.get_state_of_charge_limits(storage).max
+        cycles_per_day = PSY.get_cycle_limits(storage)
+        cycles_in_horizon =
+            cycles_per_day * fraction_of_hour * length(time_steps) / HOURS_IN_DAY
+        if PSI.built_for_recurrent_solves(container)
+            param_value =
+                PSI.get_parameter_array(container, CyclingDischargeLimitParameter(), D)[ci_name]
+            con_cycling_ds[ci_name] = JuMP.@constraint(
+                PSI.get_jump_model(container),
+                (1.0 / efficiency.out) *
+                fraction_of_hour *
+                sum(discharge_var[ci_name, :]) <= param_value
+            )
+        else
+            E_max = PSY.get_state_of_charge_limits(storage).max
+            cycles_per_day = PSY.get_cycle_limits(storage)
+            cycles_in_horizon =
+                cycles_per_day * fraction_of_hour * length(time_steps) / HOURS_IN_DAY
+            con_cycling_ds[ci_name] = JuMP.@constraint(
+                PSI.get_jump_model(container),
+                (1.0 / efficiency.out) *
+                fraction_of_hour *
+                sum(discharge_var[ci_name, :]) <= cycles_in_horizon * E_max
             )
         end
     end

@@ -34,7 +34,7 @@ function _build_battery(
         reactive_power=0.0,
         reactive_power_limits=nothing,
         base_power=100.0,
-        operation_cost=PSY.StorageManagementCost(),
+        operation_cost=PSY.StorageCost(),
         storage_target=energy_capacity / 2.0,
         cycle_limits=1.0,
     )

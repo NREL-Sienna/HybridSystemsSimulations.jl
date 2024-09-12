@@ -22,19 +22,19 @@ PSI.proportional_cost(
 ) = PSY.get_variable(cost).cost
 
 PSI.proportional_cost(
-    cost::PSY.StorageManagementCost,
+    cost::PSY.StorageCost,
     ::BatteryEnergySurplusVariable,
     ::PSY.HybridSystem,
     U::AbstractHybridFormulation,
 ) = PSY.get_energy_surplus_cost(cost)
 PSI.proportional_cost(
-    cost::PSY.StorageManagementCost,
+    cost::PSY.StorageCost,
     ::BatteryEnergyShortageVariable,
     ::PSY.HybridSystem,
     U::AbstractHybridFormulation,
 ) = PSY.get_energy_shortage_cost(cost)
 function PSI.proportional_cost(
-    cost::PSY.StorageManagementCost,
+    cost::PSY.StorageCost,
     ::BatteryRegularizationVariable,
     ::PSY.HybridSystem,
     ::AbstractHybridFormulation,

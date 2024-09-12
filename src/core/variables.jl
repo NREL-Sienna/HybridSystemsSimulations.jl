@@ -142,3 +142,4 @@ struct ComplementarySlackVarCyclingDischarge <: MerchantModelComplementarySlackV
 
 # implement below
 #PSI.convert_result_to_natural_units() = false
+PSI.should_write_resulting_value(::Type{TotalReserve}) = false

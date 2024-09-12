@@ -18,6 +18,7 @@ function PSI.get_default_attributes(
         "reservation" => true,
         "storage_reservation" => true,
         "energy_target" => false,
+        "regularization" => true,
     )
 end
 
@@ -376,6 +377,12 @@ PSI.get_variable_multiplier(
 
 PSI.get_parameter_multiplier(
     ::PSI.FixValueParameter,
+    ::PSY.HybridSystem,
+    ::Union{HybridFixedDA, HybridEnergyOnlyDispatch, HybridDispatchWithReserves},
+) = 1.0
+
+PSI.get_parameter_multiplier(
+    ::Union{CyclingDischargeLimitParameter, CyclingChargeLimitParameter},
     ::PSY.HybridSystem,
     ::Union{HybridFixedDA, HybridEnergyOnlyDispatch, HybridDispatchWithReserves},
 ) = 1.0

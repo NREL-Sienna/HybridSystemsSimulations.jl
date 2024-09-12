@@ -23,7 +23,7 @@ end
     sys = PSB.build_system(PSITestSystems, "c_sys5_hybrid")
 
     # No Parameters Testing
-    model = DecisionModel(MockOperationProblem, StandardPTDFModel, sys)
+    model = DecisionModel(MockOperationProblem, PTDFPowerModel, sys)
     mock_construct_device!(model, device_model)
     moi_tests(model, 816, 0, 720, 192, 192, true)
     psi_checkobjfun_test(model, GAEVF)

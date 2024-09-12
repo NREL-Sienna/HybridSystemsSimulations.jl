@@ -77,7 +77,7 @@ end
 function get_uc_ptdf_template(sys_rts_da)
     template_uc = ProblemTemplate(
         NetworkModel(
-            StandardPTDFModel,
+            PTDFPowerModel,
             use_slacks=true,
             PTDF_matrix=PTDF(sys_rts_da),
             duals=[CopperPlateBalanceConstraint],

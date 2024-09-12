@@ -1,2 +1,2 @@
-struct CumulativeCyclingCharge <: PSI.AuxVariableType end
-struct CumulativeCyclingDischarge <: PSI.AuxVariableType end
+struct CyclingChargeUsage <: PSI.AuxVariableType end
+struct CyclingDischargeUsage <: PSI.AuxVariableType end

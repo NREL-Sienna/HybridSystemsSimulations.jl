@@ -891,13 +891,75 @@ function _add_constraints_cyclingcharge!(
         ci_name = PSY.get_name(device)
         storage = PSY.get_storage(device)
         efficiency = PSY.get_efficiency(storage)
+        #if PSI.built_for_recurrent_solves(container)
+        #    param_value =
+        #        PSI.get_parameter_array(container, CyclingChargeLimitParameter(), D)[ci_name]
+        #    con_cycling_ch[ci_name] = JuMP.@constraint(
+        #        PSI.get_jump_model(container),
+        #        efficiency.in * fraction_of_hour * sum(charge_var[ci_name, :]) <=
+        #        param_value
+        #    )
+        #else
+        E_max = PSY.get_state_of_charge_limits(storage).max
+        cycles_per_day = PSY.get_cycle_limits(storage)
+        cycles_in_horizon =
+            cycles_per_day * fraction_of_hour * length(time_steps) / HOURS_IN_DAY
+        con_cycling_ch[ci_name] = JuMP.@constraint(
+            PSI.get_jump_model(container),
+            efficiency.in * fraction_of_hour * sum(charge_var[ci_name, :]) <=
+            cycles_in_horizon * E_max
+        )
+        #end
+    end
+    return
+end
+
+function _add_constraints_cyclingcharge_withreserves!(
+    container::PSI.OptimizationContainer,
+    T::Type{<:CyclingCharge},
+    devices::U,
+    ::W,
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
+    time_steps = PSI.get_time_steps(container)
+    resolution = PSI.get_resolution(container)
+    fraction_of_hour = Dates.value(Dates.Minute(resolution)) / PSI.MINUTES_IN_HOUR
+    names = [PSY.get_name(d) for d in devices]
+    charge_var = PSI.get_variable(container, BatteryCharge(), D)
+    ch_served_reg_up = PSI.get_expression(container, ChargeServedReserveUpExpression(), D)
+    ch_served_reg_dn = PSI.get_expression(container, ChargeServedReserveDownExpression(), D)
+    con_cycling_ch = PSI.add_constraints_container!(container, T(), D, names)
+    for device in devices
+        ci_name = PSY.get_name(device)
+        storage = PSY.get_storage(device)
+        efficiency = PSY.get_efficiency(storage)
+        E_max = PSY.get_state_of_charge_limits(storage).max
+        cycles_per_day = PSY.get_cycle_limits(storage)
+        cycles_in_horizon =
+            cycles_per_day * fraction_of_hour * length(time_steps) / HOURS_IN_DAY
+        con_cycling_ch[ci_name] = JuMP.@constraint(
+            PSI.get_jump_model(container),
+            efficiency.in *
+            fraction_of_hour *
+            sum(
+                charge_var[ci_name, :] + ch_served_reg_dn[ci_name, :] -
+                ch_served_reg_up[ci_name, :],
+            ) <= cycles_in_horizon * E_max
+        )
+        #=
         if PSI.built_for_recurrent_solves(container)
             param_value =
                 PSI.get_parameter_array(container, CyclingChargeLimitParameter(), D)[ci_name]
             con_cycling_ch[ci_name] = JuMP.@constraint(
                 PSI.get_jump_model(container),
-                efficiency.in * fraction_of_hour * sum(charge_var[ci_name, :]) <=
-                param_value
+                efficiency.in *
+                fraction_of_hour *
+                sum(
+                    charge_var[ci_name, :] + ch_served_reg_dn[ci_name, :] -
+                    ch_served_reg_up[ci_name, :],
+                ) <= param_value
             )
         else
             E_max = PSY.get_state_of_charge_limits(storage).max
@@ -906,10 +968,15 @@ function _add_constraints_cyclingcharge!(
                 cycles_per_day * fraction_of_hour * length(time_steps) / HOURS_IN_DAY
             con_cycling_ch[ci_name] = JuMP.@constraint(
                 PSI.get_jump_model(container),
-                efficiency.in * fraction_of_hour * sum(charge_var[ci_name, :]) <=
-                cycles_in_horizon * E_max
+                efficiency.in *
+                fraction_of_hour *
+                sum(
+                    charge_var[ci_name, :] + ch_served_reg_dn[ci_name, :] -
+                    ch_served_reg_up[ci_name, :],
+                ) <= cycles_in_horizon * E_max
             )
         end
+        =#
     end
     return
 end
@@ -957,7 +1024,12 @@ function PSI.add_constraints!(
     W <: AbstractHybridFormulation,
 } where {D <: PSY.HybridSystem}
     if PSI.get_attribute(model, "cycling")
-        _add_constraints_cyclingcharge!(container, T, devices, W())
+        has_services = PSI.has_service_model(model)
+        if !has_services
+            _add_constraints_cyclingcharge!(container, T, devices, W())
+        else
+            _add_constraints_cyclingcharge_withreserves!(container, T, devices, W())
+        end
     end
     return
 end
@@ -982,6 +1054,66 @@ function _add_constraints_cyclingdischarge!(
         ci_name = PSY.get_name(device)
         storage = PSY.get_storage(device)
         efficiency = PSY.get_efficiency(storage)
+        #if PSI.built_for_recurrent_solves(container)
+        #    param_value =
+        #        PSI.get_parameter_array(container, CyclingDischargeLimitParameter(), D)[ci_name]
+        #    con_cycling_ds[ci_name] = JuMP.@constraint(
+        #        PSI.get_jump_model(container),
+        #        (1.0 / efficiency.out) *
+        #        fraction_of_hour *
+        #        sum(discharge_var[ci_name, :]) <= param_value
+        #    )
+        #else
+        E_max = PSY.get_state_of_charge_limits(storage).max
+        cycles_per_day = PSY.get_cycle_limits(storage)
+        cycles_in_horizon =
+            cycles_per_day * fraction_of_hour * length(time_steps) / HOURS_IN_DAY
+        con_cycling_ds[ci_name] = JuMP.@constraint(
+            PSI.get_jump_model(container),
+            (1.0 / efficiency.out) * fraction_of_hour * sum(discharge_var[ci_name, :]) <= cycles_in_horizon * E_max
+        )
+        #end
+    end
+    return
+end
+
+function _add_constraints_cyclingdischarge_withreserves!(
+    container::PSI.OptimizationContainer,
+    T::Type{<:CyclingDischarge},
+    devices::U,
+    ::W,
+) where {
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
+    time_steps = PSI.get_time_steps(container)
+    resolution = PSI.get_resolution(container)
+    fraction_of_hour = Dates.value(Dates.Minute(resolution)) / PSI.MINUTES_IN_HOUR
+    names = [PSY.get_name(d) for d in devices]
+    discharge_var = PSI.get_variable(container, BatteryDischarge(), D)
+    ds_served_reg_up =
+        PSI.get_expression(container, DischargeServedReserveUpExpression(), D)
+    ds_served_reg_dn =
+        PSI.get_expression(container, DischargeServedReserveDownExpression(), D)
+    con_cycling_ds = PSI.add_constraints_container!(container, T(), D, names)
+    for device in devices
+        ci_name = PSY.get_name(device)
+        storage = PSY.get_storage(device)
+        efficiency = PSY.get_efficiency(storage)
+        E_max = PSY.get_state_of_charge_limits(storage).max
+        cycles_per_day = PSY.get_cycle_limits(storage)
+        cycles_in_horizon =
+            cycles_per_day * fraction_of_hour * length(time_steps) / HOURS_IN_DAY
+        con_cycling_ds[ci_name] = JuMP.@constraint(
+            PSI.get_jump_model(container),
+            (1.0 / efficiency.out) *
+            fraction_of_hour *
+            sum(
+                discharge_var[ci_name, :] + ds_served_reg_up[ci_name, :] -
+                ds_served_reg_dn[ci_name, :],
+            ) <= cycles_in_horizon * E_max
+        )
+        #=
         if PSI.built_for_recurrent_solves(container)
             param_value =
                 PSI.get_parameter_array(container, CyclingDischargeLimitParameter(), D)[ci_name]
@@ -989,7 +1121,10 @@ function _add_constraints_cyclingdischarge!(
                 PSI.get_jump_model(container),
                 (1.0 / efficiency.out) *
                 fraction_of_hour *
-                sum(discharge_var[ci_name, :]) <= param_value
+                sum(
+                    discharge_var[ci_name, :] + ds_served_reg_up[ci_name, :] -
+                    ds_served_reg_dn[ci_name, :],
+                ) <= param_value
             )
         else
             E_max = PSY.get_state_of_charge_limits(storage).max
@@ -1000,9 +1135,13 @@ function _add_constraints_cyclingdischarge!(
                 PSI.get_jump_model(container),
                 (1.0 / efficiency.out) *
                 fraction_of_hour *
-                sum(discharge_var[ci_name, :]) <= cycles_in_horizon * E_max
+                sum(
+                    discharge_var[ci_name, :] + ds_served_reg_up[ci_name, :] -
+                    ds_served_reg_dn[ci_name, :],
+                ) <= cycles_in_horizon * E_max
             )
         end
+        =#
     end
     return
 end
@@ -1050,7 +1189,12 @@ function PSI.add_constraints!(
     W <: AbstractHybridFormulation,
 } where {D <: PSY.HybridSystem}
     if PSI.get_attribute(model, "cycling")
-        _add_constraints_cyclingdischarge!(container, T, devices, W())
+        has_services = PSI.has_service_model(model)
+        if !has_services
+            _add_constraints_cyclingdischarge!(container, T, devices, W())
+        else
+            _add_constraints_cyclingdischarge_withreserves!(container, T, devices, W())
+        end
     end
     return
 end
@@ -1107,7 +1251,8 @@ function PSI.add_constraints!(
     reg_var = PSI.get_variable(container, ChargeRegularizationVariable(), V)
     powerin_var = PSI.get_variable(container, BatteryCharge(), V)
     has_services = PSI.has_service_model(model)
-
+    if has_services
+    end
     constraint_ub = PSI.add_constraints_container!(
         container,
         ChargeRegularizationConstraint(),
@@ -1127,74 +1272,36 @@ function PSI.add_constraints!(
     )
 
     if has_services
-        services = Set()
-        for d in devices
-            union!(services, PSY.get_services(d))
-        end
+        ch_served_reg_up =
+            PSI.get_expression(container, ChargeServedReserveUpExpression(), V)
+        ch_served_reg_dn =
+            PSI.get_expression(container, ChargeServedReserveDownExpression(), V)
         for device in devices
             ci_name = PSY.get_name(device)
-            deployed_r_up_ch = Set()
-            deployed_r_dn_ch = Set()
-            for service in services
-                service_name = PSY.get_name(service)
-                if typeof(service) <: PSY.VariableReserve{PSY.ReserveUp}
-                    res_ch = PSI.get_variable(
-                        container,
-                        ChargingReserveVariable(),
-                        typeof(service),
-                        service_name,
-                    )
-                    push!(
-                        deployed_r_up_ch,
-                        PSY.get_deployed_fraction(service) * res_ch[ci_name, :],
-                    )
-                elseif typeof(service) <: PSY.VariableReserve{PSY.ReserveDown}
-                    res_ch = PSI.get_variable(
-                        container,
-                        ChargingReserveVariable(),
-                        typeof(service),
-                        service_name,
-                    )
-                    push!(
-                        deployed_r_dn_ch,
-                        PSY.get_deployed_fraction(service) * res_ch[ci_name, :],
-                    )
-                end
-            end
             constraint_ub[ci_name, 1] =
                 JuMP.@constraint(PSI.get_jump_model(container), reg_var[ci_name, 1] == 0)
             constraint_lb[ci_name, 1] =
                 JuMP.@constraint(PSI.get_jump_model(container), reg_var[ci_name, 1] == 0)
             for t in time_steps[2:end]
-                total_reg_up_now = JuMP.AffExpr()
-                total_reg_dn_now = JuMP.AffExpr()
-                total_reg_up_before = JuMP.AffExpr()
-                total_reg_dn_before = JuMP.AffExpr()
-                for rup in deployed_r_up_ch
-                    JuMP.add_to_expression!(total_reg_up_now, rup[t])
-                    JuMP.add_to_expression!(total_reg_up_before, rup[t - 1])
-                end
-                for rdn in deployed_r_dn_ch
-                    JuMP.add_to_expression!(total_reg_dn_now, rdn[t])
-                    JuMP.add_to_expression!(total_reg_dn_before, rdn[t - 1])
-                end
                 constraint_ub[ci_name, t] = JuMP.@constraint(
                     PSI.get_jump_model(container),
                     (
-                        powerin_var[ci_name, t - 1] - total_reg_up_before +
-                        total_reg_dn_before
-                    ) -
-                    (powerin_var[ci_name, t] - total_reg_up_now + total_reg_dn_now) <=
-                    reg_var[ci_name, t]
+                        powerin_var[ci_name, t - 1] - ch_served_reg_up[ci_name, t - 1] +
+                        ch_served_reg_dn[ci_name, t - 1]
+                    ) - (
+                        powerin_var[ci_name, t] - ch_served_reg_up[ci_name, t] +
+                        ch_served_reg_dn[ci_name, t]
+                    ) <= reg_var[ci_name, t]
                 )
                 constraint_lb[ci_name, t] = JuMP.@constraint(
                     PSI.get_jump_model(container),
                     (
-                        powerin_var[ci_name, t - 1] - total_reg_up_before +
-                        total_reg_dn_before
-                    ) -
-                    (powerin_var[ci_name, t] - total_reg_up_now + total_reg_dn_now) >=
-                    -reg_var[ci_name, t]
+                        powerin_var[ci_name, t - 1] - ch_served_reg_up[ci_name, t - 1] +
+                        ch_served_reg_dn[ci_name, t - 1]
+                    ) - (
+                        powerin_var[ci_name, t] - ch_served_reg_up[ci_name, t] +
+                        ch_served_reg_dn[ci_name, t]
+                    ) >= -reg_var[ci_name, t]
                 )
             end
         end
@@ -1258,74 +1365,36 @@ function PSI.add_constraints!(
     )
 
     if has_services
-        services = Set()
-        for d in devices
-            union!(services, PSY.get_services(d))
-        end
+        ds_served_reg_up =
+            PSI.get_expression(container, DischargeServedReserveUpExpression(), V)
+        ds_served_reg_dn =
+            PSI.get_expression(container, DischargeServedReserveDownExpression(), V)
         for device in devices
             ci_name = PSY.get_name(device)
-            deployed_r_up_ds = Set()
-            deployed_r_dn_ds = Set()
-            for service in services
-                service_name = PSY.get_name(service)
-                if typeof(service) <: PSY.VariableReserve{PSY.ReserveUp}
-                    res_ds = PSI.get_variable(
-                        container,
-                        DischargingReserveVariable(),
-                        typeof(service),
-                        service_name,
-                    )
-                    push!(
-                        deployed_r_up_ds,
-                        PSY.get_deployed_fraction(service) * res_ds[ci_name, :],
-                    )
-                elseif typeof(service) <: PSY.VariableReserve{PSY.ReserveDown}
-                    res_ds = PSI.get_variable(
-                        container,
-                        DischargingReserveVariable(),
-                        typeof(service),
-                        service_name,
-                    )
-                    push!(
-                        deployed_r_dn_ds,
-                        PSY.get_deployed_fraction(service) * res_ds[ci_name, :],
-                    )
-                end
-            end
             constraint_ub[ci_name, 1] =
                 JuMP.@constraint(PSI.get_jump_model(container), reg_var[ci_name, 1] == 0)
             constraint_lb[ci_name, 1] =
                 JuMP.@constraint(PSI.get_jump_model(container), reg_var[ci_name, 1] == 0)
             for t in time_steps[2:end]
-                total_reg_up_now = JuMP.AffExpr()
-                total_reg_dn_now = JuMP.AffExpr()
-                total_reg_up_before = JuMP.AffExpr()
-                total_reg_dn_before = JuMP.AffExpr()
-                for rup in deployed_r_up_ds
-                    JuMP.add_to_expression!(total_reg_up_now, rup[t])
-                    JuMP.add_to_expression!(total_reg_up_before, rup[t - 1])
-                end
-                for rdn in deployed_r_dn_ds
-                    JuMP.add_to_expression!(total_reg_dn_now, rdn[t])
-                    JuMP.add_to_expression!(total_reg_dn_before, rdn[t - 1])
-                end
                 constraint_ub[ci_name, t] = JuMP.@constraint(
                     PSI.get_jump_model(container),
                     (
-                        powerout_var[ci_name, t - 1] + total_reg_up_before -
-                        total_reg_dn_before
-                    ) -
-                    (powerout_var[ci_name, t] + total_reg_up_now - total_reg_dn_now) <=
-                    reg_var[ci_name, t]
+                        powerout_var[ci_name, t - 1] + ds_served_reg_up[ci_name, t - 1] -
+                        ds_served_reg_dn[ci_name, t - 1]
+                    ) - (
+                        powerout_var[ci_name, t] + ds_served_reg_up[ci_name, t] -
+                        ds_served_reg_dn[ci_name, t]
+                    ) <= reg_var[ci_name, t]
                 )
                 constraint_lb[ci_name, t] = JuMP.@constraint(
                     PSI.get_jump_model(container),
                     (
-                        powerout_var[ci_name, t - 1] + total_reg_up_before -
-                        total_reg_dn_before
-                    ) -
-                    (powerout_var[ci_name, t] + total_reg_up_now - total_reg_dn_now) >=
-                    -reg_var[ci_name, t]
+                        powerout_var[ci_name, t - 1] + ds_served_reg_up[ci_name, t - 1] -
+                        ds_served_reg_dn[ci_name, t - 1]
+                    ) - (
+                        powerout_var[ci_name, t] + ds_served_reg_up[ci_name, t] -
+                        ds_served_reg_dn[ci_name, t]
+                    ) >= -reg_var[ci_name, t]
                 )
             end
         end

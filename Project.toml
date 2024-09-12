@@ -1,6 +1,6 @@
 name = "HybridSystemsSimulations"
 uuid = "bed98974-b02a-5e2f-9ee0-a103f5c450dd"
-version = "0.4.0"
+version = "0.5.0"
 
 [deps]
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
@@ -17,6 +17,6 @@ DataStructures = "~0.18"
 DocStringExtensions = "~0.8, ~0.9"
 JuMP = "1"
 MathOptInterface = "1"
-PowerSimulations = "^0.27"
-PowerSystems = "3"
+PowerSimulations = "^0.28"
+PowerSystems = "4"
 julia = "^1.6"

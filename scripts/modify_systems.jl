@@ -2,7 +2,9 @@ function modify_ren_curtailment_cost!(sys)
     rdispatch = get_components(RenewableDispatch, sys)
     for ren in rdispatch
         # We consider 15 $/MWh as a reasonable cost for renewable curtailment
-        cost = TwoPartCost(15.0, 0.0)
+        # cost = TwoPartCost(15.0, 0.0)
+        cost = RenewableGenerationCost(nothing)
+        set_variable!(cost, CostCurve(LinearCurve(15.0)))
         set_operation_cost!(ren, cost)
     end
     th_cheap = get_component(ThermalStandard, sys, "101_STEAM_3")
@@ -19,13 +21,14 @@ function _build_battery(
     efficiency_out,
 )
     name = string(bus.number) * "_BATTERY"
-    device = BatteryEMS(;
+    device = EnergyReservoirStorage(;
         name=name,
         available=true,
         bus=bus,
         prime_mover_type=PSY.PrimeMovers.BA,
-        initial_energy=0.0,
-        state_of_charge_limits=(min=energy_capacity * 0.0, max=energy_capacity),
+        # HSA - 9/26/2024 - initial_energy=0.0,
+        storage_technology_type=StorageTech.LIB,
+        #state_of_charge_limits=(min=energy_capacity * 0.0, max=energy_capacity),
         rating=rating,
         active_power=rating,
         input_active_power_limits=(min=0.0, max=rating),
@@ -37,6 +40,9 @@ function _build_battery(
         operation_cost=PSY.StorageCost(),
         storage_target=energy_capacity / 2.0,
         cycle_limits=1.0,
+        storage_capacity=energy_capacity,
+        storage_level_limits=(min = 0.0, max = 1),
+        initial_storage_capacity_level = 0.0
     )
     return device
 end
@@ -52,7 +58,9 @@ function add_hybrid_to_chuhsi_bus!(sys::System; ren_name="317_WIND_1")
     bus = get_component(Bus, sys, "Chuhsi")
     bat = _build_battery(bus, 4.0, 1.0, 0.93, 0.93)
     op_cost = get_operation_cost(bat)
-    op_cost.variable = VariableCost(2.0)
+    charge_variable_cost = CostCurve(LinearCurve(2.0)) #VariableCost(2.0)
+    op_cost.charge_variable_cost = charge_variable_cost
+    op_cost.discharge_variable_cost = charge_variable_cost
     energy_shortage_cost = 45000.0
     energy_surplus_cost = 0.5
     op_cost.energy_shortage_cost = energy_shortage_cost
@@ -80,7 +88,7 @@ function add_hybrid_to_chuhsi_bus!(sys::System; ren_name="317_WIND_1")
         active_power=1.0,
         reactive_power=0.0,
         base_power=100.0,
-        operation_cost=TwoPartCost(nothing),
+        operation_cost=MarketBidCost(nothing), #TwoPartCost(nothing),
         thermal_unit=thermal, #new_th,
         electric_load=load, #new_load,
         storage=bat,

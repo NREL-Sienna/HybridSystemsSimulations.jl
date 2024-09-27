@@ -22,7 +22,7 @@ function get_rt_max_active_power_series(r_gen, starttime, steps::Int)
     return DataFrame(DateTime=timestamp(ta), MaxPower=values(ta))
 end
 
-function get_battery_params(b_gen::GenericBattery)
+function get_battery_params(b_gen::EnergyReservoirStorage)
     battery_params_names = [
         "initial_energy",
         "SoC_min",

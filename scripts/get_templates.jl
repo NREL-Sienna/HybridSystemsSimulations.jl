@@ -8,7 +8,8 @@
 function set_uc_models!(template_uc)
     set_device_model!(template_uc, ThermalStandard, ThermalBasicUnitCommitment)
     set_device_model!(template_uc, RenewableDispatch, RenewableFullDispatch)
-    set_device_model!(template_uc, RenewableFix, FixedOutput)
+    set_device_model!(template_uc, RenewableNonDispatch, FixedOutput)
+    # set_device_model!(template_uc, RenewableFix, FixedOutput)
     set_device_model!(template_uc, PowerLoad, StaticPowerLoad)
     set_device_model!(template_uc, Transformer2W, StaticBranchUnbounded)
     set_device_model!(template_uc, TapTransformer, StaticBranchUnbounded)
@@ -21,7 +22,8 @@ function set_uc_models!(template_uc)
             attributes=Dict{String, Any}("cycling" => false, "regularization" => false),
         ),
     )
-    set_device_model!(template_uc, GenericBattery, StorageDispatchWithReserves)
+    #set_device_model!(template_uc, GenericBattery, StorageDispatchWithReserves)
+    set_device_model!(template_uc, EnergyReservoirStorage, StorageDispatchWithReserves)
     set_service_model!(template_uc, ServiceModel(VariableReserve{ReserveUp}, RangeReserve))
     set_service_model!(
         template_uc,

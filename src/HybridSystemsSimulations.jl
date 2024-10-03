@@ -71,6 +71,7 @@ const PSI = PowerSimulations
 const PSY = PowerSystems
 const PM = PSI.PM
 const IS = PSI.IS
+const ISOPT = IS.Optimization
 
 using DocStringExtensions
 @template (FUNCTIONS, METHODS) = """

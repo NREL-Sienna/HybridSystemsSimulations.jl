@@ -16,10 +16,17 @@ PSI.objective_function_multiplier(
 
 PSI.proportional_cost(
     cost::PSY.OperationalCost,
-    ::Union{BatteryCharge, BatteryDischarge},
+    ::BatteryDischarge,
     ::PSY.HybridSystem,
     U::AbstractHybridFormulation,
-) = PSY.get_variable(cost).cost
+) = PSY.get_proportional_term(PSY.get_vom_cost(PSY.get_discharge_variable_cost(cost)))
+
+PSI.proportional_cost(
+    cost::PSY.OperationalCost,
+    ::BatteryCharge,
+    ::PSY.HybridSystem,
+    U::AbstractHybridFormulation,
+) = PSY.get_proportional_term(PSY.get_vom_cost(PSY.get_charge_variable_cost(cost)))
 
 PSI.proportional_cost(
     cost::PSY.StorageCost,
@@ -27,6 +34,7 @@ PSI.proportional_cost(
     ::PSY.HybridSystem,
     U::AbstractHybridFormulation,
 ) = PSY.get_energy_surplus_cost(cost)
+
 PSI.proportional_cost(
     cost::PSY.StorageCost,
     ::BatteryEnergyShortageVariable,

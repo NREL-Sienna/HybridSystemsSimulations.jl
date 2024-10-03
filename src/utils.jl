@@ -17,7 +17,8 @@ function get_time_series(
     component::S,
     subcomponent_type::Type{T},
     parameter::TimeSeriesParameter,
-    meta=CONTAINER_KEY_EMPTY_META,
+    # HSA - 10.02.2024 ---------------
+    meta=ISOPT.CONTAINER_KEY_EMPTY_META,
 ) where {S <: PSY.HybridSystem, T <: PSY.Component}
     parameter_container = get_parameter(container, parameter, S, meta)
     subcomponent = get_subcomponent(component, subcomponent_type)

@@ -16,6 +16,7 @@ const PSY = PowerSystems
 const PSI = PowerSimulations
 const PSB = PowerSystemCaseBuilder
 const HSS = HybridSystemsSimulations
+const IS = InfrastructureSystems
 
 # Load Optimization and Useful Packages
 using JuMP
@@ -80,15 +81,12 @@ add_hybrid_to_chuhsi_bus!(sys_rts_da)
 modify_ren_curtailment_cost!(sys_rts_rt)
 add_hybrid_to_chuhsi_bus!(sys_rts_rt)
 
-#interval_DA = Hour(24)
-#horizon_DA = 72
+# Define DA and RT intervals and horizon. It must be ::Periods
 interval_DA = Hour(24)
-horizon_DA = 72
+horizon_DA = Hour(72)
 transform_single_time_series!(sys_rts_da, horizon_DA, interval_DA)
-#interval_RT = Minute(5)
-#horizon_RT = 24
 interval_RT = Hour(1)
-horizon_RT = 12
+horizon_RT = Hour(12)
 transform_single_time_series!(sys_rts_rt, horizon_RT, interval_RT)
 
 served_fraction_map = Dict(
@@ -241,7 +239,7 @@ sequence = SimulationSequence(
                 component_type=PSY.HybridSystem,
                 source=HSS.CyclingChargeUsage,
                 affected_values=[HSS.CyclingChargeLimitParameter],
-                penalty_cost=0.0,
+                penalty_cost=0.0
             ),
             CyclingDischargeLimitFeedforward(
                 component_type=PSY.HybridSystem,

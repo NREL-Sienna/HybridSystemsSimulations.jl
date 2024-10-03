@@ -7,7 +7,7 @@ struct CyclingChargeLimitFeedforward <: PSI.AbstractAffectFeedforward
         source::Type{T},
         affected_values::Vector{DataType},
         penalty_cost::Float64,
-        meta=PSI.CONTAINER_KEY_EMPTY_META,
+        meta=ISOPT.CONTAINER_KEY_EMPTY_META,
     ) where {T}
         values_vector = Vector{PSI.ParameterKey}(undef, length(affected_values))
         for (ix, v) in enumerate(affected_values)
@@ -42,7 +42,7 @@ struct CyclingDischargeLimitFeedforward <: PSI.AbstractAffectFeedforward
         source::Type{T},
         affected_values::Vector{DataType},
         penalty_cost::Float64,
-        meta=PSI.CONTAINER_KEY_EMPTY_META,
+        meta=ISOPT.CONTAINER_KEY_EMPTY_META,
     ) where {T}
         values_vector = Vector{PSI.ParameterKey}(undef, length(affected_values))
         for (ix, v) in enumerate(affected_values)

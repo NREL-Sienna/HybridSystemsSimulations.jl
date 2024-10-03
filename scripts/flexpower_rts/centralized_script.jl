@@ -17,6 +17,8 @@ const PSI = PowerSimulations
 const PSB = PowerSystemCaseBuilder
 const HSS = HybridSystemsSimulations
 const IS = InfrastructureSystems
+const ISOPT = IS.Optimization 
+#const CONTAINER_KEY_EMPTY_META = 0.0
 
 # Load Optimization and Useful Packages
 using JuMP

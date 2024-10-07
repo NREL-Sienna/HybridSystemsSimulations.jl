@@ -252,8 +252,10 @@ sequence = SimulationSequence(
     ini_cond_chronology=InterProblemChronology(),
 )
 
+starttime_str = string(starttime)
+starttime_str = replace(starttime_str, ":" => "-")
 sim_dcp = Simulation(
-    name="centralized_sim_$(formulation)_$(starttime)",
+    name="centralized_sim_$(formulation)_$(starttime_str)",
     steps=num_steps,
     models=models,
     sequence=sequence,
@@ -261,5 +263,10 @@ sim_dcp = Simulation(
     simulation_folder=".",
 )
 
-build_dcp = build!(sim_dcp; console_level=Logging.Info, serialize=false)
+build_dcp = build!(
+    sim_dcp;
+    console_level=Logging.Info, 
+    serialize=false,
+    )
+
 execute_status = execute!(sim_dcp; enable_progress_bar=true)

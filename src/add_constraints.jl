@@ -935,7 +935,7 @@ function _add_constraints_cyclingcharge_withreserves!(
         ci_name = PSY.get_name(device)
         storage = PSY.get_storage(device)
         efficiency = PSY.get_efficiency(storage)
-        E_max = PSY.get_state_of_charge_limits(storage).max
+        E_max = PSY.get_storage_level_limits(storage).max
         cycles_per_day = PSY.get_cycle_limits(storage)
         cycles_in_horizon =
             cycles_per_day * fraction_of_hour * length(time_steps) / HOURS_IN_DAY
@@ -1100,7 +1100,7 @@ function _add_constraints_cyclingdischarge_withreserves!(
         ci_name = PSY.get_name(device)
         storage = PSY.get_storage(device)
         efficiency = PSY.get_efficiency(storage)
-        E_max = PSY.get_state_of_charge_limits(storage).max
+        E_max = PSY.get_storage_level_limits(storage).max
         cycles_per_day = PSY.get_cycle_limits(storage)
         cycles_in_horizon =
             cycles_per_day * fraction_of_hour * length(time_steps) / HOURS_IN_DAY
@@ -1622,7 +1622,7 @@ function _add_constraints_reservecoverage_withreserves!(
         ci_name = PSY.get_name(device)
         storage = PSY.get_storage(device)
         efficiency = PSY.get_efficiency(storage).in
-        E_max = PSY.get_state_of_charge_limits(storage).max
+        E_max = PSY.get_storage_level_limits(storage).max
         sustained_param = efficiency * num_periods * fraction_of_hour
         con[ci_name, 1] = JuMP.@constraint(
             container.JuMPmodel,
@@ -1751,7 +1751,7 @@ function _add_constraints_reservecoverage_withreserves_endofperiod!(
     for device in devices, t in time_steps
         ci_name = PSY.get_name(device)
         storage = PSY.get_storage(device)
-        E_max = PSY.get_state_of_charge_limits(storage).max
+        E_max = PSY.get_storage_level_limits(storage).max
         efficiency = PSY.get_efficiency(storage).in
         sustained_param = efficiency * fraction_of_hour * num_periods
         con[ci_name, t] = JuMP.@constraint(

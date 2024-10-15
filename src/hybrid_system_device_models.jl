@@ -395,7 +395,8 @@ PSI.get_initial_parameter_value(
     ::AbstractHybridFormulation,
 ) =
     PSY.get_cycle_limits(PSY.get_storage(d)) *
-    PSY.get_state_of_charge_limits(PSY.get_storage(d)).max
+    PSY.get_storage_level_limits(PSY.get_storage(d)).max
+    #PSY.get_state_of_charge_limits(PSY.get_storage(d)).max
 
 ###################################################################
 ######################## Initial Conditions #######################

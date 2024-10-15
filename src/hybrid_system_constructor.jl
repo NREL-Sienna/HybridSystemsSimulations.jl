@@ -896,7 +896,7 @@ function PSI.construct_device!(
     D <: HybridDispatchWithReserves,
     S <: PM.AbstractActivePowerModel,
 }
-    devices = PSI.get_available_components(T, sys)
+    devices = PSY.get_available_components(T, sys)
 
     # Constraints
     PSI.add_constraints!(

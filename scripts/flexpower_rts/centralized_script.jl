@@ -149,7 +149,7 @@ set_device_model!(
     DeviceModel(
         PSY.HybridSystem,
         formulation;
-        attributes=Dict{String, Any}(
+        attributes=Dict{String,Any}(
             "reservation" => true,
             "storage_reservation" => true,
             "energy_target" => false,
@@ -164,7 +164,7 @@ set_device_model!(
     DeviceModel(
         PSY.HybridSystem,
         formulation;
-        attributes=Dict{String, Any}(
+        attributes=Dict{String,Any}(
             "reservation" => true,
             "storage_reservation" => true,
             "energy_target" => false,
@@ -235,18 +235,18 @@ sequence = SimulationSequence(
                 affected_values=[ActivePowerReserveVariable],
                 add_slacks=true,
             ),
-            CyclingChargeLimitFeedforward(
-                component_type=PSY.HybridSystem,
-                source=HSS.CyclingChargeUsage,
-                affected_values=[HSS.CyclingChargeLimitParameter],
-                penalty_cost=0.0
-            ),
-            CyclingDischargeLimitFeedforward(
-                component_type=PSY.HybridSystem,
-                source=HSS.CyclingDischargeUsage,
-                affected_values=[HSS.CyclingDischargeLimitParameter],
-                penalty_cost=0.0,
-            ),
+            # CyclingChargeLimitFeedforward(
+            #     component_type=PSY.HybridSystem,
+            #     source=HSS.CyclingChargeUsage,
+            #     affected_values=[HSS.CyclingChargeLimitParameter],
+            #     penalty_cost=0.0
+            # ),
+            # CyclingDischargeLimitFeedforward(
+            #     component_type=PSY.HybridSystem,
+            #     source=HSS.CyclingDischargeUsage,
+            #     affected_values=[HSS.CyclingDischargeLimitParameter],
+            #     penalty_cost=0.0,
+            # ),
         ],
     ),
     ini_cond_chronology=InterProblemChronology(),
@@ -265,8 +265,8 @@ sim_dcp = Simulation(
 
 build_dcp = build!(
     sim_dcp;
-    console_level=Logging.Info, 
+    console_level=Logging.Info,
     serialize=false,
-    )
+)
 
 execute_status = execute!(sim_dcp; enable_progress_bar=true)

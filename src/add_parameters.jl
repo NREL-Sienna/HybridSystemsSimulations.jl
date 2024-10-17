@@ -336,6 +336,49 @@ function _update_parameter_values!(
     return
 end
 
+function PSI._update_parameter_values!(
+    parameter_array::AbstractArray{T},
+    attributes::VariableValueAttributes{VariableKey{U, PSY.HybridSystem}},
+    ::Type{PSY.HybridSystem},
+    model::DecisionModel,
+    state::DatasetContainer{InMemoryDataset},
+) where {T <: Union{JuMP.VariableRef, Float64}, U <: Union{CyclingDischargeUsage, CyclingChargeUsage}}
+    current_time = get_current_time(model)
+    state_values = get_dataset_values(state, get_attribute_key(attributes))
+    component_names, time = axes(parameter_array)
+    model_resolution = get_resolution(model)
+    state_data = get_dataset(state, get_attribute_key(attributes))
+    state_timestamps = state_data.timestamps
+    max_state_index = get_num_rows(state_data)
+    if model_resolution < state_data.resolution
+        t_step = 1
+    else
+        t_step = model_resolution ÷ state_data.resolution
+    end
+    state_data_index = find_timestamp_index(state_timestamps, current_time)
+    sim_timestamps = range(current_time; step = model_resolution, length = time[end])
+    for t in time
+        timestamp_ix = min(max_state_index, state_data_index + t_step)
+        @debug "parameter horizon is over the step" max_state_index > state_data_index + 1
+        if state_timestamps[timestamp_ix] <= sim_timestamps[t]
+            state_data_index = timestamp_ix
+        end
+        for name in component_names
+            # Pass indices in this way since JuMP DenseAxisArray don't support view()
+            state_value = state_values[name, state_data_index]
+            if !isfinite(state_value)
+                error(
+                    "The value for the system state used in $(encode_key_as_string(get_attribute_key(attributes))) is not a finite value $(state_value) \
+                     This is commonly caused by referencing a state value at a time when such decision hasn't been made. \
+                     Consider reviewing your models' horizon and interval definitions",
+                )
+            end
+            _set_param_value!(parameter_array, state_value, name, t)
+        end
+    end
+    return
+end
+
 # Container for Total Reserve #
 
 function PSI._set_param_value!(

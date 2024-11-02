@@ -9,7 +9,7 @@ function PSI.construct_device!(
     model::PSI.DeviceModel{T, D},
     network_model::PSI.NetworkModel{S},
 ) where {T <: PSY.HybridSystem, D <: HybridEnergyOnlyDispatch, S <: PM.AbstractPowerModel}
-    devices = PSI.get_available_components(T, sys)
+    devices = PSI.get_available_components(model, sys)
     # Add Common Variables
     PSI.add_variables!(container, PSI.ActivePowerOutVariable, devices, D())
     PSI.add_variables!(container, PSI.ActivePowerInVariable, devices, D())
@@ -128,6 +128,9 @@ function PSI.construct_device!(
     return
 end
 
+
+
+
 ###################################################################
 ########## Model Constructor for Hybrid Energy Only  ##############
 ###################################################################
@@ -143,7 +146,7 @@ function PSI.construct_device!(
     D <: HybridEnergyOnlyDispatch,
     S <: PM.AbstractActivePowerModel,
 }
-    devices = PSI.get_available_components(T, sys)
+    devices = PSI.get_available_components(model, sys)
 
     # Constraints
     PSI.add_constraints!(
@@ -896,7 +899,7 @@ function PSI.construct_device!(
     D <: HybridDispatchWithReserves,
     S <: PM.AbstractActivePowerModel,
 }
-    devices = PSY.get_available_components(T, sys)
+    devices = PSY.get_available_components(model, sys)
 
     # Constraints
     PSI.add_constraints!(
@@ -1109,7 +1112,7 @@ function PSI.construct_device!(
     model::PSI.DeviceModel{T, D},
     network_model::PSI.NetworkModel{S},
 ) where {T <: PSY.HybridSystem, D <: HybridFixedDA, S <: PM.AbstractPowerModel}
-    devices = PSI.get_available_components(T, sys)
+    devices = PSI.get_available_components(model, sys)
     # Add Common Variables
     PSI.add_variables!(container, PSI.ActivePowerOutVariable, devices, D())
     PSI.add_variables!(container, PSI.ActivePowerInVariable, devices, D())
@@ -1151,7 +1154,7 @@ function PSI.construct_device!(
     model::PSI.DeviceModel{T, D},
     network_model::PSI.NetworkModel{S},
 ) where {T <: PSY.HybridSystem, D <: HybridFixedDA, S <: PM.AbstractActivePowerModel}
-    devices = PSI.get_available_components(T, sys)
+    devices = PSI.get_available_components(model, sys)
 
     # Constraints
     PSI.add_constraints!(

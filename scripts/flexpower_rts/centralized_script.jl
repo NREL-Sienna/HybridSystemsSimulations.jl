@@ -174,6 +174,24 @@ set_device_model!(
     ),
 )
 
+template_pf_copperplate = deepcopy(template_ed_copperplate)
+empty!(template_pf_copperplate.services)
+
+set_device_model!(
+    template_pf_copperplate,
+    DeviceModel(
+        PSY.HybridSystem,
+        HybridEnergyOnlyDispatch;
+        attributes=Dict{String,Any}(
+            "reservation" => true,
+            "storage_reservation" => true,
+            "energy_target" => false,
+            "cycling" => false,
+            "regularization" => true,
+        ),
+    ),
+)
+
 ###############################
 ###### Simulation Params ######
 ###############################
@@ -211,6 +229,15 @@ models = SimulationModels(
             #export_pwl_vars = true,
         ),
     ],
+    emulation_model = EmulationModel(
+        template_pf_copperplate,
+        sys_rts_rt;
+        name = "PF",
+        optimizer = optimizer_with_attributes(
+            Gurobi.Optimizer,
+            "MIPGap" => 0.01       # Set the relative mip gap tolerance
+        ),
+    )
 )
 
 # Set-up the sequence UC-ED
@@ -235,18 +262,25 @@ sequence = SimulationSequence(
                 affected_values=[ActivePowerReserveVariable],
                 add_slacks=true,
             ),
-            # CyclingChargeLimitFeedforward(
-            #     component_type=PSY.HybridSystem,
-            #     source=HSS.CyclingChargeUsage,
-            #     affected_values=[HSS.CyclingChargeLimitParameter],
-            #     penalty_cost=0.0
-            # ),
-            # CyclingDischargeLimitFeedforward(
-            #     component_type=PSY.HybridSystem,
-            #     source=HSS.CyclingDischargeUsage,
-            #     affected_values=[HSS.CyclingDischargeLimitParameter],
-            #     penalty_cost=0.0,
-            # ),
+            CyclingChargeLimitFeedforward(
+                component_type=PSY.HybridSystem,
+                source=HSS.CyclingChargeUsage,
+                affected_values=[HSS.CyclingChargeLimitParameter],
+                penalty_cost=0.0
+            ),
+            CyclingDischargeLimitFeedforward(
+                component_type=PSY.HybridSystem,
+                source=HSS.CyclingDischargeUsage,
+                affected_values=[HSS.CyclingDischargeLimitParameter],
+                penalty_cost=0.0,
+            ),
+        ],
+        "PF" => [
+            SemiContinuousFeedforward(;
+                component_type = ThermalStandard,
+                source = OnVariable,
+                affected_values = [ActivePowerVariable],
+            ),
         ],
     ),
     ini_cond_chronology=InterProblemChronology(),
@@ -270,3 +304,6 @@ build_dcp = build!(
 )
 
 execute_status = execute!(sim_dcp; enable_progress_bar=true)
+
+
+

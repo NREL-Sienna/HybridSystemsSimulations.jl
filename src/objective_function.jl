@@ -47,14 +47,14 @@ PSI.proportional_cost(
     ::ChargeRegularizationVariable,
     ::PSY.HybridSystem,
     W::AbstractHybridFormulationWithReserves,
-) = REG_COST #PSY.get_charge_variable_cost(cost)
+) = REG_COST #PSY.get_charge_variable_cost(cost) # PSY.charge_variable_cost(cost) #REG_COST
 
 PSI.proportional_cost(
     cost::PSY.StorageCost,
     ::DischargeRegularizationVariable,
     ::PSY.HybridSystem,
     W::AbstractHybridFormulationWithReserves,
-) = REG_COST #PSY.get_discharge_variable_cost(cost)
+) = REG_COST #PSY.get_discharge_variable_cost(cost) #PSY.discharge_variable_cost(cost) #  #REG_COST
 
 function PSI.proportional_cost(
     cost::PSY.StorageCost,
@@ -62,8 +62,28 @@ function PSI.proportional_cost(
     ::PSY.HybridSystem,
     ::AbstractHybridFormulation,
 )
-    return max(REG_COST, PSY.get_variable(cost).cost * REG_COST)
+    return REG_COST #max(REG_COST, PSY.get_variable(cost).cost * REG_COST)
 end
+
+# HSA 11-6-2024 ===
+# function PSI.proportional_cost(
+#     cost::PSY.StorageCost,
+#     ::ChargeRegularizationVariable,
+#     ::PSY.HybridSystem,
+#     ::AbstractHybridFormulation,
+# )
+#     return max(REG_COST, PSY.charge_variable_cost(cost) * REG_COST)
+# end
+
+# function PSI.proportional_cost(
+#     cost::PSY.StorageCost,
+#     ::DischargeRegularizationVariable,
+#     ::PSY.HybridSystem,
+#     ::AbstractHybridFormulation,
+# )
+#     return max(REG_COST, PSY.discharge_variable_cost(cost) * REG_COST)
+# end
+# HSA 11-6-2024 ===
 
 function PSI.add_proportional_cost!(
     container::PSI.OptimizationContainer,
@@ -123,9 +143,18 @@ function PSI.add_proportional_cost!(
         op_cost_data = PSY.get_operation_cost(PSY.get_storage(d))
         isnothing(op_cost_data) && continue
         cost_term = PSI.proportional_cost(op_cost_data, T(), d, W())
+        # value_curve = PSY.get_value_curve(cost_term)
+        # proportional_term = PSY.get_proportional_term(value_curve)
+
+        # println("===============================================")
+        # println(" ")
+        # println("Proportional term: $proportional_term")
+        # println(" ")
+        # println("===============================================")
         iszero(cost_term) && continue
         for t in PSI.get_time_steps(container)
             PSI._add_proportional_term!(container, T(), d, cost_term * multiplier, t)
+            #PSI._add_proportional_term!(container, T(), d, proportional_term * multiplier, t)
         end
     end
     return

@@ -233,10 +233,7 @@ models = SimulationModels(
         template_pf_copperplate,
         sys_rts_rt;
         name = "PF",
-        optimizer = optimizer_with_attributes(
-            Gurobi.Optimizer,
-            "MIPGap" => 0.01       # Set the relative mip gap tolerance
-        ),
+        optimizer = optimizer,
     )
 )
 
@@ -304,6 +301,3 @@ build_dcp = build!(
 )
 
 execute_status = execute!(sim_dcp; enable_progress_bar=true)
-
-
-

@@ -293,13 +293,13 @@ PSI.get_expression_type_for_reserve(
     ::PSI.ActivePowerReserveVariable,
     ::Type{<:PSY.HybridSystem},
     ::Type{<:PSY.Reserve{PSY.ReserveUp}},
-) = PSI.ActivePowerRangeExpressionUB
+) = ReserveRangeExpressionUB
 
 PSI.get_expression_type_for_reserve(
     ::PSI.ActivePowerReserveVariable,
     ::Type{<:PSY.HybridSystem},
     ::Type{<:PSY.Reserve{PSY.ReserveDown}},
-) = PSI.ActivePowerRangeExpressionLB
+) = ReserveRangeExpressionLB
 
 PSI.get_variable_binary(
     ::ReserveVariableOut,

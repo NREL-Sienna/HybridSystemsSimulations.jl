@@ -1,8 +1,8 @@
 function PSI.calculate_aux_variable_value!(
     container::PSI.OptimizationContainer,
-    ::PSI.AuxVarKey{CyclingChargeUsage,T},
+    ::PSI.AuxVarKey{CyclingChargeUsage, T},
     system::PSY.System,
-) where {T<:PSY.HybridSystem}
+) where {T <: PSY.HybridSystem}
     charge_var = PSI.get_variable(container, BatteryCharge(), T)
     device_names = axes(charge_var)[1]
     # Leave the other stuff the same #
@@ -47,9 +47,9 @@ end
 
 function PSI.calculate_aux_variable_value!(
     container::PSI.OptimizationContainer,
-    ::PSI.AuxVarKey{CyclingDischargeUsage,T},
+    ::PSI.AuxVarKey{CyclingDischargeUsage, T},
     system::PSY.System,
-) where {T<:PSY.HybridSystem}
+) where {T <: PSY.HybridSystem}
     discharge_var = PSI.get_variable(container, BatteryDischarge(), T)
     device_names = axes(discharge_var)[1]
     # Leave the other stuff the same #
@@ -95,10 +95,10 @@ end
 
 function PSI.update_system_state!(
     state::PSI.DatasetContainer{PSI.InMemoryDataset},
-    key::PSI.AuxVarKey{T,PSY.HybridSystem},
+    key::PSI.AuxVarKey{T, PSY.HybridSystem},
     decision_state::PSI.DatasetContainer{PSI.InMemoryDataset},
     simulation_time::Dates.DateTime,
-) where {T<:Union{CyclingDischargeUsage,CyclingChargeUsage}}
+) where {T <: Union{CyclingDischargeUsage, CyclingChargeUsage}}
     decision_dataset = PSI.get_dataset(decision_state, key)
     # Gets the timestamp of the value used for the update, which might not match exactly the
     # simulation time since the value might have not been updated yet
@@ -138,11 +138,11 @@ end
 
 function PSI.update_decision_state!(
     state::PSI.SimulationState,
-    key::PSI.AuxVarKey{T,PSY.HybridSystem},
-    store_data::JuMP.Containers.DenseAxisArray{Float64,2},
+    key::PSI.AuxVarKey{T, PSY.HybridSystem},
+    store_data::JuMP.Containers.DenseAxisArray{Float64, 2},
     simulation_time::Dates.DateTime,
     model_params::PSI.ModelStoreParams,
-) where {T<:Union{CyclingDischargeUsage,CyclingChargeUsage}}
+) where {T <: Union{CyclingDischargeUsage, CyclingChargeUsage}}
     state_data = PSI.get_decision_state_data(state, key)
     column_names = PSI.get_column_names(key, state_data)[1]
     model_resolution = PSI.get_resolution(model_params)
@@ -165,7 +165,7 @@ function PSI.update_decision_state!(
     result_time_index = axes(store_data)[2]
     PSI.set_update_timestamp!(state_data, simulation_time)
     for t in result_time_index
-        state_range = state_data_index:(state_data_index+offset)
+        state_range = state_data_index:(state_data_index + offset)
         for name in column_names, i in state_range
             # TODO: We could also interpolate here
             state_data.values[name, i] = max(0.0, store_data[name, t] / resolution_ratio)

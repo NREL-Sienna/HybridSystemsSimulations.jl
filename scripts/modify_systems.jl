@@ -41,8 +41,8 @@ function _build_battery(
         storage_target=energy_capacity / 2.0,
         cycle_limits=1.0,
         storage_capacity=energy_capacity,
-        storage_level_limits=(min = 0.0, max = 1),
-        initial_storage_capacity_level = 0.0
+        storage_level_limits=(min=0.0, max=1),
+        initial_storage_capacity_level=0.0,
     )
     return device
 end

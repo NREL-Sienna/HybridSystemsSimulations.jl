@@ -342,7 +342,10 @@ function PSI._update_parameter_values!(
     ::Type{PSY.HybridSystem},
     model::PSI.DecisionModel,
     state::PSI.DatasetContainer{PSI.InMemoryDataset},
-) where {T <: Union{JuMP.VariableRef, Float64}, U <: Union{CyclingDischargeUsage, CyclingChargeUsage}}
+) where {
+    T <: Union{JuMP.VariableRef, Float64},
+    U <: Union{CyclingDischargeUsage, CyclingChargeUsage},
+}
     current_time = get_current_time(model)
     state_values = get_dataset_values(state, get_attribute_key(attributes))
     component_names, time = axes(parameter_array)
@@ -356,7 +359,7 @@ function PSI._update_parameter_values!(
         t_step = model_resolution ÷ state_data.resolution
     end
     state_data_index = find_timestamp_index(state_timestamps, current_time)
-    sim_timestamps = range(current_time; step = model_resolution, length = time[end])
+    sim_timestamps = range(current_time; step=model_resolution, length=time[end])
     for t in time
         timestamp_ix = min(max_state_index, state_data_index + t_step)
         @debug "parameter horizon is over the step" max_state_index > state_data_index + 1
@@ -378,7 +381,6 @@ function PSI._update_parameter_values!(
     end
     return
 end
-
 
 # function PSI._update_parameter_values!(
 #     parameter_array::AbstractArray{T},
@@ -423,7 +425,6 @@ end
 #     end
 #     return
 # end
-
 
 # Container for Total Reserve #
 

@@ -25,8 +25,8 @@ sys_rts_realization = build_system(PSISystems, "modified_RTS_GMLC_realization_sy
 template_uc = ProblemTemplate(
     NetworkModel(
         PTDFPowerModel;
-        use_slacks = true,
-        PTDF_matrix = PTDF(sys_rts_da),
+        use_slacks=true,
+        PTDF_matrix=PTDF(sys_rts_da),
         #duals = [CopperPlateBalanceConstraint],
     ),
 )
@@ -34,7 +34,8 @@ template_uc = ProblemTemplate(
 thermal_device_model = DeviceModel(
     ThermalStandard,
     ThermalBasicUnitCommitment;
-    time_series_names = Dict(ActivePowerTimeSeriesParameter => "max_active_power"))
+    time_series_names=Dict(ActivePowerTimeSeriesParameter => "max_active_power"),
+)
 
 set_device_model!(template_uc, thermal_device_model)
 set_device_model!(template_uc, RenewableDispatch, RenewableFullDispatch)
@@ -44,14 +45,8 @@ set_device_model!(template_uc, Transformer2W, StaticBranchUnbounded)
 set_device_model!(template_uc, TapTransformer, StaticBranchUnbounded)
 set_device_model!(template_uc, HydroDispatch, FixedOutput)
 set_device_model!(template_uc, HydroEnergyReservoir, HydroDispatchRunOfRiver)
-set_service_model!(
-    template_uc,
-    ServiceModel(VariableReserve{ReserveUp}, RangeReserve),
-)
-set_service_model!(
-    template_uc,
-    ServiceModel(VariableReserve{ReserveDown}, RangeReserve),
-)
+set_service_model!(template_uc, ServiceModel(VariableReserve{ReserveUp}, RangeReserve))
+set_service_model!(template_uc, ServiceModel(VariableReserve{ReserveDown}, RangeReserve))
 
 template_ed = deepcopy(template_uc)
 set_device_model!(template_ed, ThermalMultiStart, ThermalBasicDispatch)
@@ -64,77 +59,77 @@ set_device_model!(template_ed, Line, StaticBranchUnbounded)
 empty!(template_em.services)
 
 models = SimulationModels(;
-    decision_models = [
+    decision_models=[
         DecisionModel(
             template_uc,
             sys_rts_da;
-            name = "UC",
-            optimizer = optimizer_with_attributes(
+            name="UC",
+            optimizer=optimizer_with_attributes(
                 Gurobi.Optimizer,
-                "MIPGap" => 0.01       # Set the relative mip gap tolerance
+                "MIPGap" => 0.01,       # Set the relative mip gap tolerance
             ),
-            system_to_file = false,
-            initialize_model = false,
-            store_variable_names = true,
-            optimizer_solve_log_print = false,
-            direct_mode_optimizer = true,
-            check_numerical_bounds = false,
-            calculate_conflict = true,
+            system_to_file=false,
+            initialize_model=false,
+            store_variable_names=true,
+            optimizer_solve_log_print=false,
+            direct_mode_optimizer=true,
+            check_numerical_bounds=false,
+            calculate_conflict=true,
         ),
         DecisionModel(
             template_ed,
             sys_rts_rt;
-            name = "ED",
-            optimizer = optimizer_with_attributes(
+            name="ED",
+            optimizer=optimizer_with_attributes(
                 Gurobi.Optimizer,
-                "MIPGap" => 0.01       # Set the relative mip gap tolerance
+                "MIPGap" => 0.01,       # Set the relative mip gap tolerance
             ),
-            system_to_file = false,
-            initialize_model = true,
-            check_numerical_bounds = false,
+            system_to_file=false,
+            initialize_model=true,
+            check_numerical_bounds=false,
             #export_pwl_vars = true,
         ),
     ],
-    emulation_model = EmulationModel(
+    emulation_model=EmulationModel(
         template_em,
         sys_rts_realization;
-        name = "PF",
-        optimizer = optimizer_with_attributes(
+        name="PF",
+        optimizer=optimizer_with_attributes(
             Gurobi.Optimizer,
-            "MIPGap" => 0.01       # Set the relative mip gap tolerance
+            "MIPGap" => 0.01,       # Set the relative mip gap tolerance
         ),
     ),
 )
 
 sequence = SimulationSequence(;
-    models = models,
-    feedforwards = Dict(
+    models=models,
+    feedforwards=Dict(
         "ED" => [
             SemiContinuousFeedforward(;
-                component_type = ThermalStandard,
-                source = OnVariable,
-                affected_values = [ActivePowerVariable],
+                component_type=ThermalStandard,
+                source=OnVariable,
+                affected_values=[ActivePowerVariable],
             ),
         ],
         "PF" => [
             SemiContinuousFeedforward(;
-                component_type = ThermalStandard,
-                source = OnVariable,
-                affected_values = [ActivePowerVariable],
+                component_type=ThermalStandard,
+                source=OnVariable,
+                affected_values=[ActivePowerVariable],
             ),
         ],
     ),
-    ini_cond_chronology = InterProblemChronology(),
+    ini_cond_chronology=InterProblemChronology(),
 )
 
 sim = Simulation(;
-    name = "compact_sim",
-    steps = 3,
-    models = models,
-    sequence = sequence,
-    initial_time = DateTime("2020-01-01T00:00:00"),
-    simulation_folder = mktempdir(; cleanup = true),
+    name="compact_sim",
+    steps=3,
+    models=models,
+    sequence=sequence,
+    initial_time=DateTime("2020-01-01T00:00:00"),
+    simulation_folder=mktempdir(; cleanup=true),
 )
 
-build!(sim; console_level = Logging.Info, serialize = false)
-execute!(sim; enable_progress_bar = true)
+build!(sim; console_level=Logging.Info, serialize=false)
+execute!(sim; enable_progress_bar=true)

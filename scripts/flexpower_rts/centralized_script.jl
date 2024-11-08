@@ -149,7 +149,7 @@ set_device_model!(
     DeviceModel(
         PSY.HybridSystem,
         formulation;
-        attributes=Dict{String,Any}(
+        attributes=Dict{String, Any}(
             "reservation" => true,
             "storage_reservation" => true,
             "energy_target" => false,
@@ -164,7 +164,7 @@ set_device_model!(
     DeviceModel(
         PSY.HybridSystem,
         formulation;
-        attributes=Dict{String,Any}(
+        attributes=Dict{String, Any}(
             "reservation" => true,
             "storage_reservation" => true,
             "energy_target" => false,
@@ -182,7 +182,7 @@ set_device_model!(
     DeviceModel(
         PSY.HybridSystem,
         HybridEnergyOnlyDispatch;
-        attributes=Dict{String,Any}(
+        attributes=Dict{String, Any}(
             "reservation" => true,
             "storage_reservation" => true,
             "energy_target" => false,
@@ -229,12 +229,12 @@ models = SimulationModels(
             #export_pwl_vars = true,
         ),
     ],
-    emulation_model = EmulationModel(
+    emulation_model=EmulationModel(
         template_pf_copperplate,
         sys_rts_rt;
-        name = "PF",
-        optimizer = optimizer,
-    )
+        name="PF",
+        optimizer=optimizer,
+    ),
 )
 
 # Set-up the sequence UC-ED
@@ -263,7 +263,7 @@ sequence = SimulationSequence(
                 component_type=PSY.HybridSystem,
                 source=HSS.CyclingChargeUsage,
                 affected_values=[HSS.CyclingChargeLimitParameter],
-                penalty_cost=0.0
+                penalty_cost=0.0,
             ),
             CyclingDischargeLimitFeedforward(
                 component_type=PSY.HybridSystem,
@@ -274,9 +274,9 @@ sequence = SimulationSequence(
         ],
         "PF" => [
             SemiContinuousFeedforward(;
-                component_type = ThermalStandard,
-                source = OnVariable,
-                affected_values = [ActivePowerVariable],
+                component_type=ThermalStandard,
+                source=OnVariable,
+                affected_values=[ActivePowerVariable],
             ),
         ],
     ),
@@ -294,10 +294,6 @@ sim_dcp = Simulation(
     simulation_folder=".",
 )
 
-build_dcp = build!(
-    sim_dcp;
-    console_level=Logging.Info,
-    serialize=false,
-)
+build_dcp = build!(sim_dcp; console_level=Logging.Info, serialize=false)
 
 execute_status = execute!(sim_dcp; enable_progress_bar=true)

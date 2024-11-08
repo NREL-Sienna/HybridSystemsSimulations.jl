@@ -1,11 +1,11 @@
 ############### Storage costs, HybridSystem #######################
 PSI.objective_function_multiplier(
-    ::Union{BatteryCharge,BatteryDischarge},
+    ::Union{BatteryCharge, BatteryDischarge},
     ::AbstractHybridFormulation,
 ) = PSI.OBJECTIVE_FUNCTION_POSITIVE
 
 PSI.objective_function_multiplier(
-    ::Union{BatteryEnergySurplusVariable,BatteryEnergySurplusVariable},
+    ::Union{BatteryEnergySurplusVariable, BatteryEnergySurplusVariable},
     ::AbstractHybridFormulation,
 ) = PSI.OBJECTIVE_FUNCTION_POSITIVE
 
@@ -91,10 +91,10 @@ function PSI.add_proportional_cost!(
     devices::U,
     ::W,
 ) where {
-    T<:Union{BatteryCharge,BatteryDischarge},
-    U<:Union{Vector{D},IS.FlattenIteratorWrapper{D}},
-    W<:AbstractHybridFormulation,
-} where {D<:PSY.HybridSystem}
+    T <: Union{BatteryCharge, BatteryDischarge},
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
     multiplier = PSI.objective_function_multiplier(T(), W())
     for d in devices
         op_cost_data = PSY.get_operation_cost(PSY.get_storage(d))
@@ -114,10 +114,10 @@ function PSI.add_proportional_cost!(
     devices::U,
     formulation::W,
 ) where {
-    T<:Union{BatteryEnergyShortageVariable,BatteryEnergySurplusVariable},
-    U<:Union{Vector{D},IS.FlattenIteratorWrapper{D}},
-    W<:AbstractHybridFormulation,
-} where {D<:PSY.HybridSystem}
+    T <: Union{BatteryEnergyShortageVariable, BatteryEnergySurplusVariable},
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
     variable = PSI.get_variable(container, T(), D)
     for d in devices
         name = PSY.get_name(d)
@@ -134,10 +134,10 @@ function PSI.add_proportional_cost!(
     devices::U,
     ::W,
 ) where {
-    T<:BatteryRegularizationVariable,
-    U<:Union{Vector{D},IS.FlattenIteratorWrapper{D}},
-    W<:AbstractHybridFormulation,
-} where {D<:PSY.HybridSystem}
+    T <: BatteryRegularizationVariable,
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
     multiplier = PSI.objective_function_multiplier(T(), W())
     for d in devices
         op_cost_data = PSY.get_operation_cost(PSY.get_storage(d))
@@ -163,13 +163,13 @@ end
 ############### Thermal costs, HybridSystem #######################
 
 PSI.objective_function_multiplier(
-    ::Union{ThermalPower,PSI.OnVariable},
+    ::Union{ThermalPower, PSI.OnVariable},
     ::AbstractHybridFormulation,
 ) = PSI.OBJECTIVE_FUNCTION_POSITIVE
 
 PSI.objective_function_multiplier(
-    ::Union{ThermalPower,PSI.OnVariable},
-    ::Union{MerchantModelEnergyOnly,MerchantModelWithReserves},
+    ::Union{ThermalPower, PSI.OnVariable},
+    ::Union{MerchantModelEnergyOnly, MerchantModelWithReserves},
 ) = PSI.OBJECTIVE_FUNCTION_NEGATIVE
 
 PSI.proportional_cost(
@@ -197,10 +197,10 @@ function PSI.add_proportional_cost!(
     devices::U,
     ::W,
 ) where {
-    T<:PSI.OnVariable,
-    U<:Union{Vector{D},IS.FlattenIteratorWrapper{D}},
-    W<:AbstractHybridFormulation,
-} where {D<:PSY.HybridSystem}
+    T <: PSI.OnVariable,
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
     multiplier = PSI.objective_function_multiplier(T(), W())
     for d in devices
         op_cost_data = PSY.get_operation_cost(PSY.get_storage(d))
@@ -220,10 +220,10 @@ function PSI.add_variable_cost!(
     devices::U,
     ::W,
 ) where {
-    T<:ThermalPower,
-    U<:Union{Vector{D},IS.FlattenIteratorWrapper{D}},
-    W<:AbstractHybridFormulation,
-} where {D<:PSY.HybridSystem}
+    T <: ThermalPower,
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
     for d in devices
         op_cost_data = PSY.get_operation_cost(PSY.get_thermal_unit(d))
         variable_cost_data = PSI.variable_cost(op_cost_data, T(), d, W())
@@ -239,7 +239,7 @@ PSI.objective_function_multiplier(::RenewablePower, ::AbstractHybridFormulation)
 
 PSI.objective_function_multiplier(
     ::RenewablePower,
-    ::Union{MerchantModelEnergyOnly,MerchantModelWithReserves},
+    ::Union{MerchantModelEnergyOnly, MerchantModelWithReserves},
 ) = PSI.OBJECTIVE_FUNCTION_POSITIVE
 
 PSI.variable_cost(
@@ -255,10 +255,10 @@ function PSI.add_variable_cost!(
     devices::U,
     ::W,
 ) where {
-    T<:RenewablePower,
-    U<:Union{Vector{D},IS.FlattenIteratorWrapper{D}},
-    W<:AbstractHybridFormulation,
-} where {D<:PSY.HybridSystem}
+    T <: RenewablePower,
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
     for d in devices
         op_cost_data = PSY.get_operation_cost(PSY.get_renewable_unit(d))
         PSI._add_variable_cost_to_objective!(container, T(), d, op_cost_data, W())
@@ -273,12 +273,12 @@ end
 function PSI.objective_function!(
     container::PSI.OptimizationContainer,
     devices::U,
-    model::PSI.DeviceModel{D,W},
+    model::PSI.DeviceModel{D, W},
     ::PSI.NetworkModel{<:PM.AbstractPowerModel},
 ) where {
-    U<:Union{Vector{D},IS.FlattenIteratorWrapper{D}},
-    W<:AbstractHybridFormulation,
-} where {D<:PSY.HybridSystem}
+    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+    W <: AbstractHybridFormulation,
+} where {D <: PSY.HybridSystem}
     # Filter Devices
     _hybrids_with_thermal = [d for d in devices if PSY.get_thermal_unit(d) !== nothing]
     _hybrids_with_storage = [d for d in devices if PSY.get_storage(d) !== nothing]

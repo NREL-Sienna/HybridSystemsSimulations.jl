@@ -559,8 +559,8 @@ function PSI.add_to_expression!(
     if !PSI.has_container_key(container, T, V)
         PSI.add_expressions!(container, T, devices, model)
     end
-    expression = PSI.get_expression(container, T(), V)
-    for d in devices, t in gPSI.et_time_steps(container)
+    expression = PSI.get_expression(container, T(), V, service_name)
+    for d in devices, t in PSI.get_time_steps(container)
         name = PSY.get_name(d)
         PSI._add_to_jump_expression!(expression[name, t], variable[name, t], -1.0)
     end
@@ -585,7 +585,7 @@ function PSI.add_to_expression!(
     if !PSI.has_container_key(container, T, V)
         PSI.add_expressions!(container, T, devices, model)
     end
-    expression = PSI.get_expression(container, T(), V)
+    expression = PSI.get_expression(container, T(), V, service_name)
     for d in devices, t in PSI.get_time_steps(container)
         name = PSY.get_name(d)
         PSI._add_to_jump_expression!(expression[name, t], variable[name, t], 1.0)

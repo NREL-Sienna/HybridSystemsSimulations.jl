@@ -191,6 +191,9 @@ PSI.uses_compact_power(::PSY.HybridSystem, ::AbstractHybridFormulation) = false
 PSI.sos_status(::PSY.HybridSystem, ::AbstractHybridFormulation) =
     PSI.SOSStatusVariable.VARIABLE
 
+PSI.sos_status(::PSY.ThermalGen, ::AbstractHybridFormulation) =
+    PSI.SOSStatusVariable.VARIABLE
+
 function PSI.add_proportional_cost!(
     container::PSI.OptimizationContainer,
     ::T,
@@ -225,11 +228,22 @@ function PSI.add_variable_cost!(
     W <: AbstractHybridFormulation,
 } where {D <: PSY.HybridSystem}
     for d in devices
-        op_cost_data = PSY.get_operation_cost(PSY.get_thermal_unit(d))
+        thermal_component = PSY.get_thermal_unit(d)
+        op_cost_data = PSY.get_operation_cost(thermal_component)
         variable_cost_data = PSI.variable_cost(op_cost_data, T(), d, W())
         PSI._add_variable_cost_to_objective!(container, T(), d, variable_cost_data, W())
     end
     return
+end
+
+function PSI.get_fuel_cost_value(
+    container::PSI.OptimizationContainer,
+    component::PSY.HybridSystem,
+    t::Int,
+    is_time_variant::Val{false},
+)
+    thermal_component = PSY.get_thermal_unit(component)
+    return PSI.get_fuel_cost_value(container, thermal_component, t, is_time_variant)
 end
 
 ############### Renewable costs, HybridSystem #######################
@@ -322,6 +336,7 @@ function PSI.objective_function!(
             )
         end
     end
+
     # Add Thermal Cost
     if !isempty(_hybrids_with_thermal)
         PSI.add_variable_cost!(container, ThermalPower(), _hybrids_with_thermal, W())

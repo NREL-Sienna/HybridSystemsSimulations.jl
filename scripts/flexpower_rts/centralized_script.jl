@@ -73,6 +73,7 @@ else
     sys_rts_rt = build_system(PSISystems, "modified_RTS_GMLC_RT_sys_noForecast")
     to_json(sys_rts_rt, "modified_RTS_GMLC_RT_sys_noForecast.json")
 end
+sys_rts_em = System("modified_RTS_GMLC_RT_sys_noForecast.json")
 
 bus_to_add = "Chuhsi" # "Barton"
 add_da_forecast_in_5_mins_to_rt!(sys_rts_rt, sys_rts_da)
@@ -80,6 +81,8 @@ modify_ren_curtailment_cost!(sys_rts_da)
 add_hybrid_to_chuhsi_bus!(sys_rts_da)
 modify_ren_curtailment_cost!(sys_rts_rt)
 add_hybrid_to_chuhsi_bus!(sys_rts_rt)
+modify_ren_curtailment_cost!(sys_rts_em)
+add_hybrid_to_chuhsi_bus!(sys_rts_em)
 
 # Define DA and RT intervals and horizon. It must be ::Periods
 interval_DA = Hour(24)
@@ -231,7 +234,7 @@ models = SimulationModels(
     ],
     emulation_model=EmulationModel(
         template_pf_copperplate,
-        sys_rts_rt;
+        sys_rts_em;
         name="PF",
         optimizer=optimizer,
     ),

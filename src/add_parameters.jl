@@ -448,6 +448,11 @@ function PSI._set_param_value!(
     return
 end
 
+function PSI._set_param_value!(param::AbstractArray, value::Float64, name::String, t::Int)
+    param[name, service_name, t] = value
+    return
+end
+
 function PSI._add_parameters!(
     container::PSI.OptimizationContainer,
     ::T,

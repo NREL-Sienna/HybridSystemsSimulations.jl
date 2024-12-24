@@ -89,7 +89,7 @@ interval_DA = Hour(24)
 horizon_DA = Hour(72)
 transform_single_time_series!(sys_rts_da, horizon_DA, interval_DA)
 interval_RT = Hour(1)
-horizon_RT = Hour(12)
+horizon_RT = Hour(2)
 transform_single_time_series!(sys_rts_rt, horizon_RT, interval_RT)
 
 served_fraction_map = Dict(

@@ -449,7 +449,7 @@ function PSI._set_param_value!(
 end
 
 function PSI._set_param_value!(param::AbstractArray, value::Float64, name::String, t::Int)
-    param[name, t] = value
+    PSI.fix_parameter_value(param[name, t], value)
     return
 end
 

@@ -3,15 +3,22 @@ function PSI.calculate_aux_variable_value!(
     ::PSI.AuxVarKey{CyclingChargeUsage, T},
     system::PSY.System,
 ) where {T <: PSY.HybridSystem}
-    devices_hybrids = PSI.get_available_components(T, system)
-    devices = [d for d in devices_hybrids if PSY.get_storage(d) !== nothing]
+    charge_var = PSI.get_variable(container, BatteryCharge(), T)
+    device_names = axes(charge_var)[1]
+    # Leave the other stuff the same #
+    # for name in device_names
+    # d = PSY.get_component(T, sys, name)
+    # The same stuff
+    # devices_hybrids = PSI.get_available_components(T, system)
+    # devices = [d for d in devices_hybrids if PSY.get_storage(d) !== nothing]
     time_steps = PSI.get_time_steps(container)
     resolution = PSI.get_resolution(container)
     fraction_of_hour = Dates.value(Dates.Minute(resolution)) / PSI.MINUTES_IN_HOUR
-    charge_var = PSI.get_variable(container, BatteryCharge(), T)
+    # charge_var = PSI.get_variable(container, BatteryCharge(), T)
     aux_variable_container = PSI.get_aux_variable(container, CyclingChargeUsage(), T)
-    for d in devices
-        name = PSY.get_name(d)
+    for name in device_names
+        # name = PSY.get_name(d)
+        d = PSY.get_component(T, system, name)
         storage = PSY.get_storage(d)
         efficiency = PSY.get_efficiency(storage)
         for t in time_steps
@@ -43,15 +50,21 @@ function PSI.calculate_aux_variable_value!(
     ::PSI.AuxVarKey{CyclingDischargeUsage, T},
     system::PSY.System,
 ) where {T <: PSY.HybridSystem}
-    devices_hybrids = PSI.get_available_components(T, system)
-    devices = [d for d in devices_hybrids if PSY.get_storage(d) !== nothing]
+    discharge_var = PSI.get_variable(container, BatteryDischarge(), T)
+    device_names = axes(discharge_var)[1]
+    # Leave the other stuff the same #
+    # for name in device_names
+    # d = PSY.get_component(T, sys, name)
+    # The same stuff
+    # devices_hybrids = PSI.get_available_components(T, system)
+    # devices = [d for d in devices_hybrids if PSY.get_storage(d) !== nothing]
     time_steps = PSI.get_time_steps(container)
     resolution = PSI.get_resolution(container)
     fraction_of_hour = Dates.value(Dates.Minute(resolution)) / PSI.MINUTES_IN_HOUR
-    discharge_var = PSI.get_variable(container, BatteryDischarge(), T)
     aux_variable_container = PSI.get_aux_variable(container, CyclingDischargeUsage(), T)
-    for d in devices
-        name = PSY.get_name(d)
+    for name in device_names
+        # name = PSY.get_name(d)
+        d = PSY.get_component(T, system, name)
         storage = PSY.get_storage(d)
         efficiency = PSY.get_efficiency(storage)
         for t in time_steps

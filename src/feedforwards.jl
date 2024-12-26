@@ -7,7 +7,7 @@ struct CyclingChargeLimitFeedforward <: PSI.AbstractAffectFeedforward
         source::Type{T},
         affected_values::Vector{DataType},
         penalty_cost::Float64,
-        meta=PSI.CONTAINER_KEY_EMPTY_META,
+        meta=ISOPT.CONTAINER_KEY_EMPTY_META,
     ) where {T}
         values_vector = Vector{PSI.ParameterKey}(undef, length(affected_values))
         for (ix, v) in enumerate(affected_values)
@@ -42,7 +42,7 @@ struct CyclingDischargeLimitFeedforward <: PSI.AbstractAffectFeedforward
         source::Type{T},
         affected_values::Vector{DataType},
         penalty_cost::Float64,
-        meta=PSI.CONTAINER_KEY_EMPTY_META,
+        meta=ISOPT.CONTAINER_KEY_EMPTY_META,
     ) where {T}
         values_vector = Vector{PSI.ParameterKey}(undef, length(affected_values))
         for (ix, v) in enumerate(affected_values)
@@ -141,13 +141,17 @@ function PSI.add_feedforward_constraints!(
         ci_name = PSY.get_name(device)
         storage = PSY.get_storage(device)
         efficiency = PSY.get_efficiency(storage)
-        E_max = PSY.get_state_of_charge_limits(storage).max
+        E_max =
+            PSY.get_storage_level_limits(storage).max * PSY.get_storage_capacity(storage)
         cycles_per_day = PSY.get_cycle_limits(storage)
         cycles_in_horizon =
             cycles_per_day * fraction_of_hour * length(time_steps) / HOURS_IN_DAY
         if PSI.built_for_recurrent_solves(container)
             param_value =
-                PSI.get_parameter_array(container, CyclingChargeLimitParameter(), D)[ci_name]
+                PSI.get_parameter_array(container, CyclingChargeLimitParameter(), D)[
+                    ci_name,
+                    time_steps[end],
+                ]
             con_cycling_ch[ci_name] = JuMP.@constraint(
                 PSI.get_jump_model(container),
                 efficiency.in *
@@ -241,13 +245,17 @@ function PSI.add_feedforward_constraints!(
         ci_name = PSY.get_name(device)
         storage = PSY.get_storage(device)
         efficiency = PSY.get_efficiency(storage)
-        E_max = PSY.get_state_of_charge_limits(storage).max
+        E_max =
+            PSY.get_storage_level_limits(storage).max * PSY.get_storage_capacity(storage)
         cycles_per_day = PSY.get_cycle_limits(storage)
         cycles_in_horizon =
             cycles_per_day * fraction_of_hour * length(time_steps) / HOURS_IN_DAY
         if PSI.built_for_recurrent_solves(container)
             param_value =
-                PSI.get_parameter_array(container, CyclingDischargeLimitParameter(), D)[ci_name]
+                PSI.get_parameter_array(container, CyclingDischargeLimitParameter(), D)[
+                    ci_name,
+                    time_steps[end],
+                ]
             con_cycling_ds[ci_name] = JuMP.@constraint(
                 PSI.get_jump_model(container),
                 (1.0 / efficiency.out) *

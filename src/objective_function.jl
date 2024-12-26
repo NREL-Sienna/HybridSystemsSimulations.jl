@@ -16,31 +16,74 @@ PSI.objective_function_multiplier(
 
 PSI.proportional_cost(
     cost::PSY.OperationalCost,
-    ::Union{BatteryCharge, BatteryDischarge},
+    ::BatteryDischarge,
     ::PSY.HybridSystem,
     U::AbstractHybridFormulation,
-) = PSY.get_variable(cost).cost
+) = PSY.get_proportional_term(PSY.get_vom_cost(PSY.get_discharge_variable_cost(cost)))
 
 PSI.proportional_cost(
-    cost::PSY.StorageManagementCost,
+    cost::PSY.OperationalCost,
+    ::BatteryCharge,
+    ::PSY.HybridSystem,
+    U::AbstractHybridFormulation,
+) = PSY.get_proportional_term(PSY.get_vom_cost(PSY.get_charge_variable_cost(cost)))
+
+PSI.proportional_cost(
+    cost::PSY.StorageCost,
     ::BatteryEnergySurplusVariable,
     ::PSY.HybridSystem,
     U::AbstractHybridFormulation,
 ) = PSY.get_energy_surplus_cost(cost)
+
 PSI.proportional_cost(
-    cost::PSY.StorageManagementCost,
+    cost::PSY.StorageCost,
     ::BatteryEnergyShortageVariable,
     ::PSY.HybridSystem,
     U::AbstractHybridFormulation,
 ) = PSY.get_energy_shortage_cost(cost)
+
+PSI.proportional_cost(
+    cost::PSY.StorageCost,
+    ::ChargeRegularizationVariable,
+    ::PSY.HybridSystem,
+    W::AbstractHybridFormulationWithReserves,
+) = REG_COST #PSY.get_charge_variable_cost(cost) # PSY.charge_variable_cost(cost) #REG_COST
+
+PSI.proportional_cost(
+    cost::PSY.StorageCost,
+    ::DischargeRegularizationVariable,
+    ::PSY.HybridSystem,
+    W::AbstractHybridFormulationWithReserves,
+) = REG_COST #PSY.get_discharge_variable_cost(cost) #PSY.discharge_variable_cost(cost) #  #REG_COST
+
 function PSI.proportional_cost(
-    cost::PSY.StorageManagementCost,
+    cost::PSY.StorageCost,
     ::BatteryRegularizationVariable,
     ::PSY.HybridSystem,
     ::AbstractHybridFormulation,
 )
-    return max(REG_COST, PSY.get_variable(cost).cost * REG_COST)
+    return REG_COST #max(REG_COST, PSY.get_variable(cost).cost * REG_COST)
 end
+
+# HSA 11-6-2024 ===
+# function PSI.proportional_cost(
+#     cost::PSY.StorageCost,
+#     ::ChargeRegularizationVariable,
+#     ::PSY.HybridSystem,
+#     ::AbstractHybridFormulation,
+# )
+#     return max(REG_COST, PSY.charge_variable_cost(cost) * REG_COST)
+# end
+
+# function PSI.proportional_cost(
+#     cost::PSY.StorageCost,
+#     ::DischargeRegularizationVariable,
+#     ::PSY.HybridSystem,
+#     ::AbstractHybridFormulation,
+# )
+#     return max(REG_COST, PSY.discharge_variable_cost(cost) * REG_COST)
+# end
+# HSA 11-6-2024 ===
 
 function PSI.add_proportional_cost!(
     container::PSI.OptimizationContainer,
@@ -100,9 +143,18 @@ function PSI.add_proportional_cost!(
         op_cost_data = PSY.get_operation_cost(PSY.get_storage(d))
         isnothing(op_cost_data) && continue
         cost_term = PSI.proportional_cost(op_cost_data, T(), d, W())
+        # value_curve = PSY.get_value_curve(cost_term)
+        # proportional_term = PSY.get_proportional_term(value_curve)
+
+        # println("===============================================")
+        # println(" ")
+        # println("Proportional term: $proportional_term")
+        # println(" ")
+        # println("===============================================")
         iszero(cost_term) && continue
         for t in PSI.get_time_steps(container)
             PSI._add_proportional_term!(container, T(), d, cost_term * multiplier, t)
+            #PSI._add_proportional_term!(container, T(), d, proportional_term * multiplier, t)
         end
     end
     return
@@ -139,6 +191,9 @@ PSI.uses_compact_power(::PSY.HybridSystem, ::AbstractHybridFormulation) = false
 PSI.sos_status(::PSY.HybridSystem, ::AbstractHybridFormulation) =
     PSI.SOSStatusVariable.VARIABLE
 
+PSI.sos_status(::PSY.ThermalGen, ::AbstractHybridFormulation) =
+    PSI.SOSStatusVariable.VARIABLE
+
 function PSI.add_proportional_cost!(
     container::PSI.OptimizationContainer,
     ::T,
@@ -173,11 +228,22 @@ function PSI.add_variable_cost!(
     W <: AbstractHybridFormulation,
 } where {D <: PSY.HybridSystem}
     for d in devices
-        op_cost_data = PSY.get_operation_cost(PSY.get_thermal_unit(d))
+        thermal_component = PSY.get_thermal_unit(d)
+        op_cost_data = PSY.get_operation_cost(thermal_component)
         variable_cost_data = PSI.variable_cost(op_cost_data, T(), d, W())
         PSI._add_variable_cost_to_objective!(container, T(), d, variable_cost_data, W())
     end
     return
+end
+
+function PSI.get_fuel_cost_value(
+    container::PSI.OptimizationContainer,
+    component::PSY.HybridSystem,
+    t::Int,
+    is_time_variant::Val{false},
+)
+    thermal_component = PSY.get_thermal_unit(component)
+    return PSI.get_fuel_cost_value(container, thermal_component, t, is_time_variant)
 end
 
 ############### Renewable costs, HybridSystem #######################
@@ -270,6 +336,7 @@ function PSI.objective_function!(
             )
         end
     end
+
     # Add Thermal Cost
     if !isempty(_hybrids_with_thermal)
         PSI.add_variable_cost!(container, ThermalPower(), _hybrids_with_thermal, W())

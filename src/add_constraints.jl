@@ -109,8 +109,8 @@ function _add_constraints_statusout_withreserves!(
     p_out = PSI.get_variable(container, PSI.ActivePowerOutVariable(), D)
     res_out_up = PSI.get_expression(container, TotalReserveOutUpExpression(), D)
     res_out_down = PSI.get_expression(container, TotalReserveOutDownExpression(), D)
-    serv_reg_out_up = PSI.get_expression(container, ServedReserveOutUpExpression(), D)
-    serv_reg_out_down = PSI.get_expression(container, ServedReserveOutDownExpression(), D)
+    #serv_reg_out_up = PSI.get_expression(container, ServedReserveOutUpExpression(), D)
+    #serv_reg_out_down = PSI.get_expression(container, ServedReserveOutDownExpression(), D)
     con_ub = PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="ub")
     con_lb = PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="lb")
 
@@ -120,13 +120,15 @@ function _add_constraints_statusout_withreserves!(
         @assert max_limit !== nothing ci_name
         con_ub[ci_name, t] = JuMP.@constraint(
             PSI.get_jump_model(container),
-            p_out[ci_name, t] + (res_out_up[ci_name, t] - serv_reg_out_up[ci_name, t]) <=
-            max_limit * varon[ci_name, t]
+            #p_out[ci_name, t] + (res_out_up[ci_name, t] - serv_reg_out_up[ci_name, t]) <=
+            #max_limit * varon[ci_name, t]
+            p_out[ci_name, t] + res_out_up[ci_name, t] <= max_limit * varon[ci_name, t]
         )
         con_lb[ci_name, t] = JuMP.@constraint(
             PSI.get_jump_model(container),
-            p_out[ci_name, t] -
-            (res_out_down[ci_name, t] - serv_reg_out_down[ci_name, t]) >= 0.0
+            #p_out[ci_name, t] -
+            #(res_out_down[ci_name, t] - serv_reg_out_down[ci_name, t]) >= 0.0
+            p_out[ci_name, t] - res_out_down[ci_name, t] >= 0.0
         )
     end
     return
@@ -239,8 +241,8 @@ function _add_constraints_statusin_withreserves!(
     p_in = PSI.get_variable(container, PSI.ActivePowerInVariable(), D)
     res_in_up = PSI.get_expression(container, TotalReserveInUpExpression(), D)
     res_in_down = PSI.get_expression(container, TotalReserveInDownExpression(), D)
-    serv_reg_in_up = PSI.get_expression(container, ServedReserveInUpExpression(), D)
-    serv_reg_in_down = PSI.get_expression(container, ServedReserveInDownExpression(), D)
+    #serv_reg_in_up = PSI.get_expression(container, ServedReserveInUpExpression(), D)
+    #serv_reg_in_down = PSI.get_expression(container, ServedReserveInDownExpression(), D)
     con_ub = PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="ub")
     con_lb = PSI.add_constraints_container!(container, T(), D, names, time_steps, meta="lb")
 
@@ -250,12 +252,15 @@ function _add_constraints_statusin_withreserves!(
         @assert max_limit !== nothing ci_name
         con_ub[ci_name, t] = JuMP.@constraint(
             PSI.get_jump_model(container),
-            p_in[ci_name, t] + (res_in_down[ci_name, t] - serv_reg_in_down[ci_name, t]) <=
+            #p_in[ci_name, t] + (res_in_down[ci_name, t] - serv_reg_in_down[ci_name, t]) <=
+            #max_limit * (1.0 - varon[ci_name, t])
+            p_in[ci_name, t] + res_in_down[ci_name, t] <=
             max_limit * (1.0 - varon[ci_name, t])
         )
         con_lb[ci_name, t] = JuMP.@constraint(
             PSI.get_jump_model(container),
-            p_in[ci_name, t] - (res_in_up[ci_name, t] - serv_reg_in_up[ci_name, t]) >= 0.0
+            #p_in[ci_name, t] - (res_in_up[ci_name, t] - serv_reg_in_up[ci_name, t]) >= 0.0
+            p_in[ci_name, t] - res_in_up[ci_name, t] >= 0.0
         )
     end
     return
@@ -935,7 +940,7 @@ function _add_constraints_cyclingcharge_withreserves!(
         ci_name = PSY.get_name(device)
         storage = PSY.get_storage(device)
         efficiency = PSY.get_efficiency(storage)
-        E_max = PSY.get_state_of_charge_limits(storage).max
+        E_max = PSY.get_storage_level_limits(storage).max
         cycles_per_day = PSY.get_cycle_limits(storage)
         cycles_in_horizon =
             cycles_per_day * fraction_of_hour * length(time_steps) / HOURS_IN_DAY
@@ -1100,7 +1105,7 @@ function _add_constraints_cyclingdischarge_withreserves!(
         ci_name = PSY.get_name(device)
         storage = PSY.get_storage(device)
         efficiency = PSY.get_efficiency(storage)
-        E_max = PSY.get_state_of_charge_limits(storage).max
+        E_max = PSY.get_storage_level_limits(storage).max
         cycles_per_day = PSY.get_cycle_limits(storage)
         cycles_in_horizon =
             cycles_per_day * fraction_of_hour * length(time_steps) / HOURS_IN_DAY
@@ -1622,7 +1627,7 @@ function _add_constraints_reservecoverage_withreserves!(
         ci_name = PSY.get_name(device)
         storage = PSY.get_storage(device)
         efficiency = PSY.get_efficiency(storage).in
-        E_max = PSY.get_state_of_charge_limits(storage).max
+        E_max = PSY.get_storage_level_limits(storage).max
         sustained_param = efficiency * num_periods * fraction_of_hour
         con[ci_name, 1] = JuMP.@constraint(
             container.JuMPmodel,
@@ -1751,7 +1756,7 @@ function _add_constraints_reservecoverage_withreserves_endofperiod!(
     for device in devices, t in time_steps
         ci_name = PSY.get_name(device)
         storage = PSY.get_storage(device)
-        E_max = PSY.get_state_of_charge_limits(storage).max
+        E_max = PSY.get_storage_level_limits(storage).max
         efficiency = PSY.get_efficiency(storage).in
         sustained_param = efficiency * fraction_of_hour * num_periods
         con[ci_name, t] = JuMP.@constraint(

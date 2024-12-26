@@ -47,8 +47,8 @@ export ComplentarySlacknessCyclingCharge
 export ComplentarySlacknessCyclingDischarge
 export ComplementarySlacknessEnergyLimitUb
 export ComplementarySlacknessEnergyLimitLb
-export ComplementarySlacknessThermalOnVariableOn
-export ComplementarySlacknessThermalOnVariableOff
+#export ComplementarySlacknessThermalOnVariableOn
+#export ComplementarySlacknessThermalOnVariableOff
 export StrongDualityCut
 
 # Parameters
@@ -71,6 +71,7 @@ const PSI = PowerSimulations
 const PSY = PowerSystems
 const PM = PSI.PM
 const IS = PSI.IS
+const ISOPT = IS.Optimization
 
 using DocStringExtensions
 @template (FUNCTIONS, METHODS) = """

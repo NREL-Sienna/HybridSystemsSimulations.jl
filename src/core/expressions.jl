@@ -27,6 +27,9 @@ struct ChargeServedReserveDownExpression <: ComponentServedReserveDownExpression
 struct DischargeServedReserveUpExpression <: ComponentServedReserveUpExpressionType end
 struct DischargeServedReserveDownExpression <: ComponentServedReserveDownExpressionType end
 
+struct ReserveRangeExpressionLB <: PSI.RangeConstraintLBExpressions end
+struct ReserveRangeExpressionUB <: PSI.RangeConstraintUBExpressions end
+
 ### Reserve Balance Expression ###
 struct ComponentReserveBalanceExpression <: PSI.ExpressionType end
 abstract type TotalReserveUpExpression <: PSI.ExpressionType end

@@ -410,7 +410,8 @@ function PSI._update_parameter_values!(
     # sim_timestamps = range(current_time; step=model_resolution, length=final_time)
     for name in component_names
         state_value = 0.0
-        timestamp_range = state_data_index:min(max_state_index, state_data_index + final_time - 1)
+        timestamp_range =
+            state_data_index:min(max_state_index, state_data_index + final_time - 1)
         for t in timestamp_range
             #=
             @debug "parameter horizon is over the step" max_state_index > state_data_index + 1
@@ -543,7 +544,8 @@ function PSI._add_parameters!(
     else
         key = PSI.AuxVarKey{CyclingChargeUsage, PSY.HybridSystem}("")
     end
-    parameter_container = PSI.add_param_container!(container, T(), D, key, names, [time_steps[end]])
+    parameter_container =
+        PSI.add_param_container!(container, T(), D, key, names, [time_steps[end]])
     jump_model = PSI.get_jump_model(container)
 
     for d in devices
@@ -554,7 +556,7 @@ function PSI._add_parameters!(
             jump_model,
             mult * PSI.get_initial_parameter_value(T(), d, W()),
             name,
-            time_steps[end]
+            time_steps[end],
         )
     end
     return

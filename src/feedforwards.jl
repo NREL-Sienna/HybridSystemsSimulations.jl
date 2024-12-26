@@ -148,7 +148,10 @@ function PSI.add_feedforward_constraints!(
             cycles_per_day * fraction_of_hour * length(time_steps) / HOURS_IN_DAY
         if PSI.built_for_recurrent_solves(container)
             param_value =
-                PSI.get_parameter_array(container, CyclingChargeLimitParameter(), D)[ci_name, time_steps[end]]
+                PSI.get_parameter_array(container, CyclingChargeLimitParameter(), D)[
+                    ci_name,
+                    time_steps[end],
+                ]
             con_cycling_ch[ci_name] = JuMP.@constraint(
                 PSI.get_jump_model(container),
                 efficiency.in *
@@ -249,7 +252,10 @@ function PSI.add_feedforward_constraints!(
             cycles_per_day * fraction_of_hour * length(time_steps) / HOURS_IN_DAY
         if PSI.built_for_recurrent_solves(container)
             param_value =
-                PSI.get_parameter_array(container, CyclingDischargeLimitParameter(), D)[ci_name, time_steps[end]]
+                PSI.get_parameter_array(container, CyclingDischargeLimitParameter(), D)[
+                    ci_name,
+                    time_steps[end],
+                ]
             con_cycling_ds[ci_name] = JuMP.@constraint(
                 PSI.get_jump_model(container),
                 (1.0 / efficiency.out) *

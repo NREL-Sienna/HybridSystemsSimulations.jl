@@ -410,7 +410,7 @@ function PSI._update_parameter_values!(
     # sim_timestamps = range(current_time; step=model_resolution, length=final_time)
     for name in component_names
         state_value = 0.0
-        @show timestamp_range = state_data_index:min(max_state_index, state_data_index + final_time - 1)
+        timestamp_range = state_data_index:min(max_state_index, state_data_index + final_time - 1)
         for t in timestamp_range
             #=
             @debug "parameter horizon is over the step" max_state_index > state_data_index + 1
